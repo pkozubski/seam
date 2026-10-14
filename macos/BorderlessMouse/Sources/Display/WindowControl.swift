@@ -53,8 +53,13 @@ enum WindowControl {
                       width: size.width, height: size.height)
     }
 
-    /// AX distinguishes application windows from layer-zero transient surfaces (e.g. Chrome suggestions).
-    /// nil means the app did not provide usable AX data: retain the CG layer fallback.
+    /// Chrome exposes both the omnibox and extension bubbles as AXWindow/AXUnknown,
+    /// at CG layer zero. The role alone does not mean a surface is an application window.
+    static func isApplicationWindow(role: String?, subrole: String?, hasWindowControls: Bool) -> Bool {
+        role == kAXWindowRole && (subrole == kAXStandardWindowSubrole || hasWindowControls)
+    }
+
+    /// nil means AX failed; an empty set means AX succeeded but found only transient surfaces.
     static func applicationWindowIDs(pid: Int32) -> Set<UInt32>? {
         guard let getWindow else { return nil }
         let app = AXUIElementCreateApplication(pid)
@@ -64,13 +69,20 @@ enum WindowControl {
               let windows = value as? [AXUIElement] else { return nil }
         var ids = Set<UInt32>()
         for window in windows {
-            var role: CFTypeRef?
-            AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &role)
-            guard role as? String == kAXWindowRole else { continue }
+            var role: CFTypeRef?, subrole: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &role) == .success else { return nil }
+            AXUIElementCopyAttributeValue(window, kAXSubroleAttribute as CFString, &subrole)
+            let hasControls = [kAXCloseButtonAttribute, kAXMinimizeButtonAttribute, kAXZoomButtonAttribute].contains { attribute in
+                var button: CFTypeRef?
+                return AXUIElementCopyAttributeValue(window, attribute as CFString, &button) == .success && button != nil
+            }
+            guard isApplicationWindow(role: role as? String, subrole: subrole as? String,
+                                      hasWindowControls: hasControls) else { continue }
             var id: CGWindowID = 0
-            if getWindow(window, &id) == .success { ids.insert(id) }
+            guard getWindow(window, &id) == .success, id != 0 else { return nil }
+            ids.insert(id)
         }
-        return ids.isEmpty ? nil : ids
+        return ids
     }
 
     /// Okno przeciągnięte na Windowsie do krawędzi po stronie Maca wraca na fizyczny ekran,

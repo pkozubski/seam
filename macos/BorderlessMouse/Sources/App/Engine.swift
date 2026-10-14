@@ -385,7 +385,9 @@ final class Engine {
             display.requestKeyframe(streamID: r.u32())
             windowTracker.resend()
         case .windowRaise:
-            guard let id = r.u32(), let window = trackedWindows[id] else { return }
+            // Bubbles already belong to the active source window. Making them AXMain
+            // steals focus from the browser and can dismiss/recreate them before the click.
+            guard let id = r.u32(), let window = trackedWindows[id], !window.isPopup, !window.isMenuBar else { return }
             DispatchQueue.main.async { WindowControl.raise(windowID: id, pid: window.pid, frame: window.frame) }
         case .windowClose:
             guard let id = r.u32(), let window = trackedWindows[id] else { return }

@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- Recognize Chrome's layer-zero `AXWindow/AXUnknown` omnibox and extension bubbles
+  by their subrole and native window controls, instead of giving every AXWindow a
+  separate application caption/menu. Do not make transient surfaces AXMain on click.
+- Remove dismissed popup streams immediately, even when Chrome keeps their hidden
+  CG windows alive. Fullscreen retention applies only to verified application owners
+  with a fullscreen transient, never to arbitrary maximized sibling windows.
 - Keep the native menu's Windows redirection surface so the row below a transferred
   window's caption renders normally instead of revealing the desktop through a gap.
 - Mac window proxies use native Windows captions, resize borders, application menus and

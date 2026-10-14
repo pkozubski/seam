@@ -62,6 +62,9 @@ internal static class WindowChecks
     private static extern IntPtr GetWindow(IntPtr window, uint command);
     [DllImport("user32.dll")]
     private static extern IntPtr GetMenu(IntPtr window);
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(IntPtr window);
 
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public static void RunNative(IReadOnlyList<VideoStream.VideoFrame> frames)
@@ -100,6 +103,16 @@ internal static class WindowChecks
         Expect(GetWindow(transient, 4) == handle, "transient HWND is owned by the application HWND");
         Expect(GetMenu(handle) != IntPtr.Zero, "application commands use a native Windows menu");
         Expect(((long)GetWindowLongPtrW(transient, -20) & 0x80) != 0, "transient is a tool window without a taskbar button");
+        Expect(((long)GetWindowLongPtrW(transient, -16) & 0x00C00000) == 0 && GetMenu(transient) == IntPtr.Zero,
+            "a Chrome bubble has neither a caption nor a duplicate application menu");
+        viewer.UpdateWindows(new[] { main });
+        Wait(() => viewer.Proxies.Count == 1 && !IsWindow(transient),
+            "a dismissed popup destroys its HWND and input target");
+        viewer.UpdateWindows(new[] { main, popup });
+        Wait(() => viewer.Proxies.Count == 2, "reopening the same source popup creates a fresh surface");
+        transient = viewer.Proxies.Single(p => p.Value.Id == 102).Key;
+        Expect(GetWindow(transient, 4) == handle && GetMenu(transient) == IntPtr.Zero,
+            "reopened popup remains owned and frameless");
         var client = viewer.Proxies[handle].Client;
         Expect(Math.Abs(client.Width / (double)client.Height - 160.0 / 96) < 0.01,
             "rendering and input publish the same aspect-preserving rectangle");

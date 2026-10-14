@@ -13,6 +13,7 @@ swiftc -parse-as-library -swift-version 5 -framework AppKit -framework CryptoKit
   macos/BorderlessMouse/Sources/Protocol/VideoStream.swift \
   macos/BorderlessMouse/Sources/Display/VirtualDisplay.swift \
   macos/BorderlessMouse/Sources/Display/WindowControl.swift \
+  macos/BorderlessMouse/Sources/Display/WindowTracker.swift \
   macos/BorderlessMouse/Sources/Display/VideoEncoder.swift \
   macos/tests/WindowChecks.swift -o "$TEST_DIR/window-checks"
 "$TEST_DIR/window-checks"

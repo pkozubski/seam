@@ -20,25 +20,22 @@ final class WindowTracker {
     private var timer: DispatchSourceTimer?
     private var last: [TrackedWindow]?
     private var ownership: [Int32: (ids: Set<UInt32>, checked: TimeInterval, appIDs: Set<UInt32>?)] = [:]
-    private var recentOwners: [UInt32: (window: TrackedWindow, seen: TimeInterval)] = [:]
+    private var state = WindowTrackingState()
 
     /// Wywoływane na kolejce trackera, tylko gdy lista się zmieniła.
     func start(displayID: CGDirectDisplayID, onChange: @escaping ([TrackedWindow]) -> Void) {
         stop()
-        queue.sync { last = nil; ownership.removeAll(); recentOwners.removeAll() }
+        queue.sync { last = nil; ownership.removeAll(); state = WindowTrackingState() }
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(33), leeway: .milliseconds(5))
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             let current = Self.snapshot(displayID: displayID)
-            let windows = self.classify(self.retainingFullscreenOwners(current, displayID: displayID))
             let now = ProcessInfo.processInfo.systemUptime
-            let visibleIDs = Set(current.map(\.id))
-            for window in windows where !window.isPopup && !window.isMenuBar && visibleIDs.contains(window.id) {
-                self.recentOwners[window.id] = (window, now)
-            }
-            let retainedIDs = Set(windows.map(\.id))
-            self.recentOwners = self.recentOwners.filter { retainedIDs.contains($0.key) }
+            self.refreshOwnership(current, now: now)
+            let existing = self.state.hasMissingOwners(in: current) ? Self.existingWindows() : []
+            let windows = self.state.update(current, applicationWindows: self.ownership.compactMapValues(\.appIDs),
+                                            existing: existing, display: CGDisplayBounds(displayID), now: now)
             guard windows != self.last else { return }
             self.last = windows
             onChange(windows)
@@ -57,50 +54,28 @@ final class WindowTracker {
         queue.async { self.last = nil }
     }
 
-    private func classify(_ windows: [TrackedWindow]) -> [TrackedWindow] {
+    private func refreshOwnership(_ windows: [TrackedWindow], now: TimeInterval) {
         let groups = Dictionary(grouping: windows.filter { !$0.isMenuBar }, by: \.pid)
-        let now = ProcessInfo.processInfo.systemUptime
         ownership = ownership.filter { groups[$0.key] != nil }
         for (pid, group) in groups {
             let ids = Set(group.map(\.id))
             if ownership[pid]?.ids != ids || now - (ownership[pid]?.checked ?? 0) > 1 {
-                ownership[pid] = (ids, now, WindowControl.applicationWindowIDs(pid: pid))
+                let appIDs = WindowControl.applicationWindowIDs(pid: pid) ?? ownership[pid]?.appIDs
+                ownership[pid] = (ids, now, appIDs)
             }
-        }
-        return windows.map { window in
-            guard !window.isMenuBar, !window.isPopup, let appIDs = ownership[window.pid]?.appIDs,
-                  !appIDs.contains(window.id),
-                  windows.contains(where: { $0.pid == window.pid && appIDs.contains($0.id)
-                      && $0.frame.intersects(window.frame) }) else { return window }
-            return TrackedWindow(id: window.id, pid: window.pid, frame: window.frame,
-                                 isMenuBar: false, isPopup: true, title: window.title)
         }
     }
 
-    /// Fullscreen Spaces can briefly remove the source window from the on-screen list.
-    /// Keep its host while a fullscreen child is shown, but only if that source still exists
-    /// on the virtual display. Returning it to a physical display removes the host immediately.
-    private func retainingFullscreenOwners(_ current: [TrackedWindow], displayID: CGDirectDisplayID) -> [TrackedWindow] {
-        let missing = recentOwners.values.filter { owner in !current.contains { $0.id == owner.window.id } }
-        guard !missing.isEmpty,
-              let all = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
-                as? [[String: Any]] else { return current }
-        let display = CGDisplayBounds(displayID)
-        let now = ProcessInfo.processInfo.systemUptime
-        var result = current
-        for owner in missing {
-            guard let info = all.first(where: { ($0[kCGWindowNumber as String] as? UInt32) == owner.window.id
-                && ($0[kCGWindowOwnerPID as String] as? Int32) == owner.window.pid }),
+    private static func existingWindows() -> [TrackedWindow] {
+        let all = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]] ?? []
+        return all.compactMap { info in
+            guard let id = info[kCGWindowNumber as String] as? UInt32,
+                  let pid = info[kCGWindowOwnerPID as String] as? Int32,
                   let dict = info[kCGWindowBounds as String] as? NSDictionary,
-                  let bounds = CGRect(dictionaryRepresentation: dict as CFDictionary),
-                  display.contains(CGPoint(x: bounds.midX, y: bounds.midY)) else { continue }
-            let fullscreenChild = current.contains { window in
-                window.pid == owner.window.pid && window.frame.intersection(display).width >= display.width * 0.9
-                    && window.frame.intersection(display).height >= display.height * 0.9
-            }
-            if now - owner.seen < 0.75 || fullscreenChild { result.append(owner.window) }
+                  let bounds = CGRect(dictionaryRepresentation: dict as CFDictionary) else { return nil }
+            return TrackedWindow(id: id, pid: pid, frame: bounds, isMenuBar: false, isPopup: false, title: "")
         }
-        return result
     }
 
     /// Okna od najwyższego.
@@ -179,5 +154,54 @@ final class WindowTracker {
         let display = CGDisplayBounds(displayID)
         return CGPoint(x: display.minX + CGFloat(x) / 65535 * (display.width - 1),
                        y: display.minY + CGFloat(y) / 65535 * (display.height - 1))
+    }
+}
+
+/// Pure lifecycle logic shared by the live tracker and regression checks. Classify before
+/// retaining owners: a hidden Chrome bubble still exists in optionAll and must never be
+/// kept alive just because a different Chrome window happens to fill the display.
+struct WindowTrackingState {
+    private var recentOwners: [UInt32: (window: TrackedWindow, seen: TimeInterval)] = [:]
+
+    func hasMissingOwners(in current: [TrackedWindow]) -> Bool {
+        let visible = Set(current.map(\.id))
+        return recentOwners.keys.contains { !visible.contains($0) }
+    }
+
+    mutating func update(_ current: [TrackedWindow], applicationWindows: [Int32: Set<UInt32>],
+                         existing: [TrackedWindow], display: CGRect, now: TimeInterval) -> [TrackedWindow] {
+        let candidates = current + recentOwners.values.map(\.window)
+        let classified = current.map { window in
+            guard !window.isMenuBar, !window.isPopup, let appIDs = applicationWindows[window.pid],
+                  !appIDs.contains(window.id),
+                  candidates.contains(where: { owner in
+                      owner.id != window.id && owner.pid == window.pid && !owner.isPopup && !owner.isMenuBar
+                          && (appIDs.contains(owner.id) || recentOwners[owner.id] != nil)
+                          && owner.frame.intersects(window.frame)
+                  }) else { return window }
+            return TrackedWindow(id: window.id, pid: window.pid, frame: window.frame,
+                                 isMenuBar: false, isPopup: true, title: window.title)
+        }
+        let visible = Set(classified.map(\.id))
+        var result = classified
+        for owner in recentOwners.values where !visible.contains(owner.window.id) {
+            guard let source = existing.first(where: { $0.id == owner.window.id && $0.pid == owner.window.pid }),
+                  display.contains(CGPoint(x: source.frame.midX, y: source.frame.midY)) else { continue }
+            let fullscreenChild = classified.contains { window in
+                window.isPopup && window.pid == owner.window.pid
+                    && window.frame.intersection(display).width >= display.width * 0.9
+                    && window.frame.intersection(display).height >= display.height * 0.9
+            }
+            if now - owner.seen < 0.75 || fullscreenChild { result.append(owner.window) }
+        }
+        // Only positively identified application windows can survive a fullscreen transition.
+        // Unknown AX data must not promote a transient to an indefinitely retained owner.
+        let retained = Set(result.filter { !$0.isPopup && !$0.isMenuBar }.map(\.id))
+        recentOwners = recentOwners.filter { retained.contains($0.key) }
+        for window in classified where !window.isPopup && !window.isMenuBar
+            && applicationWindows[window.pid]?.contains(window.id) == true {
+            recentOwners[window.id] = (window, now)
+        }
+        return result
     }
 }
