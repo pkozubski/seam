@@ -616,7 +616,11 @@ public sealed class DisplayViewer : IDisposable
         var client = kind == SurfaceKind.Popup ? PopupClient(surface) : window.MacScreen;
         // DWM draws the native frame; DirectComposition supplies only the client image.
         var style = kind == SurfaceKind.Window ? WS_OVERLAPPEDWINDOW : WS_POPUP;
-        var exStyle = WS_EX_NOREDIRECTIONBITMAP | (kind == SurfaceKind.Window ? WS_EX_APPWINDOW : WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
+        // USER32 paints the native menu into the redirection bitmap. Removing that
+        // bitmap makes the reserved menu row transparent even though DWM draws the caption.
+        // Only borderless, entirely GPU-rendered popups can opt out of redirection.
+        var exStyle = kind == SurfaceKind.Window ? WS_EX_APPWINDOW
+            : WS_EX_NOREDIRECTIONBITMAP | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
         surface.Handle = CreateWindowExW(exStyle, ClassName, window.Title, style, client.Left, client.Top,
             Math.Max(1, client.Width), Math.Max(1, client.Height), IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
         if (surface.Handle == IntPtr.Zero) return;
@@ -735,7 +739,7 @@ public sealed class DisplayViewer : IDisposable
         if (surface.Kind == SurfaceKind.Window)
         {
             AdjustWindowRectExForDpi(ref frame, WS_OVERLAPPEDWINDOW, surface.Menu != IntPtr.Zero,
-                WS_EX_NOREDIRECTIONBITMAP | WS_EX_APPWINDOW, GetDpiForWindow(surface.Handle));
+                WS_EX_APPWINDOW, GetDpiForWindow(surface.Handle));
             frame = WindowGeometry.KeepReachable(frame, Monitors().Select(m => m.WorkArea).ToArray());
         }
         surface.ApplyingPlacement = true;

@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- Keep the native menu's Windows redirection surface so the row below a transferred
+  window's caption renders normally instead of revealing the desktop through a gap.
 - Mac window proxies use native Windows captions, resize borders, application menus and
   DWM corners. Maximize, Snap and DPI changes request a matching source window size.
 - Preserve video aspect ratio and map input/popups to the actual displayed image. Keep

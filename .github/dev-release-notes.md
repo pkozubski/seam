@@ -1,5 +1,6 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
+- Usunięta przezroczysta szczelina pod paskiem tytułu okien Maca na Windowsie: natywne menu odzyskało powierzchnię rysowania.
 - Natywna ramka, przyciski, menu, Snap i obsługa DPI dla okien Maca na Windowsie.
 - Zachowanie proporcji i przekazywanie zmiany rozmiaru do aplikacji na Macu.
 - Poprawki położenia okien między monitorami, popupów i pełnoekranowego wideo.
