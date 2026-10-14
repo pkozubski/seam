@@ -121,6 +121,18 @@ wyłączyć w karcie **Aktualizacje**). Aktualizacja jest pobierana, weryfikowan
 oraz przypiętym podpisem ECDSA i instalowana jednym kliknięciem, po czym aplikacja uruchamia
 się ponownie. Klucz prywatny nie znajduje się w repozytorium ani w aplikacji.
 
+**Kanał testowy macOS i Windows:** push na `feature/virtual-display` uruchamia
+`.github/workflows/dev-build.yml`. Obie aplikacje mają ten sam numer `2.1.<numer uruchomienia>`
+i trafiają do wydania wstępnego `dev-build`. Sprawdzają je 5 s po starcie i co 2 minuty;
+instalacja jest automatyczna po co najmniej minucie bezczynności, bez zdalnego sterowania
+i przeniesionych okien. Opcja **Sprawdzaj automatycznie** wyłącza również automatyczną instalację.
+Zwykłe wydania pozostają w kanale stabilnym. Starszy Mac pokazujący `1.0.0` wymaga
+jednorazowej instalacji testowego ZIP-a, ponieważ nie zna kanału testowego.
+
+Lokalne buildy odczytują domyślną wersję z pliku `VERSION`; CI ustawia ją jawnie.
+Mac: `UPDATE_CHANNEL=dev VERSION=2.1.5 ./build.sh`. Windows: dodaj do `dotnet publish`
+`-p:UpdateChannel=dev -p:Version=2.1.5`.
+
 * **Windows**: podpis projektu chroni darmową betę przed podmienioną aktualizacją, ale nie
   usuwa ostrzeżenia „Unknown publisher” przy pierwszym pobraniu. Podmiana zachowuje poprzedni
   plik do chwili poprawnego restartu i cofa zmianę po błędzie.
@@ -212,17 +224,18 @@ Jak z tego korzystać:
 **Tryb okien** (domyślny, przełącznik „Tylko okna Maca” na Windowsie): każde okno Maca,
 które przeciągniesz na ekran wirtualny, staje się zwykłym oknem Windows.
 
-* Wygląda jak na Macu: wygładzone zaokrąglone rogi (DirectComposition i Direct2D), własny pasek tytułu okna (czerwony, żółty i zielony
-  przycisk działają na Macu), a nad nim ciemny pasek menu aplikacji w stylu macOS (nazwa
-  aplikacji, Plik, Edycja, Widok…). Kliknięcie rozwija menu ze skrótami i wyszarzeniami,
-  a wybranie pozycji wywołuje ją na Macu. Pasek menu Maca nie jest potrzebny.
-* Po lewej stronie paska są przyciski okna jak w macOS (zamknij, minimalizuj, maksymalizuj) –
-  działają w każdej aplikacji, także tej, która ukrywa własne.
-* Za pusty fragment paska menu okno można przeciągnąć (także na inny monitor), a podwójne
-  kliknięcie maksymalizuje je na cały monitor (okno na Macu dostaje ten sam rozmiar).
-  Przeciągnięcie za pasek do krawędzi monitora po stronie Maca odsyła okno na MacBooka
-  razem z kursorem.
-  Rozmiar zmienia się też za krawędzie okna Maca.
+* Ma natywny pasek tytułu i ramkę Windows: systemowe przyciski zamknięcia, minimalizacji
+  i maksymalizacji, przeciąganie, zmiana rozmiaru, Snap oraz obsługa DPI każdego monitora.
+  Windows 11 rysuje zaokrąglenia przez DWM; Windows 10 używa swojej natywnej ramki.
+* Menu aplikacji Maca (Plik, Edycja, Widok…) jest dostępne w natywnym menu Windows.
+  Kliknięcie pozycji wykonuje ją na Macu. W czasie otwartego menu klawiatura obsługuje menu.
+* Maksymalizacja i zmiana rozmiaru wysyłają nowy rozmiar do aplikacji na Macu, więc treść
+  może zmienić układ. Obraz zawsze zachowuje proporcje; jeśli Mac ogranicza rozmiar okna
+  lub trwa zmiana rozmiaru strumienia, pojawiają się pasy zamiast rozciągnięcia.
+* Okna pomocnicze (np. podpowiedzi adresu przeglądarki) należą do okna aplikacji i nie
+  dostają własnej pozycji w Alt+Tab. Ich pozycja uwzględnia skalowanie obrazu.
+* Przeciągnięcie za natywny pasek do krawędzi po stronie Maca odsyła okno na MacBooka.
+  Przy zmianie układu monitorów pasek tytułu pozostaje dostępny na fizycznym ekranie.
 * Ma przycisk na pasku zadań (z ikoną aplikacji Maca), jest w Alt+Tab, da się je
   zminimalizować i schować za innymi oknami. Zamknięcie zamyka je na Macu.
 * Obraz każdego okna jest nagrywany osobno, więc przesuwanie nie odsłania tapety.
@@ -346,6 +359,17 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 Projekt kompiluje się także na macOS/Linux (Avalonia); logika Windows (hooki, WASAPI)
 jest oznaczona `[SupportedOSPlatform("windows")]`.
+
+Testy okien (z katalogu repozytorium):
+
+```sh
+bash macos/tests/window-check.sh
+dotnet run --project windows/ClipboardChecks -c Release -- --window-checks
+```
+
+Na Windows z aktywną sesją pulpitu opcja `--native-viewer-checks` dodatkowo otwiera na chwilę
+okna testowe i sprawdza natywną ramkę/menu, własność popupów, pełny ekran filmu,
+maksymalizację, minimalizację i odzyskiwanie okna spoza monitorów.
 
 ## Struktura
 

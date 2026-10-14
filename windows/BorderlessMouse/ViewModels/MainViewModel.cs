@@ -353,10 +353,10 @@ public partial class MainViewModel : ObservableObject
                 UpdateStatusText = T($"Dostępna wersja {release.Version} · {release.PageUrl}", $"Version {release.Version} available · {release.PageUrl}");
                 Log(T($"Dostępna aktualizacja {release.Version}", $"Update {release.Version} is available"));
                 // Kanał testowy: od razu, ale nie gdy kursor jest na Macu (restart zabrałby sterowanie).
-                if (Updater.IsDevChannel && !CursorOnMac && _winTracker?.HasWindows != true && NativeMethods.IdleTime() >= TimeSpan.FromSeconds(60))
-                    _ = InstallUpdate();
+                if (CanAutoInstallUpdate())
+                    _ = InstallUpdateCore(automatic: true);
                 else if (Updater.IsDevChannel)
-                    UpdateStatusText += T(" · zainstaluje się po minucie bezczynności", " · installs after a minute of inactivity");
+                    UpdateStatusText += T(" · czeka na bezczynność i powrót przeniesionych okien", " · waiting for inactivity and transferred windows to return");
             }
             else
             {
@@ -375,7 +375,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task InstallUpdate()
+    private Task InstallUpdate() => InstallUpdateCore(automatic: false);
+
+    private bool CanAutoInstallUpdate() => Updater.CanAutoInstall(Updater.IsDevChannel, AutoCheckUpdates,
+        NativeMethods.IdleTime(), !CursorOnMac && _winTracker?.HasWindows != true && _viewer?.HasWindows != true);
+
+    private async Task InstallUpdateCore(bool automatic)
     {
         if (_pendingRelease is null || IsInstallingUpdate) return;
         IsInstallingUpdate = true;
@@ -384,7 +389,14 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var progress = new Progress<double>(p => UpdateProgress = p);
-            await _updater.DownloadAndInstallAsync(_pendingRelease, progress, CancellationToken.None);
+            if (!await _updater.DownloadAndInstallAsync(_pendingRelease, progress, CancellationToken.None,
+                    () => !automatic || CanAutoInstallUpdate()))
+            {
+                IsInstallingUpdate = false;
+                UpdateStatusText = T("Aktualizacja czeka na bezczynność i powrót przeniesionych okien.",
+                    "Update is waiting for inactivity and transferred windows to return.");
+                return;
+            }
             UpdateStatusText = T("Instalowanie – aplikacja uruchomi się ponownie.", "Installing — the app will restart.");
             Log(T("Aktualizacja pobrana, restart…", "Update downloaded; restarting…"));
             await Task.Delay(500);
@@ -764,16 +776,17 @@ public partial class MainViewModel : ObservableObject
                 if (!remote) _displayFocus = false; // Mac potwierdzi stan przy następnym wejściu
                 // Okno Maca przeciągnięte za pasek do krawędzi po stronie Maca: wraca na Maca
                 // (tam, gdzie pojawia się kursor), a przeciąganie na Windowsie się kończy.
-                if (remote && _viewer?.MovingWindowId is > 0 and var movingId && _client.IsConnected)
+                if (remote && _capture!.LastEnterWindowId is > 0 and var movingId && _client.IsConnected)
                 {
                     _client.Send(Frame.WindowReturn(movingId, _capture!.LastEnterRatio));
-                    _viewer.CancelMove();
+                    _viewer?.CancelMove();
                 }
                 UpdateStatus();
                 UpdateViewerVisibility();
             };
             _capture.MacWindowAt = point =>
             {
+                if (_viewer?.NativeInteractionActive == true) return null;
                 var proxies = _viewer?.Proxies;
                 if (proxies is null || proxies.Count == 0) return null;
                 var root = DisplayNative.GetAncestor(DisplayNative.WindowFromPoint(point), DisplayNative.GA_ROOT);
@@ -789,9 +802,10 @@ public partial class MainViewModel : ObservableObject
                     if (proxy.Id == id) return MapToMac(proxy, point);
                 return null;
             };
-            _capture.DraggingMacWindow = () => _viewer?.MovingWindowId is > 0;
+            _capture.DraggingMacWindowId = () => _viewer?.MovingWindowId ?? 0;
             _capture.MacWindowIsForeground = () =>
-                _viewer?.Proxies.TryGetValue(NativeMethods.GetForegroundWindow(), out var proxy) == true && !proxy.Popup;
+                _viewer?.NativeInteractionActive != true
+                && _viewer?.Proxies.TryGetValue(NativeMethods.GetForegroundWindow(), out var proxy) == true && !proxy.Popup;
         }
         _capture.Enabled = InputSharingEnabled;
         _capture.Side = SelectedMacSide.Value;

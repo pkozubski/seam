@@ -82,6 +82,7 @@ final class AppState: ObservableObject {
         accessibilityGranted = InputInjector.isAccessibilityTrusted
         screenCaptureGranted = DisplayCapture.hasPermission
         guard !preview else { return }
+        appendLog(L10n.text("Wersja \(Updater.versionDescription)", "Version \(Updater.versionDescription)"))
         engine.setAccessibilityGranted(accessibilityGranted)
         engine.start()
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
@@ -102,18 +103,33 @@ final class AppState: ObservableObject {
     }
 
     private func scheduleUpdateChecks() {
-        // pierwsze sprawdzenie chwilę po starcie, potem co 6 godzin
+        // Test builds check frequently and install only when the session can restart.
         Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            guard let self, self.settings.autoCheckUpdates else { return }
-            await self.updater.check(silent: true)
+            try? await Task.sleep(for: .seconds(5))
+            await self?.checkAutomaticUpdates()
         }
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
+        updateTimer = Timer.scheduledTimer(withTimeInterval: UpdatePolicy.checkInterval(isDev: Updater.isDevChannel), repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.settings.autoCheckUpdates else { return }
-                await self.updater.check(silent: true)
+                await self?.checkAutomaticUpdates()
             }
         }
+    }
+
+    private func checkAutomaticUpdates() async {
+        guard settings.autoCheckUpdates else { return }
+        await updater.check(silent: true)
+        guard case .available = updater.state, await mayAutoRestart() else { return }
+        await updater.install(codesignIdentity: settings.codesignIdentity, mayRestart: { [weak self] in
+            await self?.mayAutoRestart() ?? false
+        })
+    }
+
+    private func mayAutoRestart() async -> Bool {
+        guard let anyInput = CGEventType(rawValue: UInt32.max) else { return false }
+        let sessionAllowsRestart = await engine.canRestartForUpdate()
+        return UpdatePolicy.canAutoInstall(isDev: Updater.isDevChannel, enabled: settings.autoCheckUpdates,
+            idleSeconds: CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput),
+            sessionAllowsRestart: sessionAllowsRestart && !cursorOnMac)
     }
 
     private func fillWithDemoData() {

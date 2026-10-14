@@ -5,6 +5,7 @@
 #   ARCH=x86_64 ./build.sh           → inna architektura
 #   UNIVERSAL=1 ./build.sh           → arm64 + x86_64 (lipo)
 #   VERSION=1.2.3 BUILD_NUMBER=42 ./build.sh
+#   UPDATE_CHANNEL=dev ./build.sh   → automatyczne aktualizacje testowe
 #   SIGN_IDENTITY="BorderlessMouse Dev" ./build.sh   → stały certyfikat (trwałe uprawnienia TCC)
 #   bez SIGN_IDENTITY: certyfikat „Apple Development” z pęku kluczy, a gdy go nie ma – ad-hoc
 set -euo pipefail
@@ -23,8 +24,11 @@ if [ "${REQUIRE_STABLE_SIGNING:-0}" = "1" ] && [ "$SIGN_IDENTITY" = "-" ]; then
   echo "✗ Wydanie wymaga stałego certyfikatu; podpis ad-hoc zerwałby uprawnienia macOS." >&2
   exit 1
 fi
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-$(cat ../VERSION)}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
+UPDATE_CHANNEL="${UPDATE_CHANNEL:-stable}"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Nieprawidłowy VERSION: $VERSION" >&2; exit 1; }
+case "$UPDATE_CHANNEL" in stable|dev) ;; *) echo "Nieprawidłowy UPDATE_CHANNEL" >&2; exit 1;; esac
 DEPLOY="14.2"
 BUNDLE_ID="com.borderlessmouse.mac"
 OUT="build/BorderlessMouse.app"
@@ -87,6 +91,7 @@ sed -e "s/\$(PRODUCT_BUNDLE_IDENTIFIER)/$BUNDLE_ID/g" \
     -e 's/\$(PRODUCT_NAME)/BorderlessMouse/g' \
     -e "s/\$(MARKETING_VERSION)/$VERSION/g" \
     -e "s/\$(CURRENT_PROJECT_VERSION)/$BUILD_NUMBER/g" \
+    -e "s/\$(UPDATE_CHANNEL)/$UPDATE_CHANNEL/g" \
     -e "s/\$(MACOSX_DEPLOYMENT_TARGET)/$DEPLOY/g" \
     BorderlessMouse/Info.plist > "$OUT/Contents/Info.plist"
 printf 'APPL????' > "$OUT/Contents/PkgInfo"
@@ -111,4 +116,4 @@ if [ "${REQUIRE_STABLE_SIGNING:-0}" = "1" ]; then
   codesign --verify --strict --all-architectures \
     -R "=identifier \"$BUNDLE_ID\" and anchor H\"$CERT_HASH\"" "$OUT"
 fi
-echo "✓ $OUT (v$VERSION build $BUILD_NUMBER, SDK $SDK_VERSION)"
+echo "✓ $OUT (v$VERSION build $BUILD_NUMBER, kanał $UPDATE_CHANNEL, SDK $SDK_VERSION)"

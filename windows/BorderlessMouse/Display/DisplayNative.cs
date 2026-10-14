@@ -81,6 +81,21 @@ internal static class DisplayNative
     public static extern bool IsIconic(IntPtr hWnd);
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsZoomed(IntPtr hWnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool AdjustWindowRectExForDpi(ref RECT rect, uint style,
+        [MarshalAs(UnmanagedType.Bool)] bool menu, uint exStyle, uint dpi);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    public static extern IntPtr SetWindowOwner(IntPtr hWnd, int index, IntPtr owner);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hWnd, uint attribute, ref int value, uint size);
+
+    [DllImport("user32.dll")]
     public static extern IntPtr SendMessageW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll")]
@@ -253,6 +268,7 @@ internal static class DisplayNative
 
     public readonly record struct MonitorArea(RECT Bounds, int Dpi, bool Primary)
     {
+        public RECT WorkArea { get; init; }
         public int ScalePercent => (int)Math.Round(Dpi * 100.0 / 96.0);
     }
 
@@ -285,7 +301,7 @@ internal static class DisplayNative
             if (excluded is { } area && info.rcMonitor.Left == area.Left && info.rcMonitor.Top == area.Top
                 && info.rcMonitor.Right == area.Right && info.rcMonitor.Bottom == area.Bottom) return true;
             var dpi = GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0 ? (int)dpiX : 96;
-            list.Add(new MonitorArea(info.rcMonitor, dpi, (info.dwFlags & MONITORINFOF_PRIMARY) != 0));
+            list.Add(new MonitorArea(info.rcMonitor, dpi, (info.dwFlags & MONITORINFOF_PRIMARY) != 0) { WorkArea = info.rcWork });
             return true;
         }, IntPtr.Zero);
         return list;

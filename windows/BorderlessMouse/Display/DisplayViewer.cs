@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using BorderlessMouse.Protocol;
@@ -10,7 +9,6 @@ using Vortice.Direct2D1;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DirectComposition;
-using Vortice.DirectWrite;
 using Vortice.DXGI;
 using Vortice.Mathematics;
 using Vortice.MediaFoundation;
@@ -29,13 +27,12 @@ namespace BorderlessMouse.Display;
 /// Obraz z Maca na Windowsie. Dwa tryby:
 /// <list type="bullet">
 /// <item>pełny pulpit – jedno okno na cały monitor ze strumieniem całego ekranu wirtualnego;</item>
-/// <item>tryb okien – każde okno Maca jest oknem Windows w stylu macOS: wygładzone zaokrąglone
-/// rogi, pasek menu aplikacji z przyciskami okna (zamknij, minimalizuj, maksymalizuj), pod nim
-/// obraz okna Maca z jego własnym paskiem tytułu. Okno jest na pasku zadań i w Alt+Tab.</item>
+/// <item>tryb okien – natywna ramka i menu Windows, z obrazem okna Maca w obszarze klienta.
+/// Popupy są oknami należącymi do aplikacji, bez osobnych pozycji w Alt+Tab.</item>
 /// </list>
 /// Dekodowanie (Media Foundation) i konwersja NV12 → RGB (procesor wideo D3D11) są wspólne.
-/// Okna Maca składa DirectComposition z przezroczystością, a pasek i maskę rogów rysuje
-/// Direct2D/DirectWrite – dzięki temu krawędzie są wygładzone. Wszystko działa na jednym wątku.
+/// Obraz składa DirectComposition/Direct2D; ramkę, przyciski i Snap obsługuje Windows.
+/// Wszystko działa na jednym wątku.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class DisplayViewer : IDisposable
@@ -57,54 +54,24 @@ public sealed class DisplayViewer : IDisposable
     private const uint FullscreenId = 0;
     /// <summary>Tyle klatek w kolejce oznacza, że dekoder nie nadąża – odrzucamy i prosimy o klatki kluczowe.</summary>
     private const int MaxQueuedFrames = 48;
-    /// <summary>Wysokość paska menu przy 100% (jak pasek menu macOS).</summary>
-    private const float HeaderHeight96 = 30;
-    private const uint WM_MOVE = 0x0003;
-    private const uint WM_SIZE = 0x0005;
-    private const uint WM_ACTIVATE = 0x0006;
-    private const uint WM_ERASEBKGND = 0x0014;
-    private const uint WM_SETICON = 0x0080;
-    private const uint WM_NCHITTEST = 0x0084;
-    private const uint WM_NCLBUTTONDBLCLK = 0x00A3;
+    private const uint WM_MOVE = 0x0003, WM_SIZE = 0x0005, WM_ACTIVATE = 0x0006;
+    private const uint WM_ERASEBKGND = 0x0014, WM_SETICON = 0x0080, WM_TIMER = 0x0113;
+    private const uint WM_CANCELMODE = 0x001F, WM_ENTERSIZEMOVE = 0x0231, WM_EXITSIZEMOVE = 0x0232;
+    private const uint WM_COMMAND = 0x0111, WM_ENTERMENULOOP = 0x0211, WM_EXITMENULOOP = 0x0212;
+    private const uint WM_DPICHANGED = 0x02E0, WM_DISPLAYCHANGE = 0x007E, WM_MOVING = 0x0216;
     private const uint WM_SYSCOMMAND = 0x0112;
-    private const uint WM_TIMER = 0x0113;
-    private const uint WM_MOUSEMOVE = 0x0200;
-    private const uint WM_LBUTTONDOWN = 0x0201;
-    private const uint WM_MOUSELEAVE = 0x02A3;
-    private const uint WM_CANCELMODE = 0x001F;
-    private const uint WM_ENTERSIZEMOVE = 0x0231;
-    private const uint WM_EXITSIZEMOVE = 0x0232;
     private const long SC_KEYMENU = 0xF100;
     private const long SIZE_MINIMIZED = 1;
     private const int HTCLIENT = 1;
-    private const int HTCAPTION = 2;
-    private const int SW_MINIMIZE = 6;
-    private const uint WS_SYSMENU = 0x00080000;
-    private const uint WS_MINIMIZEBOX = 0x00020000;
-    private const uint WS_EX_APPWINDOW = 0x00040000;
-    private const uint WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
+    private const uint WS_OVERLAPPEDWINDOW = 0x00CF0000;
+    private const uint WS_EX_APPWINDOW = 0x00040000, WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
     private const uint SWP_NOZORDER = 0x0004;
-
-    // Kolory jak w ciemnym motywie macOS; tło paska = kolor, którym Mac wypełnia narożniki okien.
-    private static readonly Color4 HeaderBackground = new(41 / 255f, 41 / 255f, 43 / 255f, 1);
-    private static readonly Color4 HeaderHover = new(1, 1, 1, 0.12f);
-    private static readonly Color4 HeaderText = new(0.93f, 0.93f, 0.93f, 1);
-    private static readonly Color4 HeaderDisabled = new(0.55f, 0.55f, 0.56f, 1);
-    private static readonly Color4[] LightColors =
-    {
-        new(1f, 95 / 255f, 87 / 255f, 1), new(254 / 255f, 188 / 255f, 46 / 255f, 1), new(40 / 255f, 200 / 255f, 64 / 255f, 1),
-    };
-    private static readonly Color4[] LightGlyphColors =
-    {
-        new(0.45f, 0.05f, 0.03f, 1), new(0.55f, 0.33f, 0.02f, 1), new(0.02f, 0.35f, 0.08f, 1),
-    };
-    private static readonly string[] LightGlyphs = { "×", "−", "+" };
-    private const int LightNone = -1;
+    private static readonly Color4 Background = new(41 / 255f, 41 / 255f, 43 / 255f, 1);
 
     /// <summary>Kształty kursora z Maca (CursorTracker.Shape) → kursory systemowe Windows.</summary>
     private static readonly int[] CursorIds = { 32512, 32513, 32649, 32644, 32645, 32515, 32648, 32649, 32646, 32642, 32643, 32514 };
 
-    private readonly ConcurrentQueue<VideoStream.VideoFrame> _frames = new();
+    private readonly VideoFrameQueue _frames = new(MaxQueuedFrames);
     private readonly ConcurrentQueue<Action> _commands = new();
     private readonly AutoResetEvent _wake = new(false);
     private readonly WndProcDelegate _wndProc;
@@ -114,6 +81,8 @@ public sealed class DisplayViewer : IDisposable
     private long _lastKeyframeRequestTicks;
     private volatile uint _movingWindowId;
     private IntPtr _movingHandle;
+    private volatile bool _menuLoopActive;
+    private volatile bool _hasWindows;
     private volatile IReadOnlyDictionary<IntPtr, ProxyInfo> _proxies = new Dictionary<IntPtr, ProxyInfo>();
 
     // tylko wątek wyświetlania
@@ -129,7 +98,6 @@ public sealed class DisplayViewer : IDisposable
     private ID2D1Factory1? _d2dFactory;
     private ID2D1Device? _d2dDevice;
     private ID2D1DeviceContext? _d2d;
-    private IDWriteFactory? _dwrite;
     private IDCompositionDevice? _composition;
     private readonly Dictionary<uint, Surface> _surfaces = new();
     private readonly Dictionary<IntPtr, Surface> _byHandle = new();
@@ -156,9 +124,11 @@ public sealed class DisplayViewer : IDisposable
 
     /// <summary>Okna Windows reprezentujące okna Maca – bezpieczne do odczytu z dowolnego wątku.</summary>
     public IReadOnlyDictionary<IntPtr, ProxyInfo> Proxies => _proxies;
+    public bool HasWindows => _hasWindows;
 
     /// <summary>Okno Maca przeciągane teraz za pasek menu (0 = żadne).</summary>
     public uint MovingWindowId => _movingWindowId;
+    public bool NativeInteractionActive => _movingHandle != IntPtr.Zero || _menuLoopActive;
 
     /// <summary>Przerywa przeciąganie okna (np. gdy przechodzi na ekran Maca). Dowolny wątek.</summary>
     public void CancelMove()
@@ -192,6 +162,7 @@ public sealed class DisplayViewer : IDisposable
         _thread = null;
         _frames.Clear();
         _commands.Clear();
+        _hasWindows = false;
         _proxies = new Dictionary<IntPtr, ProxyInfo>();
     }
 
@@ -199,11 +170,6 @@ public sealed class DisplayViewer : IDisposable
     public void Enqueue(VideoStream.VideoFrame frame)
     {
         if (!_running) return;
-        if (_frames.Count >= MaxQueuedFrames)
-        {
-            _frames.Clear();
-            RequestKeyframe(null);
-        }
         _frames.Enqueue(frame);
         _wake.Set();
     }
@@ -233,6 +199,8 @@ public sealed class DisplayViewer : IDisposable
         // Najpierw zwykłe okna – menu i podpowiedzi są ustawiane względem nich.
         foreach (var window in windows.OrderBy(w => w.Popup))
         {
+            if (_surfaces.TryGetValue(window.Id, out var existing) && (existing.Kind == SurfaceKind.Popup) != window.Popup)
+                DestroySurface(existing);
             if (_surfaces.TryGetValue(window.Id, out var surface)) UpdateSurface(surface, window);
             else CreateWindowSurface(window);
         }
@@ -253,7 +221,11 @@ public sealed class DisplayViewer : IDisposable
     public void SetMenu(int pid, IReadOnlyList<MacMenuItem> items) => Post(() =>
     {
         _menus[pid] = items;
-        foreach (var surface in _surfaces.Values.Where(s => s.Pid == pid && s.Kind == SurfaceKind.Window)) Compose(surface);
+        foreach (var surface in _surfaces.Values.Where(s => s.Pid == pid && s.Kind == SurfaceKind.Window))
+        {
+            surface.MenuDirty = true;
+            ApplyMenu(surface);
+        }
     });
 
     /// <summary>Kształt kursora Maca nad jego oknem (strzałka, kursor tekstowy, rączka…).</summary>
@@ -314,9 +286,18 @@ public sealed class DisplayViewer : IDisposable
 
     private void DecodePending()
     {
+        var batch = _frames.Drain(out var discontinuous);
+        if (discontinuous)
+        {
+            foreach (var surface in _surfaces.Values)
+            {
+                DisposeDecoder(surface);
+                surface.AwaitingKeyframe = true;
+                // A throttled request before overflow may itself have been discarded.
+                RequestKeyframe(surface.Id);
+            }
+        }
         // Przy zaległościach każda powierzchnia pokazuje tylko swoją najnowszą klatkę.
-        var batch = new List<VideoStream.VideoFrame>();
-        while (_frames.TryDequeue(out var queued)) batch.Add(queued);
         var lastIndex = new Dictionary<uint, int>();
         for (var i = 0; i < batch.Count; i++) lastIndex[batch[i].StreamId] = i;
 
@@ -328,11 +309,9 @@ public sealed class DisplayViewer : IDisposable
             var present = lastIndex[frame.StreamId] == i;
             try
             {
-                EnsureDecoder(surface, frame);
-                if (surface.Decoder is null) continue;
+                if (!EnsureDecoder(surface, frame)) continue;
                 surface.AwaitingKeyframe = false;
-                surface.CornerRadius = frame.CornerRadius;
-                var decoder = surface.Decoder;
+                var decoder = surface.Decoder!;
                 decoder.Decode(frame.Payload, sample =>
                 {
                     if (present) Present(surface, decoder, sample, frame.Width, frame.Height);
@@ -353,15 +332,15 @@ public sealed class DisplayViewer : IDisposable
         }
     }
 
-    private void EnsureDecoder(Surface surface, VideoStream.VideoFrame frame)
+    private bool EnsureDecoder(Surface surface, VideoStream.VideoFrame frame)
     {
         // Rozmiar strumienia zmienia się tylko razem z klatką kluczową.
-        if (surface.Decoder is not null && surface.DecoderWidth == frame.Width && surface.DecoderHeight == frame.Height) return;
+        if (surface.Decoder is not null && surface.DecoderWidth == frame.Width && surface.DecoderHeight == frame.Height) return true;
         if (!frame.IsKeyframe)
         {
             surface.AwaitingKeyframe = true;
             RequestKeyframe(surface.Id);
-            return;
+            return false;
         }
         DisposeDecoder(surface);
         // Mac koduje wymiary parzyste, najmniej 16 px.
@@ -369,9 +348,10 @@ public sealed class DisplayViewer : IDisposable
         surface.DecoderWidth = frame.Width;
         surface.DecoderHeight = frame.Height;
         UsesGpuDecoding = surface.Decoder.UsesGpu;
+        return true;
     }
 
-    /// <summary>Zdekodowana klatka → obraz okna (NV12 → RGB) → złożenie z paskiem i maską rogów.</summary>
+    /// <summary>Zdekodowana klatka → obraz okna (NV12 → RGB), z zachowaniem proporcji.</summary>
     private void Present(Surface surface, H264Decoder decoder, IMFSample sample, int frameWidth, int frameHeight)
     {
         if (_videoDevice is null || _videoContext is null || surface.SwapChain is null || surface.Width <= 0 || surface.Height <= 0) return;
@@ -408,9 +388,10 @@ public sealed class DisplayViewer : IDisposable
             var height = surface.Height;
             var visibleWidth = Math.Min(frameWidth, (int)description.Width);
             var visibleHeight = Math.Min(frameHeight, (int)description.Height);
-            var destination = surface.Kind == SurfaceKind.Fullscreen
-                ? Letterbox(visibleWidth, visibleHeight, width, height)
-                : new RawRect(0, 0, width, height);
+            var fitted = WindowGeometry.Fit(visibleWidth, visibleHeight, new RECT { Right = width, Bottom = height });
+            var destination = new RawRect(fitted.Left, fitted.Top, fitted.Right, fitted.Bottom);
+            surface.PictureWidth = visibleWidth;
+            surface.PictureHeight = visibleHeight;
             _videoContext.VideoProcessorSetStreamSourceRect(surface.Processor!, 0, true, new RawRect(0, 0, visibleWidth, visibleHeight));
             _videoContext.VideoProcessorSetStreamDestRect(surface.Processor!, 0, true, destination);
             _videoContext.VideoProcessorSetOutputTargetRect(surface.Processor!, true, new RawRect(0, 0, width, height));
@@ -418,6 +399,7 @@ public sealed class DisplayViewer : IDisposable
             _videoContext.VideoProcessorBlt(surface.Processor!, surface.OutputView!, 0, 1, streams).CheckError();
         }
         surface.HasVideo = true;
+        PublishProxies();
         if (surface.Kind == SurfaceKind.Fullscreen) surface.SwapChain.Present(0, PresentFlags.None).CheckError();
         else Compose(surface);
         Interlocked.Increment(ref _framesPresented);
@@ -429,99 +411,25 @@ public sealed class DisplayViewer : IDisposable
     }
 
     /// <summary>
-    /// Okno Maca: pasek menu, obraz okna i maska zaokrąglonych rogów (wygładzona) w jednym
-    /// przebiegu Direct2D. Wywoływane po nowej klatce i po zmianie paska (najechanie, menu).
+    /// Obraz klienta kopiowany bez ponownego skalowania; ramkę i menu rysuje Windows.
     /// </summary>
     private void Compose(Surface surface)
     {
         if (surface.Kind == SurfaceKind.Fullscreen || _d2d is null || surface.SwapChain is null || !surface.HasVideo) return;
         surface.Target ??= CreateTargetBitmap(surface.SwapChain);
-        var total = new Rect(0, 0, surface.Width, surface.Height + surface.HeaderHeight);
-        var radius = Math.Max(0, (float)surface.CornerRadius);
         _d2d.Target = surface.Target;
         _d2d.BeginDraw();
-        _d2d.Clear(new Color4(0, 0, 0, 0));
-        using var mask = _d2dFactory!.CreateRoundedRectangleGeometry(new RoundedRectangle(
-            new System.Drawing.RectangleF(0, 0, total.Width, total.Height), radius, radius));
-        _d2d.PushLayer(new LayerParameters1
-        {
-            ContentBounds = new RawRectF(0, 0, total.Width, total.Height),
-            GeometricMask = mask,
-            MaskAntialiasMode = AntialiasMode.PerPrimitive,
-            MaskTransform = Matrix3x2.Identity,
-            Opacity = 1,
-        }, null!);
-        if (surface.HeaderHeight > 0) DrawHeader(surface);
+        _d2d.Clear(Background);
         if (surface.VideoBitmap is not null)
         {
-            var destination = new Rect(0, surface.HeaderHeight, surface.Width, surface.Height);
-            _d2d.DrawBitmap(surface.VideoBitmap, destination, 1, BitmapInterpolationMode.Linear, new Rect(0, 0, surface.Width, surface.Height));
+            var bounds = new Rect(0, 0, surface.Width, surface.Height);
+            // The video processor already scaled the image; this is a pixel-for-pixel copy.
+            _d2d.DrawBitmap(surface.VideoBitmap, bounds, 1, BitmapInterpolationMode.NearestNeighbor, bounds);
         }
-        _d2d.PopLayer();
         var result = _d2d.EndDraw();
         _d2d.Target = null;
         if (result.Failure) return;
         surface.SwapChain.Present(0, PresentFlags.None);
-    }
-
-    private void DrawHeader(Surface surface)
-    {
-        var d2d = _d2d!;
-        var scale = surface.HeaderHeight / HeaderHeight96;
-        using var background = d2d.CreateSolidColorBrush(HeaderBackground);
-        d2d.FillRectangle(new Rect(0, 0, surface.Width, surface.HeaderHeight), background);
-
-        // Przyciski okna jak w macOS: 12 pt średnicy, 8 pt odstępu, 20 pt od lewej krawędzi środka pierwszego.
-        surface.LightBounds.Clear();
-        var diameter = 13 * scale;
-        var gap = 8 * scale;
-        var x = 12 * scale;
-        var centerY = surface.HeaderHeight / 2f;
-        using var glyphFormat = _dwrite!.CreateTextFormat("Segoe UI", FontWeight.Bold, FontStyle.Normal, 10.5f * scale);
-        glyphFormat.TextAlignment = TextAlignment.Center;
-        glyphFormat.ParagraphAlignment = ParagraphAlignment.Center;
-        for (var i = 0; i < 3; i++)
-        {
-            using var brush = d2d.CreateSolidColorBrush(LightColors[i]);
-            d2d.FillEllipse(new Ellipse(new Vector2(x + diameter / 2, centerY), diameter / 2, diameter / 2), brush);
-            if (surface.HoverLight != LightNone)
-            {
-                using var glyphBrush = d2d.CreateSolidColorBrush(LightGlyphColors[i]);
-                d2d.DrawText(LightGlyphs[i], glyphFormat, new Rect(x, centerY - diameter / 2 - scale, diameter, diameter), glyphBrush);
-            }
-            surface.LightBounds.Add(((int)(x - gap / 2), (int)(x + diameter + gap / 2)));
-            x += diameter + gap;
-        }
-
-        // Nazwa aplikacji (pogrubiona) i jej menu, jak pasek menu macOS.
-        surface.ItemBounds.Clear();
-        x += 10 * scale;
-        var padding = 7 * scale;
-        var items = HeaderItems(surface);
-        var labels = items.Count > 0 ? items.Select(i => (i.Title, i.Enabled)).ToList() : new List<(string, bool)> { (surface.Title, true) };
-        using var regular = _dwrite.CreateTextFormat("Segoe UI", FontWeight.Normal, FontStyle.Normal, 13 * scale);
-        using var bold = _dwrite.CreateTextFormat("Segoe UI", FontWeight.Bold, FontStyle.Normal, 13 * scale);
-        using var text = d2d.CreateSolidColorBrush(HeaderText);
-        using var disabled = d2d.CreateSolidColorBrush(HeaderDisabled);
-        using var hover = d2d.CreateSolidColorBrush(HeaderHover);
-        for (var i = 0; i < labels.Count; i++)
-        {
-            var (label, enabled) = labels[i];
-            var format = i == 0 ? bold : regular;
-            format.ParagraphAlignment = ParagraphAlignment.Center;
-            using var layout = _dwrite.CreateTextLayout(label, format, 1000, surface.HeaderHeight);
-            var width = layout.Metrics.Width;
-            if (x + width > surface.Width - padding) break; // wąskie okno – reszta menu się nie mieści
-            if (i == surface.HoverItem && items.Count > 0)
-            {
-                var inset = 4 * scale;
-                d2d.FillRoundedRectangle(new RoundedRectangle(new System.Drawing.RectangleF(x - padding, inset, width + 2 * padding,
-                    surface.HeaderHeight - 2 * inset), 5 * scale, 5 * scale), hover);
-            }
-            d2d.DrawTextLayout(new Vector2(x, 0), layout, enabled ? text : disabled);
-            surface.ItemBounds.Add(((int)(x - padding), (int)(x + width + padding)));
-            x += width + 2 * padding;
-        }
     }
 
     private ID2D1Bitmap1 CreateTargetBitmap(IDXGISwapChain1 swapChain)
@@ -571,19 +479,9 @@ public sealed class DisplayViewer : IDisposable
         return new ID3D11Texture2D(surface.UploadTexture.NativePointer);
     }
 
-    private static RawRect Letterbox(int sourceWidth, int sourceHeight, int width, int height)
-    {
-        var scale = Math.Min(width / (double)sourceWidth, height / (double)sourceHeight);
-        var w = (int)Math.Round(sourceWidth * scale);
-        var h = (int)Math.Round(sourceHeight * scale);
-        var x = (width - w) / 2;
-        var y = (height - h) / 2;
-        return new RawRect(x, y, x + w, y + h);
-    }
-
     /// <summary>
     /// Procesor wideo pisze do łańcucha wymiany (pełny pulpit) albo do tekstury obrazu okna,
-    /// z której Direct2D składa okno z paskiem i zaokrąglonymi rogami.
+    /// z której Direct2D kopiuje gotowy obraz klienta.
     /// </summary>
     private void EnsureProcessor(Surface surface, int inputWidth, int inputHeight)
     {
@@ -609,6 +507,8 @@ public sealed class DisplayViewer : IDisposable
         _videoContext.VideoProcessorSetOutputColorSpace(surface.Processor, new VideoProcessorColorSpace { RGB_Range = 0 });
         _videoContext.VideoProcessorSetStreamFrameFormat(surface.Processor, 0, VideoFrameFormat.Progressive);
         _videoContext.VideoProcessorSetStreamAutoProcessingMode(surface.Processor, 0, false);
+        _videoContext.VideoProcessorSetOutputBackgroundColor(surface.Processor, false,
+            new VideoColor { Rgba = new VideoColorRgba { R = Background.R, G = Background.G, B = Background.B, A = 1 } });
         ID3D11Texture2D output;
         if (surface.Kind == SurfaceKind.Fullscreen)
         {
@@ -648,7 +548,12 @@ public sealed class DisplayViewer : IDisposable
         public uint Id;
         public SurfaceKind Kind;
         public IntPtr Handle;
-        public int HeaderHeight;
+        public IntPtr Menu, Owner;
+        public bool InMenuLoop, ApplyingPlacement, MenuDirty = true;
+        public long LocalResizeUntil;
+        public long LastResizeRequest;
+        public int RequestedWidth, RequestedHeight;
+        public int PictureWidth, PictureHeight;
         public int Pid;
         public string Title = "";
         /// <summary>Okno Maca przeliczone na ekran Windows (z ostatniej listy).</summary>
@@ -660,13 +565,6 @@ public sealed class DisplayViewer : IDisposable
         /// <summary>Rozmiar obrazu okna (bez paska) w pikselach.</summary>
         public int Width, Height;
         public bool InSizeMove;
-        public bool Maximized;
-        public RECT RestoreClient;
-        public int HoverItem = -1;
-        public int HoverLight = LightNone;
-        public readonly List<(int left, int right)> ItemBounds = new();
-        public readonly List<(int left, int right)> LightBounds = new();
-        public ushort CornerRadius;
         public bool AwaitingKeyframe = true;
         public bool HasPicture;
         public bool HasVideo;
@@ -716,16 +614,27 @@ public sealed class DisplayViewer : IDisposable
         };
         // Nowe okno powstaje tam, gdzie leży okno Maca; menu i podpowiedzi – przy swoim oknie.
         var client = kind == SurfaceKind.Popup ? PopupClient(surface) : window.MacScreen;
-        // Bez ramki i bez bitmapy przekierowania: obraz (z przezroczystymi rogami) daje DirectComposition.
-        var style = kind == SurfaceKind.Window ? WS_POPUP | WS_SYSMENU | WS_MINIMIZEBOX : WS_POPUP;
-        var exStyle = WS_EX_NOREDIRECTIONBITMAP | (kind == SurfaceKind.Window ? WS_EX_APPWINDOW : WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE);
+        // DWM draws the native frame; DirectComposition supplies only the client image.
+        var style = kind == SurfaceKind.Window ? WS_OVERLAPPEDWINDOW : WS_POPUP;
+        var exStyle = WS_EX_NOREDIRECTIONBITMAP | (kind == SurfaceKind.Window ? WS_EX_APPWINDOW : WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
         surface.Handle = CreateWindowExW(exStyle, ClassName, window.Title, style, client.Left, client.Top,
             Math.Max(1, client.Width), Math.Max(1, client.Height), IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
         if (surface.Handle == IntPtr.Zero) return;
-        if (kind == SurfaceKind.Window)
-            surface.HeaderHeight = (int)Math.Round(HeaderHeight96 * Math.Max(96, GetDpiForWindow(surface.Handle)) / 96);
         Register(surface);
+        if (kind == SurfaceKind.Window)
+        {
+            // DWM supplies the real Windows 11 caption, buttons, rounded frame and Snap layouts.
+            // Unsupported attributes are harmless on Windows 10, which retains its native frame.
+            var dark = 1;
+            DwmSetWindowAttribute(surface.Handle, 20, ref dark, sizeof(int));
+            var corners = 2;
+            DwmSetWindowAttribute(surface.Handle, 33, ref corners, sizeof(int));
+            ApplyMenu(surface);
+        }
+        else UpdatePopupOwner(surface);
         Place(surface, client);
+        surface.RequestedWidth = surface.Width;
+        surface.RequestedHeight = surface.Height;
         CreateComposition(surface);
         ApplyIcon(surface);
         // Klatki mogły przyjść przed listą okien – prosimy o pełny obraz.
@@ -735,7 +644,7 @@ public sealed class DisplayViewer : IDisposable
     /// <summary>Łańcuch wymiany z przezroczystością, podpięty do okna przez DirectComposition.</summary>
     private void CreateComposition(Surface surface)
     {
-        var description = new SwapChainDescription1((uint)surface.Width, (uint)(surface.Height + surface.HeaderHeight), Format.B8G8R8A8_UNorm,
+        var description = new SwapChainDescription1((uint)surface.Width, (uint)surface.Height, Format.B8G8R8A8_UNorm,
             false, Usage.RenderTargetOutput, 2, Scaling.Stretch, SwapEffect.FlipSequential, AlphaMode.Premultiplied, SwapChainFlags.None);
         surface.SwapChain = _factory!.CreateSwapChainForComposition(_device!, description, null);
         _composition!.CreateTargetForHwnd(surface.Handle, true, out surface.CompositionTarget).CheckError();
@@ -760,87 +669,145 @@ public sealed class DisplayViewer : IDisposable
         surface.DisplayHeight = window.DisplayHeight;
         if (surface.Kind == SurfaceKind.Popup)
         {
+            UpdatePopupOwner(surface);
             Place(surface, PopupClient(surface));
+            ApplyVisibility(surface);
             return;
         }
         // Okno na Windowsie żyje własnym położeniem (można je przenieść nawet na inny monitor).
         // Przesunięcie okna na Macu (za jego pasek tytułu) przesuwa je o tyle samo, a rozmiar
         // idzie za oknem Maca – chyba że użytkownik właśnie je przesuwa albo jest zmaksymalizowane.
-        if (surface.InSizeMove || surface.Maximized || IsIconic(surface.Handle))
+        if (surface.InSizeMove || IsZoomed(surface.Handle) || IsIconic(surface.Handle)
+            || Environment.TickCount64 < surface.LocalResizeUntil)
         {
             PublishProxies();
             return;
         }
         var dx = window.MacScreen.Left - previous.Left;
         var dy = window.MacScreen.Top - previous.Top;
+        var sourceResized = window.MacScreen.Width != previous.Width || window.MacScreen.Height != previous.Height;
+        var width = sourceResized ? window.MacScreen.Width : surface.Width;
+        var height = sourceResized ? window.MacScreen.Height : surface.Height;
+        if (dx == 0 && dy == 0 && !sourceResized) return;
         Place(surface, new RECT
         {
             Left = surface.Client.Left + dx, Top = surface.Client.Top + dy,
-            Right = surface.Client.Left + dx + window.MacScreen.Width, Bottom = surface.Client.Top + dy + window.MacScreen.Height,
+            Right = surface.Client.Left + dx + width, Bottom = surface.Client.Top + dy + height,
         });
     }
 
     /// <summary>Menu i podpowiedzi: to samo przesunięcie względem okna aplikacji co na Macu.</summary>
+    private Surface? PopupOwner(Surface popup) => _surfaces.Values
+        .Where(s => s.Kind == SurfaceKind.Window && s.Pid == popup.Pid)
+        .OrderByDescending(s => Contains(s.MacPixels, popup.MacPixels.Left, popup.MacPixels.Top))
+        .ThenByDescending(s => s.Handle == GetForegroundWindow())
+        .FirstOrDefault();
+
+    private void UpdatePopupOwner(Surface popup)
+    {
+        var owner = PopupOwner(popup)?.Handle ?? IntPtr.Zero;
+        if (owner == popup.Owner) return;
+        SetWindowOwner(popup.Handle, -8, owner); // GWLP_HWNDPARENT: owned top-level window, not a child HWND
+        popup.Owner = owner;
+    }
+
     private RECT PopupClient(Surface popup)
     {
-        var owner = _surfaces.Values
-            .Where(s => s.Kind == SurfaceKind.Window && s.Pid == popup.Pid)
-            .OrderByDescending(s => Contains(s.MacScreen, popup.MacScreen.Left, popup.MacScreen.Top))
-            .FirstOrDefault();
-        var dx = owner is null ? 0 : owner.Client.Left - owner.MacScreen.Left;
-        var dy = owner is null ? 0 : owner.Client.Top - owner.MacScreen.Top;
-        var m = popup.MacScreen;
-        return new RECT { Left = m.Left + dx, Top = m.Top + dy, Right = m.Right + dx, Bottom = m.Bottom + dy };
+        var owner = PopupOwner(popup);
+        // Browsers may implement fullscreen video as a new transient surface. It replaces
+        // the owner's content instead of becoming an oversized, independently positioned window.
+        if (owner is not null && WindowGeometry.CoversDisplay(popup.MacPixels, popup.DisplayWidth, popup.DisplayHeight))
+            return owner.Client;
+        return owner is null ? popup.MacScreen : WindowGeometry.MapRelative(popup.MacPixels, owner.MacPixels, ImageClient(owner));
     }
 
     private static bool Contains(RECT r, int x, int y) => x >= r.Left && x < r.Right && y >= r.Top && y < r.Bottom;
 
-    /// <summary>Ustawia okno tak, żeby obraz wypadł w <paramref name="client"/> (pasek menu nad nim).</summary>
+    private static RECT ImageClient(Surface surface) => WindowGeometry.Fit(
+        surface.PictureWidth > 0 ? surface.PictureWidth : surface.MacPixels.Width,
+        surface.PictureHeight > 0 ? surface.PictureHeight : surface.MacPixels.Height, surface.Client);
+
+    /// <summary>Position the client image; Windows owns the non-client frame and menu metrics.</summary>
     private void Place(Surface surface, RECT client)
     {
         if (client.Width <= 0 || client.Height <= 0) return;
-        if (client.Left != surface.Client.Left || client.Top != surface.Client.Top || client.Width != surface.Width
-            || client.Height != surface.Height || surface.Width == 0)
+        var frame = client;
+        if (surface.Kind == SurfaceKind.Window)
         {
-            SetWindowPos(surface.Handle, IntPtr.Zero, client.Left, client.Top - surface.HeaderHeight, client.Width,
-                client.Height + surface.HeaderHeight, SWP_NOZORDER | SWP_NOACTIVATE);
+            AdjustWindowRectExForDpi(ref frame, WS_OVERLAPPEDWINDOW, surface.Menu != IntPtr.Zero,
+                WS_EX_NOREDIRECTIONBITMAP | WS_EX_APPWINDOW, GetDpiForWindow(surface.Handle));
+            frame = WindowGeometry.KeepReachable(frame, Monitors().Select(m => m.WorkArea).ToArray());
         }
-        SyncClient(surface);
+        surface.ApplyingPlacement = true;
+        try
+        {
+            SetWindowPos(surface.Handle, IntPtr.Zero, frame.Left, frame.Top, frame.Width, frame.Height, SWP_NOZORDER | SWP_NOACTIVATE);
+            SyncClient(surface);
+        }
+        finally { surface.ApplyingPlacement = false; }
     }
 
-    /// <summary>Faktyczne położenie okna, rozmiar łańcucha wymiany i tekstury obrazu.</summary>
+    private void KeepReachable(Surface surface)
+    {
+        if (surface.Kind != SurfaceKind.Window || IsIconic(surface.Handle) || IsZoomed(surface.Handle)
+            || !GetWindowRect(surface.Handle, out var frame)) return;
+        var safe = WindowGeometry.KeepReachable(frame, Monitors().Select(m => m.WorkArea).ToArray());
+        if (safe.Left == frame.Left && safe.Top == frame.Top) return;
+        SetWindowPos(surface.Handle, IntPtr.Zero, safe.Left, safe.Top, safe.Width, safe.Height, SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+
     private void SyncClient(Surface surface)
     {
         if (surface.Kind == SurfaceKind.Fullscreen || IsIconic(surface.Handle)) return;
-        if (!GetWindowRect(surface.Handle, out var frame)) return;
-        surface.Client = new RECT { Left = frame.Left, Top = frame.Top + surface.HeaderHeight, Right = frame.Right, Bottom = frame.Bottom };
-        var width = Math.Max(1, frame.Width);
-        var height = Math.Max(1, frame.Height - surface.HeaderHeight);
+        if (!GetClientRect(surface.Handle, out var client)) return;
+        var origin = new POINT();
+        ClientToScreen(surface.Handle, ref origin);
+        surface.Client = new RECT { Left = origin.X, Top = origin.Y, Right = origin.X + client.Width, Bottom = origin.Y + client.Height };
+        var width = Math.Max(1, client.Width);
+        var height = Math.Max(1, client.Height);
         if (width != surface.Width || height != surface.Height)
         {
             surface.Width = width;
             surface.Height = height;
             if (surface.SwapChain is not null)
             {
-                DisposeProcessor(surface); // widok wyjścia i tekstura obrazu mają stary rozmiar
+                DisposeProcessor(surface);
                 surface.Target?.Dispose();
                 surface.Target = null;
-                surface.SwapChain.ResizeBuffers(2, (uint)width, (uint)(height + surface.HeaderHeight), Format.B8G8R8A8_UNorm).CheckError();
+                surface.SwapChain.ResizeBuffers(2, (uint)width, (uint)height, Format.B8G8R8A8_UNorm).CheckError();
                 surface.HasVideo = false;
                 RequestKeyframe(surface.Id);
             }
         }
         PublishProxies();
+        if (surface.Kind == SurfaceKind.Window)
+            foreach (var popup in _surfaces.Values.Where(s => s.Kind == SurfaceKind.Popup && s.Owner == surface.Handle).ToList())
+                Place(popup, PopupClient(popup));
+    }
+
+    private void RequestResize(Surface surface)
+    {
+        if (surface.ApplyingPlacement || surface.Kind != SurfaceKind.Window || IsIconic(surface.Handle)) return;
+        if (surface.RequestedWidth == surface.Width && surface.RequestedHeight == surface.Height) return;
+        surface.RequestedWidth = surface.Width;
+        surface.RequestedHeight = surface.Height;
+        // AX may move the source while resizing. Do not echo that transient position/size back.
+        surface.LocalResizeUntil = Environment.TickCount64 + 1200;
+        surface.LastResizeRequest = Environment.TickCount64;
+        ResizeRequested?.Invoke(surface.Id, surface.Width, surface.Height);
     }
 
     private void ApplyVisibility(Surface surface)
     {
         var show = surface.HasPicture && (surface.Kind != SurfaceKind.Fullscreen || _wantFullscreenVisible);
+        if (surface.Kind == SurfaceKind.Popup)
+            show &= surface.Owner != IntPtr.Zero && !IsIconic(surface.Owner);
         if (show == surface.Visible) return;
         surface.Visible = show;
         if (!show)
         {
             ShowWindow(surface.Handle, SW_HIDE);
+            PublishProxies();
             return;
         }
         if (surface.Kind == SurfaceKind.Window)
@@ -850,12 +817,13 @@ public sealed class DisplayViewer : IDisposable
         }
         else
         {
-            var top = surface.Kind == SurfaceKind.Fullscreen ? surface.Client.Top : surface.Client.Top;
-            SetWindowPos(surface.Handle, HWND_TOPMOST, surface.Client.Left, top, surface.Width, surface.Height,
-                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            SetWindowPos(surface.Handle, surface.Kind == SurfaceKind.Fullscreen ? HWND_TOPMOST : IntPtr.Zero,
+                surface.Client.Left, surface.Client.Top, surface.Width, surface.Height,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW | (surface.Kind == SurfaceKind.Popup ? SWP_NOZORDER : 0));
             ShowWindow(surface.Handle, SW_SHOWNOACTIVATE);
         }
         // Ukryte okno mogło nie zachować obrazu, a statyczny obraz nie przyjdzie sam z siebie.
+        PublishProxies();
         RequestKeyframe(surface.Id);
     }
 
@@ -866,28 +834,6 @@ public sealed class DisplayViewer : IDisposable
         SendMessageW(surface.Handle, WM_SETICON, 1, icon);
     }
 
-    /// <summary>Zielony przycisk / podwójne kliknięcie paska: cały obszar roboczy monitora albo poprzedni rozmiar.</summary>
-    private void ToggleMaximize(Surface surface)
-    {
-        RECT target;
-        if (surface.Maximized)
-        {
-            surface.Maximized = false;
-            target = surface.RestoreClient;
-        }
-        else
-        {
-            var info = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
-            if (!GetMonitorInfo(MonitorFromWindow(surface.Handle, MONITOR_DEFAULTTONEAREST), ref info)) return;
-            surface.RestoreClient = surface.Client;
-            surface.Maximized = true;
-            var work = info.rcWork;
-            target = new RECT { Left = work.Left, Top = work.Top + surface.HeaderHeight, Right = work.Right, Bottom = work.Bottom };
-        }
-        Place(surface, target);
-        ResizeRequested?.Invoke(surface.Id, surface.Width, surface.Height);
-    }
-
     private void Register(Surface surface)
     {
         _surfaces[surface.Id] = surface;
@@ -896,6 +842,11 @@ public sealed class DisplayViewer : IDisposable
 
     private void DestroySurface(Surface surface)
     {
+        if (!_surfaces.ContainsKey(surface.Id)) return;
+        // Windows destroys owned windows with their owner; release their GPU state first.
+        foreach (var popup in _surfaces.Values.Where(s => s.Owner == surface.Handle).ToList()) DestroySurface(popup);
+        if (_movingHandle == surface.Handle) { _movingHandle = IntPtr.Zero; _movingWindowId = 0; }
+        if (surface.InMenuLoop) _menuLoopActive = false;
         DisposeGpu(surface);
         _surfaces.Remove(surface.Id);
         _byHandle.Remove(surface.Handle);
@@ -904,58 +855,32 @@ public sealed class DisplayViewer : IDisposable
 
     private void PublishProxies()
     {
-        _proxies = _surfaces.Values.Where(s => s.Kind != SurfaceKind.Fullscreen)
-            .ToDictionary(s => s.Handle, s => new ProxyInfo(s.Id, s.Pid, s.Kind == SurfaceKind.Popup, s.Client, s.MacPixels,
+        _hasWindows = _surfaces.Values.Any(s => s.Kind != SurfaceKind.Fullscreen);
+        _proxies = _surfaces.Values.Where(s => s.Kind != SurfaceKind.Fullscreen && s.Visible && !IsIconic(s.Handle))
+            .ToDictionary(s => s.Handle, s => new ProxyInfo(s.Id, s.Pid, s.Kind == SurfaceKind.Popup, ImageClient(s), s.MacPixels,
                 s.DisplayWidth, s.DisplayHeight));
     }
 
-    // ---------------- pasek menu: interakcja ----------------
+    // ---------------- native application menu ----------------
 
-    private IReadOnlyList<MacMenuItem> HeaderItems(Surface surface) =>
-        _menus.TryGetValue(surface.Pid, out var items) ? items : Array.Empty<MacMenuItem>();
-
-    private static int LightAt(Surface surface, int x)
+    private void ApplyMenu(Surface surface)
     {
-        for (var i = 0; i < surface.LightBounds.Count; i++)
-            if (x >= surface.LightBounds[i].left && x < surface.LightBounds[i].right) return i;
-        return LightNone;
-    }
-
-    private static int HeaderItemAt(Surface surface, int x)
-    {
-        for (var i = 0; i < surface.ItemBounds.Count; i++)
-            if (x >= surface.ItemBounds[i].left && x < surface.ItemBounds[i].right) return i;
-        return -1;
-    }
-
-    private void UpdateHover(Surface surface, int x, int y)
-    {
-        var inHeader = y >= 0 && y < surface.HeaderHeight;
-        var item = inHeader ? HeaderItemAt(surface, x) : -1;
-        var light = inHeader ? LightAt(surface, x) : LightNone;
-        // macOS pokazuje symbole na wszystkich trzech przyciskach po najechaniu na którykolwiek.
-        var anyLight = light != LightNone ? 0 : LightNone;
-        if (item == surface.HoverItem && anyLight == surface.HoverLight) return;
-        surface.HoverItem = item;
-        surface.HoverLight = anyLight;
-        Compose(surface);
-    }
-
-    private void ShowHeaderMenu(Surface surface, int index)
-    {
-        var items = HeaderItems(surface);
-        if (index >= items.Count || items[index].Children.Count == 0) return;
-        MenuOpening?.Invoke(surface.Pid);
-        var menu = CreatePopupMenu();
-        AppendItems(menu, items[index].Children);
-        var origin = new POINT { X = surface.ItemBounds[index].left, Y = surface.HeaderHeight };
-        ClientToScreen(surface.Handle, ref origin);
-        SetForegroundWindow(surface.Handle);
-        var command = TrackPopupMenuEx(menu, 0x0100 | 0x0002, origin.X, origin.Y, surface.Handle, IntPtr.Zero); // TPM_RETURNCMD | TPM_RIGHTBUTTON
-        DestroyMenu(menu);
-        surface.HoverItem = -1;
-        Compose(surface);
-        if (command > 0) MenuInvoked?.Invoke(surface.Pid, command - 1);
+        if (!surface.MenuDirty || surface.InMenuLoop || !_surfaces.ContainsKey(surface.Id)
+            || !_menus.TryGetValue(surface.Pid, out var items)) return;
+        surface.MenuDirty = false;
+        var menu = CreateMenu();
+        AppendItems(menu, items);
+        var old = surface.Menu;
+        surface.ApplyingPlacement = true;
+        try
+        {
+            SetWindowMenu(surface.Handle, menu);
+            surface.Menu = menu;
+            DrawMenuBar(surface.Handle);
+            SyncClient(surface);
+        }
+        finally { surface.ApplyingPlacement = false; }
+        if (old != IntPtr.Zero) DestroyMenu(old);
     }
 
     private static void AppendItems(IntPtr menu, IReadOnlyList<MacMenuItem> items)
@@ -1037,7 +962,6 @@ public sealed class DisplayViewer : IDisposable
         _d2d = _d2dDevice.CreateDeviceContext(DeviceContextOptions.None);
         _d2d.AntialiasMode = AntialiasMode.PerPrimitive;
         _d2d.TextAntialiasMode = Vortice.Direct2D1.TextAntialiasMode.Grayscale;
-        _dwrite ??= DWrite.DWriteCreateFactory<IDWriteFactory>(Vortice.DirectWrite.FactoryType.Shared);
         _composition = DComp.DCompositionCreateDevice<IDCompositionDevice>(dxgiDevice);
     }
 
@@ -1069,18 +993,6 @@ public sealed class DisplayViewer : IDisposable
         var window = surface is { Kind: SurfaceKind.Window };
         switch (msg)
         {
-            case WM_NCHITTEST when window:
-            {
-                // Pusty pasek menu działa jak pasek tytułu (przeciąganie okna).
-                var point = new POINT { X = (short)((long)lParam & 0xFFFF), Y = (short)(((long)lParam >> 16) & 0xFFFF) };
-                ScreenToClient(hWnd, ref point);
-                var header = surface!;
-                var inHeader = point.Y >= 0 && point.Y < header.HeaderHeight;
-                return inHeader && HeaderItemAt(header, point.X) < 0 && LightAt(header, point.X) == LightNone ? HTCAPTION : HTCLIENT;
-            }
-            case WM_NCLBUTTONDBLCLK when window && (long)wParam == HTCAPTION:
-                ToggleMaximize(surface!);
-                return IntPtr.Zero;
             case WM_SETCURSOR:
             {
                 if (surface?.Kind == SurfaceKind.Fullscreen)
@@ -1088,34 +1000,29 @@ public sealed class DisplayViewer : IDisposable
                     SetCursor(IntPtr.Zero); // kursor Maca jest w obrazie
                     return 1;
                 }
-                // Nad obrazem okna Maca – kształt kursora z Maca; nad paskiem – strzałka.
+                if (((long)lParam & 0xFFFF) != HTCLIENT) break; // native resize/caption cursor
+                // Nad obrazem okna Maca – kształt kursora z Maca.
                 GetCursorPos(out var cursor);
                 var overImage = surface is not null && Contains(surface.Client, cursor.X, cursor.Y);
                 SetCursor(LoadCursorW(IntPtr.Zero, overImage ? CursorIds[_cursorShape] : CursorIds[0]));
                 return 1;
             }
-            case WM_MOUSEMOVE when window:
-            {
-                UpdateHover(surface!, (short)((long)lParam & 0xFFFF), (short)(((long)lParam >> 16) & 0xFFFF));
-                var track = new TRACKMOUSEEVENT { cbSize = (uint)Marshal.SizeOf<TRACKMOUSEEVENT>(), dwFlags = TME_LEAVE, hwndTrack = hWnd };
-                TrackMouseEvent(ref track);
-                break;
-            }
-            case WM_MOUSELEAVE when window:
-                UpdateHover(surface!, -1, -1);
-                break;
-            case WM_LBUTTONDOWN when window:
-            {
-                var x = (short)((long)lParam & 0xFFFF);
-                var y = (short)(((long)lParam >> 16) & 0xFFFF);
-                if (y >= surface!.HeaderHeight) break; // obraz okna – kliknięcie idzie do Maca przez hook
-                var light = LightAt(surface, x);
-                if (light == 0) CloseRequested?.Invoke(surface.Id);
-                else if (light == 1) ShowWindow(surface.Handle, SW_MINIMIZE);
-                else if (light == 2) ToggleMaximize(surface);
-                else if (HeaderItemAt(surface, x) is var item and >= 0) ShowHeaderMenu(surface, item);
+            case WM_COMMAND when window && lParam == IntPtr.Zero:
+                var command = (int)((long)wParam & 0xFFFF);
+                if (command > 0) MenuInvoked?.Invoke(surface!.Pid, command - 1);
                 return IntPtr.Zero;
-            }
+            case WM_ENTERMENULOOP when window:
+                surface!.InMenuLoop = true;
+                _menuLoopActive = true;
+                MenuOpening?.Invoke(surface.Pid);
+                SetTimer(hWnd, (UIntPtr)1, 15, IntPtr.Zero);
+                break;
+            case WM_EXITMENULOOP when window:
+                surface!.InMenuLoop = false;
+                _menuLoopActive = false;
+                KillTimer(hWnd, (UIntPtr)1);
+                Post(() => ApplyMenu(surface));
+                break;
             case WM_MOUSEACTIVATE when surface is not null && surface.Kind != SurfaceKind.Window:
                 return MA_NOACTIVATE;
             case WM_ACTIVATE when window:
@@ -1124,7 +1031,7 @@ public sealed class DisplayViewer : IDisposable
             case WM_ENTERSIZEMOVE when window:
                 surface!.InSizeMove = true;
                 _movingHandle = hWnd;
-                _movingWindowId = surface.Id;
+                _movingWindowId = 0; // only WM_MOVING is a transfer, not edge resizing
                 // Pętla przeciągania jest modalna – licznik czasu pozwala dalej dekodować obraz.
                 SetTimer(hWnd, (UIntPtr)1, 15, IntPtr.Zero);
                 break;
@@ -1134,23 +1041,44 @@ public sealed class DisplayViewer : IDisposable
                 _movingWindowId = 0;
                 _movingHandle = IntPtr.Zero;
                 SyncClient(surface);
+                KeepReachable(surface);
+                RequestResize(surface);
                 break;
-            case WM_TIMER when window && surface!.InSizeMove:
+            case WM_MOVING when window:
+                _movingWindowId = surface!.Id;
+                break;
+            case WM_TIMER when window && (surface!.InSizeMove || surface.InMenuLoop):
                 Pump();
+                if (surface!.InSizeMove && Environment.TickCount64 - surface.LastResizeRequest >= 100)
+                    RequestResize(surface);
                 return IntPtr.Zero;
             case WM_MOVE when window:
                 SyncClient(surface!);
                 break;
-            case WM_SIZE when window && (long)wParam != SIZE_MINIMIZED:
-                // Po przywróceniu z paska zadań: bieżące położenie i świeży obraz.
+            case WM_SIZE when window:
+                if ((long)wParam != SIZE_MINIMIZED)
+                {
+                    SyncClient(surface!);
+                    if (!surface!.InSizeMove) RequestResize(surface);
+                }
+                foreach (var popup in _surfaces.Values.Where(s => s.Owner == hWnd).ToList()) ApplyVisibility(popup);
+                PublishProxies();
+                break;
+            case WM_DPICHANGED when window:
+                var suggested = Marshal.PtrToStructure<RECT>(lParam);
+                SetWindowPos(hWnd, IntPtr.Zero, suggested.Left, suggested.Top, suggested.Width, suggested.Height,
+                    SWP_NOZORDER | SWP_NOACTIVATE);
+                KeepReachable(surface!);
                 SyncClient(surface!);
-                RequestKeyframe(surface!.Id);
+                RequestResize(surface!);
+                return IntPtr.Zero;
+            case WM_DISPLAYCHANGE:
+                foreach (var s in _surfaces.Values.ToList()) KeepReachable(s);
                 break;
             case WM_ERASEBKGND:
                 return 1;
             case WM_SYSCOMMAND when ((long)wParam & 0xFFF0) == SC_KEYMENU:
-                // Alt nie otwiera menu systemowego – idzie do Maca jako Option.
-                return IntPtr.Zero;
+                return IntPtr.Zero; // Alt/Option belongs to the Mac; menus can be opened with the mouse.
             case WM_CLOSE:
                 if (window) CloseRequested?.Invoke(surface!.Id);
                 return IntPtr.Zero;
@@ -1238,13 +1166,15 @@ public sealed class DisplayViewer : IDisposable
     {
         foreach (var surface in _surfaces.Values.ToList()) DestroySurface(surface);
         _proxies = new Dictionary<IntPtr, ProxyInfo>();
+        _hasWindows = false;
         DisposeDevice();
-        _dwrite?.Dispose();
-        _dwrite = null;
         foreach (var icon in _icons.Values) DestroyIcon(icon);
         _icons.Clear();
         _menus.Clear();
         _wantFullscreenVisible = false;
+        _movingHandle = IntPtr.Zero;
+        _movingWindowId = 0;
+        _menuLoopActive = false;
         // Klasa wskazuje na procedurę tej instancji – nie może przeżyć okien.
         UnregisterClassW(ClassName, GetModuleHandle(null));
     }

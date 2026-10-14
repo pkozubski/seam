@@ -15,6 +15,8 @@ final class WindowStreams {
     private var pipelines: [UInt32: Pipeline] = [:]
     private var displayID: CGDirectDisplayID = 0
     private var active = false
+    private var wantedWindows: [TrackedWindow] = []
+    private var retryTimer: DispatchSourceTimer?
 
     init(send: @escaping (VideoStream.Frame) -> Bool, hasClient: @escaping () -> Bool) {
         self.send = send
@@ -29,12 +31,21 @@ final class WindowStreams {
         queue.async {
             self.displayID = displayID
             self.active = true
+            self.retryTimer?.cancel()
+            let timer = DispatchSource.makeTimerSource(queue: self.queue)
+            timer.schedule(deadline: .now() + 1, repeating: .seconds(1))
+            timer.setEventHandler { [weak self] in self?.reconcile() }
+            self.retryTimer = timer
+            timer.resume()
         }
     }
 
     func stop() {
         queue.sync {
             active = false
+            retryTimer?.cancel()
+            retryTimer = nil
+            wantedWindows = []
             pipelines.values.forEach { $0.stop() }
             pipelines.removeAll()
         }
@@ -44,22 +55,29 @@ final class WindowStreams {
     func update(_ windows: [TrackedWindow]) {
         queue.async {
             guard self.active else { return }
-            let scale = WindowTracker.pixelScale(of: self.displayID)
-            let wanted = Dictionary(windows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            for (id, pipeline) in self.pipelines where wanted[id] == nil {
-                pipeline.stop()
-                self.pipelines[id] = nil
-            }
-            for window in windows {
-                let size = WindowTracker.pixelSize(of: window, scale: scale)
-                if let pipeline = self.pipelines[window.id] {
-                    pipeline.resize(width: size.width, height: size.height, frame: window.frame)
-                } else {
-                    let pipeline = Pipeline(window: window, width: size.width, height: size.height,
-                                            displayID: self.displayID, send: self.send, hasClient: self.hasClient)
-                    self.pipelines[window.id] = pipeline
-                    pipeline.start()
-                }
+            self.wantedWindows = windows
+            self.reconcile()
+        }
+    }
+
+    private func reconcile() {
+        guard active else { return }
+        let windows = wantedWindows
+        let scale = WindowTracker.pixelScale(of: self.displayID)
+        let wanted = Dictionary(windows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for (id, pipeline) in self.pipelines where wanted[id] == nil {
+            pipeline.stop()
+            self.pipelines[id] = nil
+        }
+        for window in windows {
+            let size = WindowTracker.pixelSize(of: window, scale: scale)
+            if let pipeline = self.pipelines[window.id], !pipeline.isStopped {
+                pipeline.resize(width: size.width, height: size.height, frame: window.frame)
+            } else {
+                let pipeline = Pipeline(window: window, width: size.width, height: size.height,
+                                        displayID: self.displayID, send: self.send, hasClient: self.hasClient)
+                self.pipelines[window.id] = pipeline
+                pipeline.start()
             }
         }
     }
@@ -93,6 +111,7 @@ final class WindowStreams {
         private var cornerRadius: UInt16 = 0
         private var stopped = false
         private(set) var dropped: UInt64 = 0
+        var isStopped: Bool { lock.withLock { stopped } }
 
         init(window: TrackedWindow, width: Int, height: Int, displayID: CGDirectDisplayID,
              send: @escaping (VideoStream.Frame) -> Bool, hasClient: @escaping () -> Bool) {
@@ -108,13 +127,14 @@ final class WindowStreams {
 
         func start() {
             guard let encoder = try? VideoEncoder(width: Self.encodedSize(width), height: Self.encodedSize(height),
-                                                  bitrate: Self.bitrate(width: width, height: height)) else { return }
-            wire(encoder)
+                                                  bitrate: Self.bitrate(width: width, height: height)) else { stop(); return }
+            wire(encoder, width: width, height: height)
             lock.lock()
             self.encoder = encoder
             lock.unlock()
             let capture = WindowCapture()
             capture.onFrame = { [weak self] buffer, time in self?.handle(buffer, time) }
+            capture.onStopped = { [weak self] in self?.stop() }
             self.capture = capture
             let (id, isMenuBar, displayID, frame, width, height) = (id, isMenuBar, displayID, frame, width, height)
             Task { [weak self] in
@@ -138,6 +158,7 @@ final class WindowStreams {
             lastPixelBuffer = nil
             lock.unlock()
             capture?.onFrame = nil
+            capture?.onStopped = nil
             capture?.stop()
             encoder?.onFrame = nil
             encoder?.invalidate()
@@ -146,34 +167,33 @@ final class WindowStreams {
         /// Zmiana rozmiaru wymaga nowego kodera (H.264 ma stały rozmiar strumienia).
         func resize(width: Int, height: Int, frame: CGRect) {
             lock.lock()
-            let sameSize = Self.encodedSize(width) == Self.encodedSize(self.width)
-                && Self.encodedSize(height) == Self.encodedSize(self.height)
+            guard !stopped else { lock.unlock(); return }
+            let sameSize = Self.encodedSize(width) == encoder?.width && Self.encodedSize(height) == encoder?.height
             self.width = width
             self.height = height
             self.frame = frame
             lock.unlock()
             guard !sameSize else {
                 if isMenuBar, let capture = self.capture {
-                    Task { try? await capture.update(menuBarRect: frame, width: Self.encodedSize(width), height: Self.encodedSize(height)) }
+                    capture.update(menuBarRect: frame, width: Self.encodedSize(width), height: Self.encodedSize(height))
                 }
                 return
             }
             guard let replacement = try? VideoEncoder(width: Self.encodedSize(width), height: Self.encodedSize(height),
                                                       bitrate: Self.bitrate(width: width, height: height)) else { return }
-            wire(replacement)
+            wire(replacement, width: width, height: height)
             lock.lock()
+            guard !stopped else { lock.unlock(); replacement.invalidate(); return }
             let old = encoder
             encoder = replacement
             awaitingKeyframe = true
+            lastPixelBuffer = nil
             lock.unlock()
             measureRadius(width: Self.encodedSize(width), height: Self.encodedSize(height))
             old?.onFrame = nil
             old?.invalidate()
-            let capture = self.capture
-            Task {
-                try? await capture?.update(menuBarRect: isMenuBar ? frame : nil,
-                                           width: Self.encodedSize(width), height: Self.encodedSize(height))
-            }
+            capture?.update(menuBarRect: isMenuBar ? frame : nil,
+                            width: Self.encodedSize(width), height: Self.encodedSize(height))
         }
 
         func forceKeyframe() {
@@ -182,7 +202,8 @@ final class WindowStreams {
             let encoder = self.encoder, last = lastPixelBuffer
             lock.unlock()
             encoder?.requestKeyframe()
-            if let encoder, let last, hasClient() {
+            if let encoder, let last, hasClient(),
+               CVPixelBufferGetWidth(last) == encoder.width, CVPixelBufferGetHeight(last) == encoder.height {
                 encoder.encode(last, presentationTime: CMClockGetTime(CMClockGetHostTimeClock()))
             }
         }
@@ -207,29 +228,27 @@ final class WindowStreams {
             Task { [weak self] in
                 let radius = await capture.measureCornerRadius(windowID: id, width: width, height: height)
                 guard let self else { return }
-                self.lock.lock()
-                self.cornerRadius = radius
-                self.lock.unlock()
+                self.lock.withLock { self.cornerRadius = radius }
             }
         }
 
-        private func wire(_ encoder: VideoEncoder) {
+        private func wire(_ encoder: VideoEncoder, width: Int, height: Int) {
             encoder.onFrame = { [weak self, weak encoder] encoded in
                 guard let self, let encoder else { return }
                 self.lock.lock()
+                // A delayed callback from the old encoder must never carry the new dimensions.
+                guard !self.stopped, self.encoder === encoder else { self.lock.unlock(); return }
                 if self.awaitingKeyframe && !encoded.isKeyframe {
                     self.dropped &+= 1
                     self.lock.unlock()
                     return
                 }
-                let (width, height, radius) = (self.width, self.height, self.cornerRadius)
-                self.lock.unlock()
+                let radius = self.cornerRadius
                 let frame = VideoStream.Frame(kind: .windowAccessUnit, flags: encoded.isKeyframe ? [.keyframe] : [],
                                               width: width, height: height,
                                               captureMicros: UInt64(max(0, CMTimeGetSeconds(encoded.presentationTime)) * 1_000_000),
                                               payload: encoded.annexB, streamID: self.id, cornerRadius: radius)
                 let sent = self.send(frame)
-                self.lock.lock()
                 if sent {
                     if encoded.isKeyframe { self.awaitingKeyframe = false }
                 } else {
@@ -241,10 +260,11 @@ final class WindowStreams {
                 }
                 self.lock.unlock()
             }
-            encoder.onError = { [weak self] _ in
-                self?.lock.lock()
-                self?.awaitingKeyframe = true
-                self?.lock.unlock()
+            encoder.onError = { [weak self, weak encoder] _ in
+                guard let self, let encoder else { return }
+                self.lock.withLock {
+                    if self.encoder === encoder { self.awaitingKeyframe = true }
+                }
             }
         }
 
@@ -254,7 +274,7 @@ final class WindowStreams {
         static func encodedSize(_ value: Int) -> Int { max(16, (value + 1) & ~1) }
 
         static func bitrate(width: Int, height: Int) -> Int {
-            Int(min(max(Double(width * height) * 60 * 0.1, 1_000_000), 40_000_000))
+            Int(min(max(Double(width * height) * 60 * 0.18, 4_000_000), 60_000_000))
         }
 
         /// Promień narożnika z przezroczystości lewego górnego rogu (BGRA). Po przekątnej
@@ -278,15 +298,18 @@ final class WindowStreams {
 /// z kanałem alfa: narożniki okien są przezroczyste, co wykorzystujemy do zaokrągleń.
 final class WindowCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     var onFrame: ((CVPixelBuffer, CMTime) -> Void)?
+    var onStopped: (() -> Void)?
     private let sampleQueue = DispatchQueue(label: "blm.display.windowcapture", qos: .userInteractive)
     private var stream: SCStream?
     private var displayBounds = CGRect.zero
     private let stateLock = NSLock()
     /// Okno (np. podpowiedź) zniknęło, zanim nagrywanie ruszyło – zatrzymujemy je od razu po starcie.
     private var stopRequested = false
+    private var updateTask: Task<Void, Error>?
+    private var desiredConfiguration: SCStreamConfiguration?
 
     func start(windowID: UInt32?, displayID: CGDirectDisplayID, menuBarRect: CGRect, width: Int, height: Int) async throws {
-        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         let filter: SCContentFilter
         displayBounds = CGDisplayBounds(displayID)
         if let windowID {
@@ -300,25 +323,50 @@ final class WindowCapture: NSObject, SCStreamOutput, SCStreamDelegate {
             }
             filter = SCContentFilter(display: display, excludingWindows: [])
         }
-        let stream = SCStream(filter: filter,
-                              configuration: configuration(menuBarRect: windowID == nil ? menuBarRect : nil,
-                                                           width: width, height: height),
-                              delegate: self)
+        let initial = configuration(menuBarRect: windowID == nil ? menuBarRect : nil, width: width, height: height)
+        let config = stateLock.withLock { desiredConfiguration ?? initial }
+        let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
-        stateLock.lock()
-        let early = stopRequested
-        stateLock.unlock()
+        let early = stateLock.withLock { stopRequested }
         if early { return }
         try await stream.startCapture()
-        stateLock.lock()
-        let cancelled = stopRequested
-        if !cancelled { self.stream = stream }
-        stateLock.unlock()
+        let cancelled = stateLock.withLock {
+            if !stopRequested {
+                self.stream = stream
+                // Resize may arrive while startCapture is suspended. Queue it before later updates.
+                if let desiredConfiguration { enqueueUpdate(desiredConfiguration, stream: stream) }
+            }
+            return stopRequested
+        }
         if cancelled { try? await stream.stopCapture() }
     }
 
-    func update(menuBarRect: CGRect?, width: Int, height: Int) async throws {
-        try await stream?.updateConfiguration(configuration(menuBarRect: menuBarRect, width: width, height: height))
+    func update(menuBarRect: CGRect?, width: Int, height: Int) {
+        let config = configuration(menuBarRect: menuBarRect, width: width, height: height)
+        stateLock.lock()
+        desiredConfiguration = config
+        if !stopRequested, let stream { enqueueUpdate(config, stream: stream) }
+        stateLock.unlock()
+    }
+
+    /// Called with stateLock held. ScreenCaptureKit updates must finish in request order.
+    @discardableResult
+    private func enqueueUpdate(_ config: SCStreamConfiguration, stream: SCStream) -> Task<Void, Error> {
+        let previous = updateTask
+        let task = Task { [weak self] in
+            _ = try? await previous?.value
+            guard let self else { return }
+            let stopped = self.stateLock.withLock { self.stopRequested }
+            guard !stopped else { return }
+            do { try await stream.updateConfiguration(config) }
+            catch {
+                NSLog("BorderlessMouse: aktualizacja przechwytywania okna: \(error.localizedDescription)")
+                self.onStopped?()
+                throw error
+            }
+        }
+        updateTask = task
+        return task
     }
 
     func stop() {
@@ -360,8 +408,13 @@ final class WindowCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
         config.queueDepth = 4
         config.showsCursor = false
-        // Okno w lewym górnym rogu klatki, bez skalowania (małe okna są dopełniane).
-        config.scalesToFit = false
+        // Always fill the negotiated pixel size, including HiDPI and fullscreen transitions.
+        // Child surfaces have their own owned Windows proxies; including them here duplicates them.
+        config.scalesToFit = true
+        config.preservesAspectRatio = true
+        config.includeChildWindows = false
+        config.captureResolution = .best
+        config.ignoreGlobalClipSingleWindow = true
         if #available(macOS 14.0, *) { config.ignoreShadowsSingleWindow = true }
         if let menuBarRect {
             config.sourceRect = CGRect(x: menuBarRect.minX - displayBounds.minX, y: menuBarRect.minY - displayBounds.minY,
@@ -380,6 +433,11 @@ final class WindowCapture: NSObject, SCStreamOutput, SCStreamDelegate {
     }
 
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        if stream === self.stream { self.stream = nil }
+        let notify = stateLock.withLock {
+            guard !stopRequested else { return false }
+            self.stream = nil
+            return true
+        }
+        if notify { onStopped?() }
     }
 }

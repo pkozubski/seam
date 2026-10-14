@@ -40,6 +40,21 @@ final class Updater: ObservableObject {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
 
+    static var isDevChannel: Bool {
+        Bundle.main.infoDictionary?["UpdateChannel"] as? String == "dev"
+    }
+
+    static var versionDescription: String {
+        currentVersion + (isDevChannel ? L10n.text(" (kanał testowy)", " (test channel)") : "")
+    }
+
+    static var automaticUpdatesDescription: String {
+        isDevChannel
+            ? L10n.text("Co 2 minuty; instalacja po minucie bezczynności, bez zdalnego sterowania i przeniesionych okien.",
+                        "Every 2 minutes; installs after a minute of inactivity, with no remote control or transferred windows.")
+            : L10n.text("Po starcie i co 6 godzin, przez GitHub Releases.", "At startup and every 6 hours, through GitHub Releases.")
+    }
+
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
@@ -49,6 +64,7 @@ final class Updater: ObservableObject {
     // MARK: - Sprawdzanie
 
     func check(silent: Bool) async {
+        if case .checking = state { return }
         if case .downloading = state { return }
         if case .installing = state { return }
         state = .checking
@@ -68,7 +84,9 @@ final class Updater: ObservableObject {
     }
 
     private func fetchLatest() async throws -> Release? {
-        var request = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.owner)/\(Self.repo)/releases/latest")!)
+        let path = UpdatePolicy.releasePath(isDev: Self.isDevChannel)
+        var request = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.owner)/\(Self.repo)/\(path)")!)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("BorderlessMouse-macOS/\(Self.currentVersion)", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
@@ -76,6 +94,10 @@ final class Updater: ObservableObject {
         guard let http = response as? HTTPURLResponse else { return nil }
         if http.statusCode == 404 { return nil }
         guard http.statusCode == 200 else { throw UpdaterError.http(http.statusCode) }
+        return try Self.parseRelease(data, isDev: Self.isDevChannel)
+    }
+
+    static func parseRelease(_ data: Data, isDev: Bool) throws -> Release? {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag = json["tag_name"] as? String,
               let page = (json["html_url"] as? String).flatMap(URL.init(string:)),
@@ -91,8 +113,11 @@ final class Updater: ObservableObject {
             if name == Self.signatureName { signatureURL = url }
         }
         guard let assetURL else { return nil }
+        guard checksumsURL != nil else { throw UpdaterError.missingChecksum }
         guard let signatureURL else { throw UpdaterError.missingSignature }
-        let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+        guard let version = UpdatePolicy.releaseVersion(tag: tag, title: json["name"] as? String ?? "", isDev: isDev) else {
+            throw UpdaterError.malformed
+        }
         return Release(version: version, tag: tag, notes: (json["body"] as? String) ?? "",
                        pageURL: page, assetURL: assetURL, checksumsURL: checksumsURL,
                        signatureURL: signatureURL)
@@ -113,7 +138,7 @@ final class Updater: ObservableObject {
 
     // MARK: - Instalacja
 
-    func install(codesignIdentity: String) async {
+    func install(codesignIdentity: String, mayRestart: @MainActor () async -> Bool = { true }) async {
         guard case .available(let release) = state else { return }
         state = .downloading(0)
         do {
@@ -134,6 +159,11 @@ final class Updater: ObservableObject {
                 throw ReleaseSignature.SignatureError.missingCertificate
             }
             try ReleaseSignature.verifyRelease(at: newApp, certificateURL: certificateURL)
+            guard let metadata = Bundle(url: newApp)?.infoDictionary,
+                  metadata["CFBundleShortVersionString"] as? String == release.version,
+                  (metadata["UpdateChannel"] as? String == "dev") == Self.isDevChannel else {
+                throw UpdaterError.wrongRelease
+            }
             _ = try? run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", newApp.path])
             let identity = codesignIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
             if !identity.isEmpty {
@@ -143,6 +173,12 @@ final class Updater: ObservableObject {
                                              "--entitlements", newApp.appendingPathComponent("Contents/Resources/BorderlessMouse.entitlements").path,
                                              newApp.path])
                 try ReleaseSignature.verify(at: newApp)
+            }
+            // A download can take long enough for the user to resume work.
+            guard await mayRestart() else {
+                try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent())
+                state = .available(release)
+                return
             }
             try swapAndRelaunch(newApp: newApp)
         } catch {
@@ -278,6 +314,7 @@ final class Updater: ObservableObject {
     enum UpdaterError: LocalizedError {
         case http(Int)
         case malformed
+        case wrongRelease
         case noAppInArchive
         case missingChecksum
         case missingSignature
@@ -292,6 +329,7 @@ final class Updater: ObservableObject {
             switch self {
             case .http(let code): return L10n.text("GitHub odpowiedział kodem \(code)", "GitHub returned status \(code)")
             case .malformed: return L10n.text("Nieoczekiwana odpowiedź GitHuba", "Unexpected GitHub response")
+            case .wrongRelease: return L10n.text("Pobrana aplikacja ma inną wersję lub kanał aktualizacji. Spróbuj ponownie.", "The downloaded app has a different version or update channel. Try again.")
             case .noAppInArchive: return L10n.text("W archiwum nie ma aplikacji", "The archive does not contain the app")
             case .missingChecksum: return L10n.text("W wydaniu brakuje prawidłowej sumy SHA-256 dla aplikacji", "The release has no valid SHA-256 checksum for the app")
             case .missingSignature: return L10n.text("W wydaniu brakuje podpisu kryptograficznego aplikacji", "The release has no cryptographic signature for the app")

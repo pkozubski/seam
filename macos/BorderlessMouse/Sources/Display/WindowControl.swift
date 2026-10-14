@@ -29,11 +29,48 @@ enum WindowControl {
     }
 
     /// Maksymalizacja lub zmiana rozmiaru ramką okna Windows (rozmiar w punktach).
-    static func resize(windowID: UInt32, pid: Int32, frame: CGRect?, to size: CGSize) {
+    static func resize(windowID: UInt32, pid: Int32, frame: CGRect?, to size: CGSize,
+                       on displayID: CGDirectDisplayID) {
         guard let window = element(windowID: windowID, pid: pid, frame: frame) else { return }
-        var size = size
+        let display = CGDisplayBounds(displayID)
+        let target = Self.resizedFrame(frame ?? display, to: size, within: display)
+        var size = target.size
         guard let value = AXValueCreate(.cgSize, &size) else { return }
         AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value)
+        // Enlarging from the old origin can put the centre outside the virtual display.
+        // The tracker then removes the only Windows proxy, leaving an unreachable window.
+        var point = target.origin
+        if let position = AXValueCreate(.cgPoint, &point) {
+            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, position)
+        }
+    }
+
+    static func resizedFrame(_ frame: CGRect, to size: CGSize, within display: CGRect) -> CGRect {
+        let size = CGSize(width: max(1, min(size.width, display.width)),
+                          height: max(1, min(size.height, display.height)))
+        return CGRect(x: min(max(frame.minX, display.minX), display.maxX - size.width),
+                      y: min(max(frame.minY, display.minY), display.maxY - size.height),
+                      width: size.width, height: size.height)
+    }
+
+    /// AX distinguishes application windows from layer-zero transient surfaces (e.g. Chrome suggestions).
+    /// nil means the app did not provide usable AX data: retain the CG layer fallback.
+    static func applicationWindowIDs(pid: Int32) -> Set<UInt32>? {
+        guard let getWindow else { return nil }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.1)
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
+              let windows = value as? [AXUIElement] else { return nil }
+        var ids = Set<UInt32>()
+        for window in windows {
+            var role: CFTypeRef?
+            AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &role)
+            guard role as? String == kAXWindowRole else { continue }
+            var id: CGWindowID = 0
+            if getWindow(window, &id) == .success { ids.insert(id) }
+        }
+        return ids.isEmpty ? nil : ids
     }
 
     /// Okno przeciągnięte na Windowsie do krawędzi po stronie Maca wraca na fizyczny ekran,

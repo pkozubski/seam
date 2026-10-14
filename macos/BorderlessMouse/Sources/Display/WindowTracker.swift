@@ -5,7 +5,7 @@ import Foundation
 struct TrackedWindow: Equatable {
     let id: UInt32
     let pid: Int32
-    /// Współrzędne globalne macOS (punkty, lewy górny róg), obcięte do ekranu wirtualnego.
+    /// Pełna ramka w globalnych punktach macOS (lewy górny róg), bez obcinania do ekranu.
     let frame: CGRect
     let isMenuBar: Bool
     let isPopup: Bool
@@ -19,16 +19,26 @@ final class WindowTracker {
     private let queue = DispatchQueue(label: "blm.display.windows", qos: .userInitiated)
     private var timer: DispatchSourceTimer?
     private var last: [TrackedWindow]?
+    private var ownership: [Int32: (ids: Set<UInt32>, checked: TimeInterval, appIDs: Set<UInt32>?)] = [:]
+    private var recentOwners: [UInt32: (window: TrackedWindow, seen: TimeInterval)] = [:]
 
     /// Wywoływane na kolejce trackera, tylko gdy lista się zmieniła.
     func start(displayID: CGDirectDisplayID, onChange: @escaping ([TrackedWindow]) -> Void) {
         stop()
-        queue.sync { last = nil }
+        queue.sync { last = nil; ownership.removeAll(); recentOwners.removeAll() }
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(33), leeway: .milliseconds(5))
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            let windows = Self.snapshot(displayID: displayID)
+            let current = Self.snapshot(displayID: displayID)
+            let windows = self.classify(self.retainingFullscreenOwners(current, displayID: displayID))
+            let now = ProcessInfo.processInfo.systemUptime
+            let visibleIDs = Set(current.map(\.id))
+            for window in windows where !window.isPopup && !window.isMenuBar && visibleIDs.contains(window.id) {
+                self.recentOwners[window.id] = (window, now)
+            }
+            let retainedIDs = Set(windows.map(\.id))
+            self.recentOwners = self.recentOwners.filter { retainedIDs.contains($0.key) }
             guard windows != self.last else { return }
             self.last = windows
             onChange(windows)
@@ -45,6 +55,52 @@ final class WindowTracker {
     /// Wymusza ponowne wysłanie listy przy następnym odświeżeniu.
     func resend() {
         queue.async { self.last = nil }
+    }
+
+    private func classify(_ windows: [TrackedWindow]) -> [TrackedWindow] {
+        let groups = Dictionary(grouping: windows.filter { !$0.isMenuBar }, by: \.pid)
+        let now = ProcessInfo.processInfo.systemUptime
+        ownership = ownership.filter { groups[$0.key] != nil }
+        for (pid, group) in groups {
+            let ids = Set(group.map(\.id))
+            if ownership[pid]?.ids != ids || now - (ownership[pid]?.checked ?? 0) > 1 {
+                ownership[pid] = (ids, now, WindowControl.applicationWindowIDs(pid: pid))
+            }
+        }
+        return windows.map { window in
+            guard !window.isMenuBar, !window.isPopup, let appIDs = ownership[window.pid]?.appIDs,
+                  !appIDs.contains(window.id),
+                  windows.contains(where: { $0.pid == window.pid && appIDs.contains($0.id)
+                      && $0.frame.intersects(window.frame) }) else { return window }
+            return TrackedWindow(id: window.id, pid: window.pid, frame: window.frame,
+                                 isMenuBar: false, isPopup: true, title: window.title)
+        }
+    }
+
+    /// Fullscreen Spaces can briefly remove the source window from the on-screen list.
+    /// Keep its host while a fullscreen child is shown, but only if that source still exists
+    /// on the virtual display. Returning it to a physical display removes the host immediately.
+    private func retainingFullscreenOwners(_ current: [TrackedWindow], displayID: CGDirectDisplayID) -> [TrackedWindow] {
+        let missing = recentOwners.values.filter { owner in !current.contains { $0.id == owner.window.id } }
+        guard !missing.isEmpty,
+              let all = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return current }
+        let display = CGDisplayBounds(displayID)
+        let now = ProcessInfo.processInfo.systemUptime
+        var result = current
+        for owner in missing {
+            guard let info = all.first(where: { ($0[kCGWindowNumber as String] as? UInt32) == owner.window.id
+                && ($0[kCGWindowOwnerPID as String] as? Int32) == owner.window.pid }),
+                  let dict = info[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: dict as CFDictionary),
+                  display.contains(CGPoint(x: bounds.midX, y: bounds.midY)) else { continue }
+            let fullscreenChild = current.contains { window in
+                window.pid == owner.window.pid && window.frame.intersection(display).width >= display.width * 0.9
+                    && window.frame.intersection(display).height >= display.height * 0.9
+            }
+            if now - owner.seen < 0.75 || fullscreenChild { result.append(owner.window) }
+        }
+        return result
     }
 
     /// Okna od najwyższego.
@@ -71,7 +127,9 @@ final class WindowTracker {
             let visible = bounds.intersection(display)
             guard !visible.isNull, visible.width > 2, visible.height > 2 else { continue }
             // Przezroczyste nakładki systemu i narzędzi (poza zwykłą warstwą 0) zajmują cały ekran.
-            if layer != 0, !isMenuBar, visible.width * visible.height >= display.width * display.height * 0.9 { continue }
+            // Application-owned fullscreen surfaces must survive this filter too (video players).
+            if layer != 0, !isMenuBar, pid == 0,
+               visible.width * visible.height >= display.width * display.height * 0.9 { continue }
             // Okno musi leżeć głównie na ekranie wirtualnym – przeciągane z MacBooka dostaje
             // własne okno Windows dopiero, gdy jego środek przejdzie na ekran wirtualny.
             if !isMenuBar, !display.contains(CGPoint(x: bounds.midX, y: bounds.midY)) { continue }

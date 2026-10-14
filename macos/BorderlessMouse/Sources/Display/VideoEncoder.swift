@@ -65,6 +65,11 @@ final class VideoEncoder {
     }
 
     func encode(_ pixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
+        guard CVPixelBufferGetWidth(pixelBuffer) == width, CVPixelBufferGetHeight(pixelBuffer) == height else {
+            requestKeyframe()
+            onError?(kVTParameterErr)
+            return
+        }
         encodeLock.lock()
         defer { encodeLock.unlock() }
         lock.lock()
@@ -95,6 +100,8 @@ final class VideoEncoder {
     }
 
     func invalidate() {
+        encodeLock.lock()
+        defer { encodeLock.unlock() }
         lock.lock()
         let session = self.session
         self.session = nil
@@ -161,7 +168,7 @@ final class VideoEncoder {
         set(kVTCompressionPropertyKey_TransferFunction, kCVImageBufferTransferFunction_ITU_R_709_2)
         set(kVTCompressionPropertyKey_YCbCrMatrix, kCVImageBufferYCbCrMatrix_ITU_R_709_2)
         if #available(macOS 12.0, *) {
-            set(kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality, kCFBooleanTrue!)
+            set(kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality, kCFBooleanFalse!)
         }
     }
 

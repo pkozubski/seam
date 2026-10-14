@@ -96,6 +96,15 @@ final class Engine {
     }
 
     private final class NameBox { var value: String; init(_ v: String) { value = v } }
+
+    func canRestartForUpdate() async -> Bool {
+        await withCheckedContinuation { continuation in
+            eventsQueue.async {
+                continuation.resume(returning: !self.injector.isActive && self.trackedWindows.isEmpty
+                                    && self.winView?.hasWindows != true)
+            }
+        }
+    }
     private final class PortBox { var value: UInt16; init(_ v: UInt16) { value = v } }
     private final class PairingKeyBox { var value: Data; init(_ v: Data) { value = v } }
     private let nameBox: NameBox
@@ -386,7 +395,7 @@ final class Engine {
                   let window = trackedWindows[id], let displayID else { return }
             let scale = WindowTracker.pixelScale(of: displayID)
             let size = CGSize(width: CGFloat(width) / scale, height: CGFloat(height) / scale)
-            DispatchQueue.main.async { WindowControl.resize(windowID: id, pid: window.pid, frame: window.frame, to: size) }
+            DispatchQueue.main.async { WindowControl.resize(windowID: id, pid: window.pid, frame: window.frame, to: size, on: displayID) }
         case .windowReturn:
             guard let id = r.u32(), let ratio = r.f32(), let window = trackedWindows[id], let displayID else { return }
             let edge = displayEdge

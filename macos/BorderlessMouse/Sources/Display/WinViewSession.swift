@@ -63,6 +63,8 @@ final class WinViewSession {
 
     var stats: (frames: UInt64, bytes: UInt64) { (receiver.framesReceived, receiver.bytesReceived) }
 
+    var hasWindows: Bool { lock.withLock { !hitRects.isEmpty || !proxyNumbers.isEmpty } }
+
     // MARK: - Okna
 
     func update(_ list: WinWindowList) {

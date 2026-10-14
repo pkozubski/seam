@@ -54,6 +54,7 @@ public sealed class InputCapture : IDisposable
     public long RemoteMovesSent => Interlocked.Read(ref _remoteMoves);
     /// <summary>Pozycja wzdłuż krawędzi przy ostatnim przejściu na Maca (0…1).</summary>
     public float LastEnterRatio { get; private set; }
+    public uint LastEnterWindowId { get; private set; }
     /// <summary>Czas ostatniego ENTER (UTC) – do wykrywania natychmiastowego odrzucenia przez Maca.</summary>
     public DateTime LastEnterUtc { get; private set; } = DateTime.MinValue;
 
@@ -239,7 +240,7 @@ public sealed class InputCapture : IDisposable
     }
 
     /// <summary>Przeciągane jest okno Maca (tryb okien) – ono wraca na Maca przez krawędź, nie na wirtualny monitor.</summary>
-    public Func<bool>? DraggingMacWindow { get; set; }
+    public Func<uint>? DraggingMacWindowId { get; set; }
 
     /// <summary>Kursor Maca wjechał na okno Windows (punkt ekranu Windows na wirtualnym monitorze).</summary>
     public void EnterWinView(POINT point)
@@ -296,7 +297,7 @@ public sealed class InputCapture : IDisposable
             }
             return false;
         }
-        if (inside && _localButtons > 0 && DraggingMacWindow?.Invoke() != true)
+        if (inside && _localButtons > 0 && (DraggingMacWindowId?.Invoke() ?? 0) == 0)
         {
             // Przeciąganie okna przez krawędź: kursor i okno jadą na wirtualny monitor (czyli na Maca).
             _onVdd = true;
@@ -546,6 +547,8 @@ public sealed class InputCapture : IDisposable
         Interlocked.Exchange(ref _remoteMoves, 0);
         LastEnterUtc = DateTime.UtcNow;
         LastEnterRatio = ratio;
+        // Capture before the UI dispatch: WM_EXITSIZEMOVE may clear the viewer state meanwhile.
+        LastEnterWindowId = DraggingMacWindowId?.Invoke() ?? 0;
         if (!_vddKeyboard) ReleaseLocalKeys();
         _speedRemainderX = _speedRemainderY = 0;
         if (announce is not null) announce();

@@ -20,6 +20,10 @@ jobs:
           REQUIRE_SDK_MAJOR=26 UNIVERSAL=1 VERSION=0.0.0 ./build.sh
       - name: Verify clipboard protocol and PNG/TIFF synchronization
         run: bash macos/tests/clipboard-check.sh
+      - name: Verify window placement and video resize recovery
+        run: bash macos/tests/window-check.sh
+      - name: Verify stable and dev update channels
+        run: bash macos/tests/update-check.sh
       - name: Verify pairing, encrypted sessions and signed update artifacts
         run: bash macos/tests/security-check.sh
       - uses: actions/upload-artifact@v4

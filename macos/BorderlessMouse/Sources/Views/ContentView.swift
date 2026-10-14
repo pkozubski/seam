@@ -533,7 +533,7 @@ struct SettingsPage: View {
                 }
             }
             Section("Aktualizacje") {
-                SettingRow(title: L10n.text("Wersja \(Updater.currentVersion)", "Version \(Updater.currentVersion)"), subtitle: statusText) {
+                SettingRow(title: L10n.text("Wersja \(Updater.versionDescription)", "Version \(Updater.versionDescription)"), subtitle: statusText) {
                     HStack(spacing: 8) {
                         switch state.updater.state {
                         case .checking:
@@ -560,7 +560,7 @@ struct SettingsPage: View {
                         Link("Zobacz wydanie na GitHubie", destination: release.pageURL).font(.caption)
                     }
                 }
-                SettingRow(title: "Sprawdzaj automatycznie", subtitle: "Po starcie i co 6 godzin, przez GitHub Releases.") {
+                SettingRow(title: "Sprawdzaj automatycznie", subtitle: Updater.automaticUpdatesDescription) {
                     Toggle("", isOn: $state.settings.autoCheckUpdates).labelsHidden().toggleStyle(.switch)
                 }
                 DisclosureGroup("Zaawansowane: podpisywanie aktualizacji", isExpanded: $showAdvanced) {

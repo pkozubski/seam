@@ -21,8 +21,15 @@ internal static class Program
     private static readonly DataFormat<byte[]> PngFormat = DataFormat.CreateBytesPlatformFormat("PNG");
 
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
+        if (args.Contains("--window-checks") || args.Contains("--native-viewer-checks"))
+        {
+            UpdateChecks.Run();
+            WindowChecks.Run();
+            RunVirtualDisplayChecks(nativeViewer: args.Contains("--native-viewer-checks"));
+            return;
+        }
         AppBuilder.Configure<Application>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia().SetupWithoutStarting();
@@ -60,9 +67,11 @@ internal static class Program
 
     private static async Task RunChecks()
     {
+        UpdateChecks.Run();
         RunSecurityChecks();
         RunAudioSessionChecks();
         RunVirtualDisplayChecks();
+        WindowChecks.Run();
         using var fixture = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "clipboard.json")));
         string Field(string name) => fixture.RootElement.GetProperty(name).GetString()!;
         var png = Convert.FromBase64String(Field("pngBase64"));
@@ -275,7 +284,7 @@ internal static class Program
     /// Ekran wirtualny: wektory z implementacji Swift (DISPLAY_START/READY, LEAVE z flagą,
     /// rekord wideo AES-GCM) oraz strumień H.264 zakodowany przez VideoToolbox na Macu.
     /// </summary>
-    private static void RunVirtualDisplayChecks()
+    private static void RunVirtualDisplayChecks(bool nativeViewer = false)
     {
         static byte[] Hex(string value) => Convert.FromHexString(value);
         Expect(Frame.DisplayStart(2560, 1440, 125, ScreenEdge.Right, 20_000, DisplayMode.Windows).SequenceEqual(Hex("800d" + "000aa0057d000100204e000001")),
@@ -382,6 +391,7 @@ internal static class Program
             return;
         }
         DecodeFixture(frames, colors);
+        if (nativeViewer) WindowChecks.RunNative(frames);
         EncodeRoundTrip();
     }
 

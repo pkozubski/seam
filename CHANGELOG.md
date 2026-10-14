@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Updates
+
+- macOS and Windows share the signed `dev-build` release and version number. Test builds
+  check every two minutes and install during inactivity, deferring restarts while remote
+  control or transferred windows are in use. macOS rechecks inactivity after downloading.
+- Local builds read the shared `VERSION` file instead of silently identifying as 1.0.0.
+- Older stable-channel Mac builds need one initial installation of the test build.
+
+### Fixed
+
+- Mac window proxies use native Windows captions, resize borders, application menus and
+  DWM corners. Maximize, Snap and DPI changes request a matching source window size.
+- Preserve video aspect ratio and map input/popups to the actual displayed image. Keep
+  captions accessible across disjoint monitor layouts and disconnected displays.
+- Associate transient windows with their application, including layer-zero browser
+  suggestions identified through Accessibility; capture child surfaces separately.
+- Serialize ScreenCaptureKit size changes, discard stale encoder callbacks and cached
+  buffers after resize, and reset H.264 decoding after queue overflow. Capture at the
+  negotiated resolution during HiDPI/fullscreen transitions and improve encoding quality.
+
 ### Added
 
 - **Mac virtual display on Windows** (experimental). macOS creates a driverless virtual display

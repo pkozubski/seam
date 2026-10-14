@@ -68,6 +68,9 @@ public sealed class Updater
         return false;
     }
 
+    internal static bool CanAutoInstall(bool isDev, bool enabled, TimeSpan idle, bool sessionAllowsRestart) =>
+        isDev && enabled && idle >= TimeSpan.FromSeconds(60) && sessionAllowsRestart;
+
     /// <summary>Zwraca najnowsze wydanie z zasobem dla Windows albo null, gdy brak wydań.</summary>
     public async Task<ReleaseInfo?> CheckAsync(CancellationToken ct)
     {
@@ -102,7 +105,8 @@ public sealed class Updater
     }
 
     /// <summary>Pobiera, weryfikuje i przygotowuje podmianę exe. Po powrocie należy zakończyć aplikację.</summary>
-    public async Task DownloadAndInstallAsync(ReleaseInfo release, IProgress<double> progress, CancellationToken ct)
+    public async Task<bool> DownloadAndInstallAsync(ReleaseInfo release, IProgress<double> progress, CancellationToken ct,
+        Func<bool>? mayRestart = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException(T("Aktualizacja w miejscu działa tylko na Windows.", "In-place updates are available only on Windows."));
         var target = Environment.ProcessPath;
@@ -151,6 +155,13 @@ public sealed class Updater
         }
         var signature = await DownloadSignatureAsync(release.SignatureUrl, ct);
         UpdateSignatureVerifier.VerifyHash(actualHash, signature);
+
+        // Recheck after the download: the user may have resumed work in the meantime.
+        if (mayRestart?.Invoke() == false)
+        {
+            Directory.Delete(dir, recursive: true);
+            return false;
+        }
 
         var script = Path.Combine(dir, "swap.cmd");
         File.WriteAllText(script, """
@@ -202,6 +213,7 @@ public sealed class Updater
         psi.ArgumentList.Add(newExe);
         psi.ArgumentList.Add(target);
         Process.Start(psi);
+        return true;
     }
 
     private static async Task<byte[]> DownloadSignatureAsync(string url, CancellationToken ct)
