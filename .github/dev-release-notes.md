@@ -1,5 +1,6 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
+- Nowa ikona aplikacji na macOS i Windows.
 - Okna Maca na Windowsie bez pustych pasów u góry i u dołu po przeniesieniu: okno Windows nie zmniejsza już okna Maca przy tworzeniu, a obraz nie jest powiększany (rozmycie). Po zmianie rozmiaru okno przyjmuje rozmiar, który faktycznie ma okno Maca.
 - Ostrzejszy tekst w oknach Maca: gdy obraz przestaje się zmieniać, Mac koduje go jeszcze kilka razy, aż zniknie rozmycie po kompresji.
 - Okna Windows na Macu: monitor wirtualny obejmuje tylko użyteczną część ekranu (bez paska menu i Docka), więc zmaksymalizowane okno nie gubi już kursora ani najechania.

@@ -10,6 +10,11 @@
 - Local builds read the shared `VERSION` file instead of silently identifying as 1.0.0.
 - Older stable-channel Mac builds need one initial installation of the test build.
 
+### Changed
+
+- New app icon on macOS and Windows (two windows on a dark tile), exported from
+  `assets/logo/app-icon.png`; the macOS icon follows the Dock grid with a soft shadow.
+
 ### Fixed
 
 - Mac windows on Windows: setting up the Mica caption no longer sends the Mac a resize request
