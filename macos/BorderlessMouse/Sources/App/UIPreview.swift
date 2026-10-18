@@ -18,6 +18,26 @@ enum UIPreview {
         }
         let path = args[idx + 1]
         let state = AppState.demo()
+        if args.contains("--ui-full-windows") {
+            // NSHostingView includes AppKit-backed controls that ImageRenderer omits.
+            let app = NSApplication.shared
+            app.setActivationPolicy(.regular)
+            let host = NSHostingView(rootView: WindowsPage(fullPreview: true)
+                .environmentObject(state).environment(\.colorScheme, .dark).tint(DesignTokens.accent))
+            let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 1100, height: 1800),
+                                  styleMask: [.borderless], backing: .buffered, defer: false)
+            window.appearance = NSAppearance(named: .darkAqua)
+            window.contentView = host
+            host.setFrameSize(host.fittingSize)
+            for _ in 0..<3 { RunLoop.main.run(until: Date().addingTimeInterval(0.2)) }
+            host.layoutSubtreeIfNeeded()
+            guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { exit(3) }
+            host.cacheDisplay(in: host.bounds, to: rep)
+            guard let png = rep.representation(using: .png, properties: [:]) else { exit(3) }
+            do { try png.write(to: URL(fileURLWithPath: path)) } catch { exit(3) }
+            print("zapisano \(path) (\(rep.pixelsWide)×\(rep.pixelsHigh) px)")
+            exit(0)
+        }
         // `--ui-settings <general|updates|advanced>` opens settings on that page;
         // `--ui-update <available|downloading|installing|updated|failed>` fakes the updater.
         if let i = args.firstIndex(of: "--ui-settings"), i + 1 < args.count, let pane = SettingsPane(rawValue: args[i + 1]) {

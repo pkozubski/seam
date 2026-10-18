@@ -11,3 +11,9 @@ macOS build.sh copies these assets into the app bundle. Windows embeds PNGs thro
 icon-*.png: eight generated silver 3D icons used by both platforms.
 icon-prompts.txt: their exact image_gen prompts.
 Connection status is displayed in an attached transparent child window, with screen-edge clamping.
+
+window-desktop-mac.png / window-desktop-pc.png: original paired emerald/blue
+wallpapers generated with built-in image_gen for the Windows tab's monitor diagrams.
+window-prompts.txt records both exact prompts. The windows, shared edge, arrows and
+localized labels are drawn natively on each platform. All diagrams follow the
+configured screen arrangement; macOS marks the layout as an example until negotiated.

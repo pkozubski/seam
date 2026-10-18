@@ -20,6 +20,9 @@ targets:
       - path: BorderlessMouse/Sources
       - path: BorderlessMouse/Resources
         buildPhase: resources
+      - path: ../assets/seam
+        includes: ["*.png"]
+        buildPhase: resources
     settings:
       base:
         PRODUCT_NAME: BorderlessMouse

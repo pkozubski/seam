@@ -14,6 +14,7 @@ public partial class MainWindow : AppWindow
     public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "displays", "control", "audio", "clipboard", "windows", "settings", "log" };
 
     private ConnectionStatusWindow? _statusWindow;
+    private string _activeTag = "connection";
 
     private readonly Dictionary<string, Control> _pages = new();
 
@@ -103,6 +104,11 @@ public partial class MainWindow : AppWindow
 
     private void ShowPage(string tag)
     {
+        _activeTag = tag;
+        Nav.PaneDisplayMode = tag == "windows" ? NavigationViewPaneDisplayMode.LeftCompact : NavigationViewPaneDisplayMode.Left;
+        Nav.IsPaneOpen = tag != "windows";
+        foreach (var header in Nav.MenuItems.OfType<NavigationViewItemHeader>()) header.IsVisible = tag != "windows";
+        if (Nav.PaneFooter is Control footer) footer.IsVisible = tag != "windows";
         if (!_pages.TryGetValue(tag, out var page))
         {
             page = tag switch
@@ -110,7 +116,8 @@ public partial class MainWindow : AppWindow
                 "connection" => new ConnectionPage(),
                 "displays" => new DisplaysPage(),
                 "control" => new ControlPage(),
-                "audio" or "clipboard" or "windows" => new ControlPage(tag),
+                "audio" or "clipboard" => new ControlPage(tag),
+                "windows" => new WindowsPage(),
                 "settings" => new SettingsPage(),
                 "log" => new LogPage(),
                 _ => new ConnectionPage(),
@@ -119,14 +126,16 @@ public partial class MainWindow : AppWindow
             L10n.Apply(page);
         }
         PageHost.Content = page;
+        SyncStatusWindow();
     }
 
     internal ConnectionStatusWindow? StatusWindow => _statusWindow;
+    internal Control? CurrentPage => PageHost.Content as Control;
 
     private void SyncStatusWindow()
     {
         if (_statusWindow is null) return;
-        if (!IsVisible || WindowState == WindowState.Minimized)
+        if (!IsVisible || WindowState == WindowState.Minimized || _activeTag == "windows")
         {
             _statusWindow.Hide();
             return;

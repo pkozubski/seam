@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.21 — test channel (2026-10-18)
+
+- macOS and Windows: a new scrollable Windows tab explains the second-monitor model with a large window-crossing illustration, three visual steps, display arrangement and return direction.
+- Add two original bundled desktop wallpapers; the windows, arrows and localized labels remain native and sharp at every size.
+- Diagrams follow all four screen positions. macOS reads the negotiated edge and labels disconnected or inactive arrangements as examples.
+- Keep live feature switches, permission and connection feedback; Windows retains both transfer directions, driver installation, restart and display options.
+- The Windows tab uses a compact navigation rail and hides the home-screen connection orb. Other pages retain their existing layout.
+- Add full-page UI previews for visual checks; allow a separate local macOS build output so previews do not replace a running app.
+
 ## 2.1.20 — test channel (2026-10-18)
 
 - macOS: settings take over the main window. The sidebar becomes the General, Updates and Advanced pages with search and a Back row; ⌘, toggles settings and Esc closes them.

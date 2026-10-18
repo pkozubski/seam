@@ -39,6 +39,7 @@ final class AppState: ObservableObject {
     @Published private(set) var accessibilityGranted = false
     @Published private(set) var screenCaptureGranted = false
     @Published private(set) var displayStreaming = false
+    @Published private(set) var displayEdge: ScreenEdge?
     @Published private(set) var displayDescription = ""
     @Published private(set) var displayError: String?
     @Published private(set) var displayStats: DisplayStreamer.Stats?
@@ -153,6 +154,7 @@ final class AppState: ObservableObject {
         audioPackets = 18_432
         screenCaptureGranted = true
         displayStreaming = true
+        displayEdge = .right
         displayDescription = "2560×1440 · H.264 22 Mb/s"
         displayStats = DisplayStreamer.Stats(framesPerSecond: 58, kilobitsPerSecond: 6_420, dropped: 0, width: 2560, height: 1440)
         clipboardStatus = L10n.text("Wysłano 128 zn. do Windowsa · 21:40:12", "Sent 128 characters to Windows · 21:40:12")
@@ -165,16 +167,27 @@ final class AppState: ObservableObject {
             LogEntry(time: Date().addingTimeInterval(-4), text: L10n.text("Kursor przeszedł na Maca", "Pointer moved to Mac")),
         ]
         let args = CommandLine.arguments
+        if let index = args.firstIndex(of: "--ui-display-edge"), index + 1 < args.count {
+            displayEdge = ["left": ScreenEdge.left, "right": .right, "top": .top, "bottom": .bottom][args[index + 1]] ?? .right
+        }
+        if args.contains("--ui-display-off") {
+            settings.displayEnabled = false
+            displayStreaming = false
+            displayEdge = nil
+        }
         if args.contains("--ui-disconnected") {
             peer = nil
             cursorOnMac = false
             audioStreaming = false
             displayStreaming = false
+            displayEdge = nil
             log = []
         }
         if args.contains("--ui-missing-permissions") {
             accessibilityGranted = false
             screenCaptureGranted = false
+            displayStreaming = false
+            displayEdge = nil
             audioPermission = .unknown
         }
         if args.contains("--ui-onboarding") {
@@ -449,6 +462,7 @@ final class AppState: ObservableObject {
             peer = info
         case .peerDisconnected:
             peer = nil
+            displayEdge = nil
             cursorOnMac = false
             displayStreaming = false
             displayStats = nil
@@ -483,17 +497,20 @@ final class AppState: ObservableObject {
                                         "Received \(summary) from Windows · \(Self.timeFormatter.string(from: Date()))")
         case let .clipboardError(message):
             clipboardStatus = message
-        case let .displayStarted(desc):
+        case let .displayStarted(desc, edge):
             displayStreaming = true
+            displayEdge = edge
             displayDescription = desc
             displayError = nil
             displayStats = nil
         case .displayStopped:
             displayStreaming = false
+            displayEdge = nil
             displayDescription = ""
             displayStats = nil
         case let .displayError(message):
             displayStreaming = false
+            displayEdge = nil
             displayError = message
             displayStats = nil
         case let .displayStats(stats):

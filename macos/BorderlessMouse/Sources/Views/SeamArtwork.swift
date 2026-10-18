@@ -3,6 +3,7 @@ import SwiftUI
 /// Shared artwork is bundled by both platform builds and decoded once per asset.
 struct SeamArtwork: View {
     let name: String
+    var contentMode: ContentMode = .fit
     private static let cache = NSCache<NSString, NSImage>()
 
     private var artwork: NSImage? {
@@ -15,7 +16,7 @@ struct SeamArtwork: View {
 
     var body: some View {
         if let artwork {
-            Image(nsImage: artwork).resizable().interpolation(.high).scaledToFit()
+            Image(nsImage: artwork).resizable().interpolation(.high).aspectRatio(contentMode: contentMode)
         }
     }
 }

@@ -60,64 +60,6 @@
                 <TextBlock Classes="note" Text="Zamianę klawiszy Ctrl i Cmd oraz przewijanie ustawiasz w aplikacji na Macu." />
             </StackPanel>
 
-            <!-- OKNA -->
-            <StackPanel x:Name="WindowsSection" Spacing="14">
-                <Border Classes="card hero">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
-                        <views:IconTile Icon="icon-windows" TileSize="44" IsActive="{Binding DisplayEnabled}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                            <TextBlock Classes="heroTitle" Text="Pokazuj ekran wirtualny Maca" />
-                            <StackPanel Orientation="Horizontal" Spacing="7">
-                                <Ellipse Width="8" Height="8" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
-                                <TextBlock Classes="subtitle" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" MaxWidth="460" />
-                            </StackPanel>
-                        </StackPanel>
-                        <Button Grid.Column="2" Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" VerticalAlignment="Center" />
-                        <ToggleSwitch Grid.Column="3" Classes="compact" IsChecked="{Binding DisplayEnabled}" VerticalAlignment="Center" />
-                    </Grid>
-                </Border>
-
-                <Border Classes="card">
-                    <StackPanel Spacing="12">
-                        <StackPanel Classes="sectionHeader"><TextBlock Text="EKRAN MACA" /></StackPanel>
-                        <views:SettingRow Title="Tylko okna Maca"
-                                          Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
-                            <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
-                        </views:SettingRow>
-                        <Rectangle Classes="divider" />
-                        <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem"
-                                          Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
-                            <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" />
-                        </views:SettingRow>
-                        <TextBlock Classes="subtitle mono" Text="{Binding DisplayStatsText}"
-                                   IsVisible="{Binding DisplayStatsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Classes="card hero">
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
-                        <views:IconTile Icon="icon-windows" TileSize="44" IsActive="{Binding WinViewEnabled}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                            <TextBlock Classes="heroTitle" Text="Przenoś okna Windows na Maca" />
-                            <StackPanel Orientation="Horizontal" Spacing="7">
-                                <Ellipse Width="8" Height="8" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
-                                <TextBlock Classes="subtitle" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" MaxWidth="460" />
-                            </StackPanel>
-                        </StackPanel>
-                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding WinViewEnabled}" VerticalAlignment="Center" />
-                    </Grid>
-                </Border>
-
-                <Border Classes="card" IsVisible="{Binding WinViewDriverMissing}">
-                    <views:SettingRow Title="Sterownik monitora wirtualnego"
-                                      Subtitle="Jednorazowa instalacja darmowego, podpisanego sterownika Virtual Display Driver (wymaga zgody administratora).">
-                        <Button Classes="accent" Content="Zainstaluj" Command="{Binding InstallDisplayDriverCommand}" IsEnabled="{Binding !IsInstallingDriver}" />
-                    </views:SettingRow>
-                </Border>
-                <TextBlock Classes="note" Text="Przeciągnij okno za krawędź po stronie Maca – pojawi się na ekranie Maca i dalej działa w Windowsie." />
-                <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding WinViewStatsText}"
-                           IsVisible="{Binding WinViewStatsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            </StackPanel>
 
             <!-- DŹWIĘK -->
             <StackPanel x:Name="AudioSection" Spacing="14">

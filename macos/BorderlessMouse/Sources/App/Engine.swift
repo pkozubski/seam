@@ -35,7 +35,7 @@ final class Engine {
         case clipboardSent(summary: String)
         case clipboardReceived(summary: String)
         case clipboardError(String)
-        case displayStarted(String)
+        case displayStarted(String, ScreenEdge)
         case displayStopped
         case displayError(String)
         case displayStats(DisplayStreamer.Stats)
@@ -496,7 +496,7 @@ final class Engine {
                     self.server.send(Frame.displayReady(status: 0, port: ready.port, key: ready.key, token: ready.token,
                                                         pixelWidth: ready.width, pixelHeight: ready.height, message: ""))
                     let desc = "\(ready.width)×\(ready.height) · H.264 \(ready.bitrate / 1_000_000) Mb/s"
-                    self.emit(.displayStarted(desc))
+                    self.emit(.displayStarted(desc, request.edge))
                     self.emit(.log(L10n.text("Ekran wirtualny gotowy: \(desc), port \(ready.port)",
                                              "Virtual display ready: \(desc), port \(ready.port)")))
                 case let .failure(error):

@@ -143,6 +143,7 @@
 
 "Jedna klawiatura i mysz dla obu komputerów." = "One keyboard and mouse for both computers.";
 "Brak uprawnienia Dostępność" = "Accessibility permission missing";
+"Pozwala przenosić okna i sterować nimi na drugim urządzeniu." = "Allows moving windows and controlling them on the other device.";
 "Bez niego Mac nie przyjmie ruchów myszy ani klawiszy z Windowsa." = "Without it the Mac cannot accept mouse and key input from Windows.";
 "Klawiatura" = "Keyboard";
 "Przewijanie" = "Scrolling";

@@ -8,6 +8,8 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        if (args.Contains("--screenshot"))
+            System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(Console.Error));
         // Nieobsłużony wyjątek zamyka proces bez śladu – zapisujemy go, Dziennik pokaże go po restarcie.
         AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashLog.Write(e.ExceptionObject as Exception);
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

@@ -1,22 +1,13 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
-## Nowe w 2.1.20 — ustawienia i aktualizacje (macOS)
+## Nowe w 2.1.21 — zakładka Okna
 
-- Ustawienia przejmują okno: panel boczny zamienia się w listę stron Ogólne, Aktualizacje i Zaawansowane, z wyszukiwarką i przyciskiem **Wstecz**. Otwiera je ⌘, albo „Ustawienia” w panelu bocznym, zamyka Esc.
-- Strona Aktualizacje: przycisk wersji w nagłówku zmienia się w „Zaktualizuj i uruchom ponownie”, a podczas instalacji w pasek postępu.
-- Pasek przechodzi przez pobieranie (z rozmiarem w MB), sprawdzanie podpisu i instalację, i nigdy się nie cofa.
-- Po aktualizacji uruchomionej ręcznie aplikacja wraca na stronę Aktualizacje, dokańcza pasek i pokazuje, co się zmieniło.
-- Kropka przy „Ustawieniach” oznacza czekającą aktualizację.
-- Windows bez zmian względem 2.1.19, poza numerem wersji.
-
-Nowy pasek pojawi się przy następnej aktualizacji: samo 2.1.20 instaluje się jeszcze dotychczasowym mechanizmem.
-
-## 2.1.19 — osobne strony funkcji
-
-- Każda sekcja panelu bocznego to osobna strona; „Sterowanie” nazywa się teraz „Klawiatura i mysz”.
-- Strony funkcji zaczynają się kartą z głównym przełącznikiem i stanem na żywo.
-- macOS: panel boczny podzielony na Funkcje i System; brakujące uprawnienie pokazuje baner z przyciskiem nadania.
-- Windows: nowa strona Ekrany do ustawienia położenia Maca.
+- Nowy, przewijany widok pokazuje działanie drugiego urządzenia jako dodatkowego monitora: przeciągasz dowolne okno za wspólną krawędź ekranów.
+- Duża wizualizacja przejścia, instrukcja w trzech krokach, podgląd układu ekranów i przeniesienia okna z powrotem. macOS ma także przycisk odtwarzający przykład.
+- Dwa nowe tła ekranów, dołączone do aplikacji; okna, strzałki i podpisy są rysowane natywnie.
+- Grafiki reagują na położenie ekranów po lewej, po prawej, nad i pod drugim urządzeniem. Na Macu bez aktywnego drugiego ekranu układ jest oznaczony jako przykład.
+- Działające przełączniki i statusy, komunikaty o wymaganych uprawnieniach oraz skrócony pasek boczny. Windows zachowuje osobne przełączniki obu kierunków, instalację sterownika, restart i opcje wyświetlania.
+- Mechanizm przenoszenia okien i protokół pozostają zgodne z 2.1.20.
 
 ## Aktualizacja
 

@@ -6,6 +6,7 @@
 #   UNIVERSAL=1 ./build.sh           → arm64 + x86_64 (lipo)
 #   VERSION=1.2.3 BUILD_NUMBER=42 ./build.sh
 #   UPDATE_CHANNEL=dev ./build.sh   → automatyczne aktualizacje testowe
+#   APP_OUTPUT=/tmp/seam-preview.app ./build.sh → osobny bundle do kontroli UI
 #   SIGN_IDENTITY="BorderlessMouse Dev" ./build.sh   → stały certyfikat (trwałe uprawnienia TCC)
 #   bez SIGN_IDENTITY: certyfikat „Apple Development” z pęku kluczy, a gdy go nie ma – ad-hoc
 set -euo pipefail
@@ -31,7 +32,7 @@ UPDATE_CHANNEL="${UPDATE_CHANNEL:-stable}"
 case "$UPDATE_CHANNEL" in stable|dev) ;; *) echo "Nieprawidłowy UPDATE_CHANNEL" >&2; exit 1;; esac
 DEPLOY="14.2"
 BUNDLE_ID="com.borderlessmouse.mac"
-OUT="build/BorderlessMouse.app"
+OUT="${APP_OUTPUT:-build/BorderlessMouse.app}"
 
 # SDK decyduje o wyglądzie: binarka zlinkowana z SDK macOS 26 dostaje na Tahoe nowy
 # wygląd systemu (szklane kontrolki), starsze SDK dają tryb kompatybilności.

@@ -118,6 +118,16 @@ a `--ui-menu` i `--ui-onboarding` panel menu i kreator. `--ui-interactive` pozos
 okno do ręcznej kontroli UI. Ekran główny ma ciemny motyw zgodny z projektem seam.
 Podglądy obejmują także wystający status połączenia.
 
+Zakładka **Okna** pokazuje przejście dowolnego okna przez wspólną krawędź ekranów,
+instrukcję w trzech krokach i rzeczywisty układ urządzeń. Przy nieaktywnym ekranie
+Mac oznacza układ jako przykład. Układ zmienia się w zakładce **Ekrany** na Windowsie.
+Grafiki tła są dołączone do aplikacji, a okna i podpisy rysowane natywnie.
+Mac: `--ui-full-windows` zapisuje całą przewijaną zakładkę; `--ui-display-edge
+left|right|top|bottom` sprawdza położenia, `--ui-display-off` stan wyłączony.
+Windows: `--screenshot-section windows --screenshot-full-page` zapisuje całą stronę.
+Do lokalnego podglądu można budować przez `APP_OUTPUT=/tmp/seam-preview.app`,
+aby nie podmieniać bundle używanego przez działającą aplikację.
+
 Wspólne grafiki, ikony i prompty źródłowe znajdują się w `assets/seam/`. Build Maca kopiuje
 je do bundle, a Windows osadza je jako zasoby; aplikacje nie pobierają grafik z sieci.
 

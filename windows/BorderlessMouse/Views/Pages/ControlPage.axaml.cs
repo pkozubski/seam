@@ -11,14 +11,12 @@ public partial class ControlPage : UserControl
     {
         InitializeComponent();
         InputSection.IsVisible = section == "control";
-        WindowsSection.IsVisible = section == "windows";
         AudioSection.IsVisible = section == "audio";
         ClipboardSection.IsVisible = section == "clipboard";
         (SectionTitle.Text, SectionSubtitle.Text) = section switch
         {
             "audio" => ("Dźwięk", "Dźwięk systemowy Maca grany na tym komputerze."),
             "clipboard" => ("Schowek", "Kopiuj na jednym komputerze, wklejaj na drugim."),
-            "windows" => ("Okna", "Okna Maca na tym monitorze i okna Windows na Macu."),
             _ => ("Klawiatura i mysz", "Jedna klawiatura i mysz dla obu komputerów."),
         };
         Localization.L10n.Apply(this);

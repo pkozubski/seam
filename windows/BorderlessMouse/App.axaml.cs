@@ -58,10 +58,32 @@ public partial class App : Application
         var idx = Array.IndexOf(args, "--screenshot");
         if (idx < 0 || idx + 1 >= args.Length) return;
         var path = args[idx + 1];
+        var sectionIndex = Array.IndexOf(args, "--screenshot-section");
+        var section = sectionIndex >= 0 && sectionIndex + 1 < args.Length ? args[sectionIndex + 1] : null;
+        if (section is not null) _mainWindow.NavigateTo(section);
         DispatcherTimer.RunOnce(() =>
         {
             try
             {
+                if (section is not null)
+                {
+                    if (args.Contains("--screenshot-full-page") && _mainWindow.CurrentPage is Views.Pages.WindowsPage windows)
+                    {
+                        var guide = windows.FullGuide;
+                        using var full = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(guide.Bounds.Width * 2),
+                            (int)Math.Ceiling(guide.Bounds.Height * 2)), new Vector(192, 192));
+                        full.Render(guide);
+                        using var composite = new RenderTargetBitmap(full.PixelSize, new Vector(192, 192));
+                        using (var drawing = composite.CreateDrawingContext())
+                        {
+                            drawing.DrawRectangle(Avalonia.Media.Brush.Parse("#103735"), null, new Rect(guide.Bounds.Size));
+                            drawing.DrawImage(full, new Rect(0, 0, full.PixelSize.Width, full.PixelSize.Height), new Rect(guide.Bounds.Size));
+                        }
+                        composite.Save(path);
+                    }
+                    else Capture(path);
+                    return;
+                }
                 // pierwsza strona pod podaną nazwą, pozostałe strony paska bocznego z sufiksem
                 var stem = Path.ChangeExtension(path, null);
                 var ext = Path.GetExtension(path);

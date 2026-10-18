@@ -15,6 +15,7 @@ struct ContentView: View {
     }
 
     private var slide: Animation { SettingsChrome.slide(reduceMotion: reduceMotion) }
+    private var compactSidebar: Bool { selection == .windows && !settingsNavigation.isPresented }
 
     var body: some View {
         NavigationSplitView {
@@ -22,13 +23,17 @@ struct ContentView: View {
                 if settingsNavigation.isPresented {
                     SettingsSidebar(navigation: settingsNavigation)
                         .transition(.offset(x: -16).combined(with: .opacity))
+                } else if compactSidebar {
+                    WindowsSidebar(selection: $selection)
                 } else {
                     SidebarView(selection: $selection)
                         .transition(.offset(x: -16).combined(with: .opacity))
                 }
             }
             .animation(slide, value: settingsNavigation.isPresented)
-            .navigationSplitViewColumnWidth(min: 215, ideal: 230, max: 270)
+            .navigationSplitViewColumnWidth(min: compactSidebar ? 76 : 215,
+                                            ideal: compactSidebar ? 76 : 230,
+                                            max: compactSidebar ? 76 : 270)
             .background {
                 SeamBackdrop(canvasWidth: canvasWidth)
                     .overlay(Color.black.opacity(0.24))
@@ -41,7 +46,8 @@ struct ContentView: View {
                     SettingsDetail(navigation: settingsNavigation)
                         .transition(.offset(x: 24).combined(with: .opacity))
                 } else {
-                    DetailView(section: selection ?? .connection, openWindows: { selection = .windows })
+                    DetailView(section: selection ?? .connection, openWindows: { selection = .windows },
+                               openConnection: { selection = .connection })
                         .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: selection)
                         .transition(.offset(x: 24).combined(with: .opacity))
                 }
@@ -53,7 +59,11 @@ struct ContentView: View {
         .background { SeamBackdrop().ignoresSafeArea() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { canvasWidth = $0 }
         .frame(minWidth: 980, idealWidth: 1180, minHeight: 680, idealHeight: 800)
-        .background(ConnectionStatusAttachment(state: state) { showConnectionStatus = true })
+        .background {
+            if !compactSidebar {
+                ConnectionStatusAttachment(state: state) { showConnectionStatus = true }
+            }
+        }
         .sheet(isPresented: $showConnectionStatus) { ConnectionDetails().environmentObject(state) }
         .preferredColorScheme(.dark)
         .tint(DesignTokens.accent)
