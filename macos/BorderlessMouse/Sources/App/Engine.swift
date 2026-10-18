@@ -633,15 +633,29 @@ final class Engine {
         }
     }
 
+    /// Obszar ekranu bez paska menu i Docka (visibleFrame) w globalnych współrzędnych CG.
+    private static func usableArea(of screenID: CGDirectDisplayID) -> CGRect? {
+        guard let primaryHeight = NSScreen.screens.first?.frame.height,
+              let screen = NSScreen.screens.first(where: {
+                  ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == screenID
+              }) else { return nil }
+        let visible = screen.visibleFrame
+        let area = CGRect(x: visible.minX, y: primaryHeight - visible.maxY, width: visible.width, height: visible.height).integral
+        return area.width >= 320 && area.height >= 240 ? area : nil
+    }
+
     private func startWinView(edge: ScreenEdge) {
         stopWinViewLocked(reason: nil)
         winViewGeneration &+= 1
         let generation = winViewGeneration
         winViewEdge = edge
         let screenID = Self.facingScreen(edge: edge, excluding: displayID)
-        let bounds = CGDisplayBounds(screenID)
-        let pixelWidth = CGDisplayCopyDisplayMode(screenID)?.pixelWidth ?? Int(bounds.width)
-        let scalePercent = Int((CGFloat(pixelWidth) / max(bounds.width, 1) * 100).rounded())
+        let full = CGDisplayBounds(screenID)
+        let pixelWidth = CGDisplayCopyDisplayMode(screenID)?.pixelWidth ?? Int(full.width)
+        let scalePercent = Int((CGFloat(pixelWidth) / max(full.width, 1) * 100).rounded())
+        // Monitor Windows odpowiada tylko użytecznej części ekranu: zmaksymalizowane okno pod
+        // paskiem menu albo Dockiem byłoby zasłonięte, a kursor nad nim wracałby do Maca.
+        let bounds = Self.usableArea(of: screenID) ?? full
         let key = VideoStream.randomBytes(VideoStream.keyBytes)
         let token = VideoStream.randomBytes(VideoStream.tokenBytes)
         let session = WinViewSession(screen: bounds, key: key, token: token)

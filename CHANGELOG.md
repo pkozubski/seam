@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- Size the Windows virtual monitor to the Mac screen's visible area (without menu bar and Dock)
+  so maximized Windows windows are not covered and the pointer stays on Windows.
 - Do not dispose the device's cached D3D11 immediate context in per-window capture and the
   hardware encoder; a failure in one window no longer stops the whole window stream.
 - Windows apps on the Mac stream each window separately via Windows.Graphics.Capture and a
