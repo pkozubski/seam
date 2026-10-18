@@ -21,8 +21,7 @@ public partial class MainWindow : AppWindow
     {
         InitializeComponent();
         L10n.Apply(this);
-        foreach (var item in Nav.MenuItems.OfType<NavigationViewItem>()
-                     .Concat(Nav.FooterMenuItems.OfType<NavigationViewItem>()))
+        foreach (var item in NavItems)
         {
             if (item.Content is string label) item.Content = L10n.TranslateText(label);
         }
@@ -72,17 +71,30 @@ public partial class MainWindow : AppWindow
     /// <summary>Wybiera stronę w pasku bocznym po jej znaczniku.</summary>
     public void NavigateTo(string tag)
     {
-        var item = Nav.MenuItems.OfType<NavigationViewItem>()
-            .Concat(Nav.FooterMenuItems.OfType<NavigationViewItem>())
-            .FirstOrDefault(i => (string?)i.Tag == tag);
+        var item = NavItems.FirstOrDefault(i => (string?)i.Tag == tag);
         if (item is null) return;
         if (!ReferenceEquals(Nav.SelectedItem, item)) Nav.SelectedItem = item;
         ShowPage(tag);
+        UpdateNavIcons();
+    }
+
+    private IEnumerable<NavigationViewItem> NavItems =>
+        Nav.MenuItems.OfType<NavigationViewItem>().Concat(Nav.FooterMenuItems.OfType<NavigationViewItem>());
+
+    /// <summary>Ikony paska bocznego na płytkach jak na macOS; wybrana sekcja ma płytkę w kolorze akcentu.</summary>
+    private void UpdateNavIcons()
+    {
+        foreach (var item in NavItems)
+        {
+            if (item.Tag is string tag)
+                item.IconSource = new ImageIconSource { Source = IconTile.Render($"icon-{tag}", ReferenceEquals(item, Nav.SelectedItem)) };
+        }
     }
 
     private void Nav_OnSelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
     {
         if (e.SelectedItem is NavigationViewItem { Tag: string tag }) ShowPage(tag);
+        UpdateNavIcons();
     }
 
     private void ShowPage(string tag)
@@ -125,6 +137,7 @@ public partial class MainWindow : AppWindow
 
     private void ApplyBackdrop()
     {
-        Background = new SolidColorBrush(Color.Parse("#1D1F21"));
+        // SeamBackdrop covers the window; this is only what shows before it renders.
+        Background = new SolidColorBrush(Color.Parse("#141517"));
     }
 }

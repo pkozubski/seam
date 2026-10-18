@@ -4,20 +4,23 @@
                xmlns:ui="using:FluentAvalonia.UI.Controls"
                xmlns:vm="using:BorderlessMouse.ViewModels"
                xmlns:pages="using:BorderlessMouse.Views.Pages"
+               xmlns:views="using:BorderlessMouse.Views"
                x:Class="BorderlessMouse.Views.MainWindow"
                x:DataType="vm:MainViewModel"
                FontFamily="Segoe UI, Helvetica Neue, Arial"
                Title="seam"
-               Icon="avares://BorderlessMouse/Assets/seam-icon.png"
+               Icon="avares://BorderlessMouse/Assets/icon.png"
                Width="1180" Height="800"
                MinWidth="980" MinHeight="680"
                WindowStartupLocation="CenterScreen">
 
     <Grid RowDefinitions="32,*">
+        <!-- Grafitowe tło jak na macOS – pod paskiem tytułu, panelem bocznym i treścią -->
+        <views:SeamBackdrop Grid.RowSpan="2" />
 
         <!-- Pasek tytułu (obszar przeciągania okna): ikona + nazwa jak w aplikacjach Windows 11 -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="12,0,150,0">
-            <Image Source="avares://BorderlessMouse/Assets/seam-icon.png" Width="16" Height="16" VerticalAlignment="Center" />
+            <Image Source="avares://BorderlessMouse/Assets/icon.png" Width="16" Height="16" VerticalAlignment="Center" />
             <TextBlock Grid.Column="1" Text="seam" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
         </Grid>
 
@@ -33,34 +36,25 @@
 
             <ui:NavigationView.PaneHeader>
                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,8,0,10">
-                    <Image Source="avares://BorderlessMouse/Assets/seam-icon.png" Width="46" Height="46" />
+                    <Image Source="avares://BorderlessMouse/Assets/logo.png" Width="50" Height="50" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="seam" FontWeight="Medium" FontSize="26" />
+                        <TextBlock Text="seam" FontWeight="Medium" FontSize="26" Foreground="{DynamicResource MutedText}" />
 
                     </StackPanel>
                 </StackPanel>
             </ui:NavigationView.PaneHeader>
 
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="Połączenie" Tag="connection">
-                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-connection.png" /></ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Sterowanie" Tag="control">
-                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-control.png" /></ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Dźwięk" Tag="audio"><ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-audio.png" /></ui:NavigationViewItem.IconSource></ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Schowek" Tag="clipboard"><ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-clipboard.png" /></ui:NavigationViewItem.IconSource></ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Okna" Tag="windows"><ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-windows.png" /></ui:NavigationViewItem.IconSource></ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Połączenie" Tag="connection" />
+                <ui:NavigationViewItem Content="Sterowanie" Tag="control" />
+                <ui:NavigationViewItem Content="Dźwięk" Tag="audio" />
+                <ui:NavigationViewItem Content="Schowek" Tag="clipboard" />
+                <ui:NavigationViewItem Content="Okna" Tag="windows" />
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
-                <ui:NavigationViewItem Content="Ustawienia" Tag="settings">
-                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-settings.png" /></ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
-
-                <ui:NavigationViewItem Content="Dziennik" Tag="log">
-                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-log.png" /></ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Ustawienia" Tag="settings" />
+                <ui:NavigationViewItem Content="Dziennik" Tag="log" />
             </ui:NavigationView.FooterMenuItems>
 
             <ui:NavigationView.PaneFooter>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.18 — test channel (2026-10-18)
+
+- Windows: match the macOS look. The same graphite backdrop runs under the title bar, a darker sidebar pane and the content.
+- Windows: sidebar and quick-toggle icons sit on graphite gradient plates; the selected section takes the accent color.
+- Windows: use the sage accent from macOS instead of the system accent color.
+- Windows: use the graphite two-window app icon for the executable, title bar, tray and sidebar logo.
+- macOS: unchanged since 2.1.17 apart from the version number.
+
 ## 2.1.17 — test channel (2026-10-18)
 
 - macOS: replace the flat canvas with one continuous graphite backdrop (cool studio light, a faint accent glow under the status orb, grain against banding). The sidebar continues it under a darker veil and the title bar is transparent.

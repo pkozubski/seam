@@ -9,29 +9,40 @@
     <ScrollViewer>
         <StackPanel Margin="28,20,28,80" Spacing="24">
             <Grid ColumnDefinitions="*,340" ColumnSpacing="16" MinHeight="510">
-                <Image Source="avares://BorderlessMouse/Assets/seam-windows.png" Stretch="Uniform" Margin="26" VerticalAlignment="Center" />
+                <Panel>
+                    <!-- delikatna poświata za grafiką, jak na macOS -->
+                    <Border>
+                        <Border.Background>
+                            <RadialGradientBrush Center="50%,50%" GradientOrigin="50%,50%" RadiusX="50%" RadiusY="50%">
+                                <GradientStop Color="#2E78828F" Offset="0" />
+                                <GradientStop Color="#0078828F" Offset="1" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <Image Source="avares://BorderlessMouse/Assets/seam-windows.png" Stretch="Uniform" Margin="26" VerticalAlignment="Center" />
+                </Panel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="20">
                     <TextBlock Text="Dwa komputery.&#10;Jedna przestrzeń." FontSize="36" LetterSpacing="-1" LineHeight="43" />
                     <TextBlock Text="{Binding DeskNames}" FontSize="16" Foreground="#B5B8C0" TextWrapping="Wrap" />
                     <StackPanel Spacing="16" Margin="0,20,0,0">
-                        <Grid ColumnDefinitions="32,*,Auto">
-                            <Image Source="avares://BorderlessMouse/Assets/icon-control.png" Width="30" Height="30" />
+                        <Grid ColumnDefinitions="44,*,Auto">
+                            <views:IconTile Icon="icon-control" TileSize="32" HorizontalAlignment="Left" />
                             <TextBlock Grid.Column="1" Text="Mysz i klawiatura" VerticalAlignment="Center" FontSize="15" />
                             <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding InputSharingEnabled}" AutomationProperties.Name="Mysz i klawiatura" />
                         </Grid>
-                        <Grid ColumnDefinitions="32,*,Auto">
-                            <Image Source="avares://BorderlessMouse/Assets/icon-audio.png" Width="30" Height="30" />
+                        <Grid ColumnDefinitions="44,*,Auto">
+                            <views:IconTile Icon="icon-audio" TileSize="32" HorizontalAlignment="Left" />
                             <TextBlock Grid.Column="1" Text="Dźwięk z Maca" VerticalAlignment="Center" FontSize="15" />
                             <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding AudioEnabled}" AutomationProperties.Name="Dźwięk z Maca" />
                         </Grid>
-                        <Grid ColumnDefinitions="32,*,Auto">
-                            <Image Source="avares://BorderlessMouse/Assets/icon-clipboard.png" Width="30" Height="30" />
+                        <Grid ColumnDefinitions="44,*,Auto">
+                            <views:IconTile Icon="icon-clipboard" TileSize="32" HorizontalAlignment="Left" />
                             <TextBlock Grid.Column="1" Text="Wspólny schowek" VerticalAlignment="Center" FontSize="15" />
                             <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding ClipboardSyncEnabled}" AutomationProperties.Name="Wspólny schowek" />
                         </Grid>
                         <Button Click="OpenWindows_OnClick" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                             <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Image Source="avares://BorderlessMouse/Assets/icon-windows.png" Width="30" Height="30" />
+                                <views:IconTile Icon="icon-windows" TileSize="32" />
                                 <TextBlock Text="Przenieś okno" FontSize="15" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>

@@ -5,14 +5,14 @@
              x:Class="BorderlessMouse.App"
              RequestedThemeVariant="Dark">
     <Application.Styles>
-        <!-- Fluent Design v2 / WinUI 3 (FluentAvalonia): motyw i kolor akcentu z systemu -->
-        <sty:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="True" />
+        <!-- Fluent Design v2 / WinUI 3 (FluentAvalonia); szałwiowy akcent jak na macOS zamiast systemowego -->
+        <sty:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="False" CustomAccentColor="#91AD8C" />
         <StyleInclude Source="avares://BorderlessMouse/Styles/Theme.axaml" />
     </Application.Styles>
 
     <TrayIcon.Icons>
         <TrayIcons>
-            <TrayIcon Icon="avares://BorderlessMouse/Assets/seam-icon.png"
+            <TrayIcon Icon="avares://BorderlessMouse/Assets/icon.png"
                       ToolTipText="BorderlessMouse"
                       Clicked="TrayIcon_OnClicked">
                 <TrayIcon.Menu>
