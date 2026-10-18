@@ -41,6 +41,18 @@ final class VideoEncoder {
     private let encodeLock = NSLock()
     private var lastPresentationTime = CMTime.invalid
 
+    /// Statyczny obraz: ScreenCaptureKit nie wysyła nowych klatek, więc klatka po zmianie – mocno
+    /// skwantowana, żeby zmieścić się w budżecie jednej klatki – zostałaby rozmyta na stałe. Po chwili
+    /// bez zmian kodujemy ten sam obraz jeszcze kilka razy: klatki P dokładają resztę szczegółów, a gdy
+    /// nie ma już czego poprawiać, są prawie puste.
+    private static let refineDelay: DispatchTimeInterval = .milliseconds(120)
+    private static let refineInterval: DispatchTimeInterval = .milliseconds(33)
+    private static let refinePasses = 8
+    private let refineQueue = DispatchQueue(label: "blm.video.refine", qos: .userInitiated)
+    private var refineTimer: DispatchSourceTimer?
+    private var refineBuffer: CVPixelBuffer?
+    private var refineRemaining = 0
+
     /// Bitrate w bitach na sekundę; 0 = automatycznie z rozdzielczości.
     init(width: Int, height: Int, bitrate: Int = 0) throws {
         self.width = width
@@ -70,6 +82,11 @@ final class VideoEncoder {
             onError?(kVTParameterErr)
             return
         }
+        scheduleRefinement(of: pixelBuffer)
+        submit(pixelBuffer, presentationTime: presentationTime)
+    }
+
+    private func submit(_ pixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
         encodeLock.lock()
         defer { encodeLock.unlock() }
         lock.lock()
@@ -105,13 +122,47 @@ final class VideoEncoder {
         lock.lock()
         let session = self.session
         self.session = nil
+        let timer = refineTimer
+        refineTimer = nil
+        refineBuffer = nil
         lock.unlock()
+        timer?.cancel()
         guard let session else { return }
         VTCompressionSessionCompleteFrames(session, untilPresentationTimeStamp: .invalid)
         VTCompressionSessionInvalidate(session)
     }
 
     // MARK: - Private
+
+    /// Każda nowa klatka odsuwa poprawianie – przy ruchu (przewijanie, wideo) nie kosztuje ono nic.
+    private func scheduleRefinement(of pixelBuffer: CVPixelBuffer) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard session != nil else { return }
+        refineBuffer = pixelBuffer
+        refineRemaining = Self.refinePasses
+        if refineTimer == nil {
+            let timer = DispatchSource.makeTimerSource(queue: refineQueue)
+            timer.setEventHandler { [weak self] in self?.refine() }
+            timer.resume()
+            refineTimer = timer
+        }
+        refineTimer?.schedule(deadline: .now() + Self.refineDelay, repeating: Self.refineInterval)
+    }
+
+    private func refine() {
+        lock.lock()
+        guard refineRemaining > 0, let buffer = refineBuffer, session != nil else {
+            // Koniec: zwalniamy powierzchnię nagrywania i usypiamy licznik do następnej zmiany.
+            refineBuffer = nil
+            refineTimer?.schedule(deadline: .distantFuture, repeating: .never)
+            lock.unlock()
+            return
+        }
+        refineRemaining -= 1
+        lock.unlock()
+        submit(buffer, presentationTime: CMClockGetTime(CMClockGetHostTimeClock()))
+    }
 
     private func handleOutput(status: OSStatus, sampleBuffer: CMSampleBuffer?) {
         guard status == noErr else {

@@ -22,6 +22,12 @@ internal static class WindowChecks
         var portrait = WindowGeometry.Fit(1920, 1080, Rect(30, 40, 600, 900));
         Expect(portrait.Width == 600 && portrait.Height == 338 && portrait.Top == 321,
             "widescreen video fits a portrait window without horizontal stretching");
+        var lagging = WindowGeometry.FitWithin(1084, 760, Rect(200, 300, 1100, 800));
+        Expect(lagging.Left == 200 && lagging.Top == 300 && lagging.Width == 1084 && lagging.Height == 760,
+            "a window stream smaller than its proxy stays 1:1 at the top left instead of being blurred by upscaling");
+        var larger = WindowGeometry.FitWithin(2200, 1600, Rect(200, 300, 1100, 900));
+        Expect(larger.Left == 200 && larger.Top == 300 && larger.Width == 1100 && larger.Height == 800,
+            "a window stream larger than its proxy shrinks to fit, anchored at the top left");
         var popup = WindowGeometry.MapRelative(Rect(100, 60, 400, 240), Rect(0, 0, 800, 600), image);
         Expect(popup.Left == -1500 && popup.Top == 108 && popup.Width == 720 && popup.Height == 432,
             "URL suggestions follow their owner's actual rendered image, including letterboxing and scale");

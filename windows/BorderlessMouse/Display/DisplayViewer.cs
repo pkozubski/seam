@@ -295,6 +295,8 @@ public sealed class DisplayViewer : IDisposable
     private void Pump()
     {
         while (_commands.TryDequeue(out var command)) command();
+        // Lista okien przychodzi tylko przy zmianie – rozmiar z okresu zmiany lokalnej dogania się tutaj.
+        foreach (var surface in _surfaces.Values.Where(s => s.SourceSizePending).ToList()) FollowSource(surface, surface.MacScreen);
         DecodePending();
     }
 
@@ -402,7 +404,10 @@ public sealed class DisplayViewer : IDisposable
             var height = surface.Height;
             var visibleWidth = Math.Min(frameWidth, (int)description.Width);
             var visibleHeight = Math.Min(frameHeight, (int)description.Height);
-            var fitted = WindowGeometry.Fit(visibleWidth, visibleHeight, new RECT { Right = width, Bottom = height });
+            var area = new RECT { Right = width, Bottom = height };
+            var fitted = surface.Kind == SurfaceKind.Fullscreen
+                ? WindowGeometry.Fit(visibleWidth, visibleHeight, area)
+                : WindowGeometry.FitWithin(visibleWidth, visibleHeight, area);
             var destination = new RawRect(fitted.Left, fitted.Top, fitted.Right, fitted.Bottom);
             surface.PictureWidth = visibleWidth;
             surface.PictureHeight = visibleHeight;
@@ -574,6 +579,8 @@ public sealed class DisplayViewer : IDisposable
         public IDCompositionVisual? HeaderVisual, RootVisual;
         public int HeaderWidth, HeaderChainHeight;
         public long LocalResizeUntil;
+        /// <summary>Okno Maca zmieniło się, gdy okno Windows nie mogło za nim pójść (zmiana lokalna, maksymalizacja).</summary>
+        public bool SourceSizePending;
         public long LastResizeRequest;
         public int RequestedWidth, RequestedHeight;
         public int PictureWidth, PictureHeight;
@@ -645,6 +652,9 @@ public sealed class DisplayViewer : IDisposable
             Math.Max(1, client.Width), Math.Max(1, client.Height), IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
         if (surface.Handle == IntPtr.Zero) return;
         Register(surface);
+        // Zmiana ramki niżej zmienia obszar klienta (o ramkę i wiersz tytułu). To nie jest zmiana
+        // rozmiaru przez użytkownika – wysłana na Maca zmniejszała okno, a obraz był potem rozciągany.
+        surface.ApplyingPlacement = true;
         if (kind == SurfaceKind.Window)
         {
             // DWM supplies the real Windows 11 caption, buttons, rounded frame and Snap layouts.
@@ -667,6 +677,7 @@ public sealed class DisplayViewer : IDisposable
             SetWindowPos(surface.Handle, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
         }
         else UpdatePopupOwner(surface);
+        surface.ApplyingPlacement = false;
         Place(surface, client);
         surface.RequestedWidth = surface.Width;
         surface.RequestedHeight = surface.Height;
@@ -729,26 +740,38 @@ public sealed class DisplayViewer : IDisposable
             ApplyVisibility(surface);
             return;
         }
-        // Okno na Windowsie żyje własnym położeniem (można je przenieść nawet na inny monitor).
-        // Przesunięcie okna na Macu (za jego pasek tytułu) przesuwa je o tyle samo, a rozmiar
-        // idzie za oknem Maca – chyba że użytkownik właśnie je przesuwa albo jest zmaksymalizowane.
+        FollowSource(surface, previous);
+    }
+
+    /// <summary>
+    /// Okno na Windowsie żyje własnym położeniem (można je przenieść nawet na inny monitor).
+    /// Przesunięcie okna na Macu (za jego pasek tytułu) przesuwa je o tyle samo, a rozmiar wraca do
+    /// rozmiaru okna Maca, więc obraz jest 1:1 – także gdy Mac nie przyjął żądanego rozmiaru
+    /// (rozmiar minimalny, Terminal w krokach znaków). Gdy użytkownik właśnie zmienia okno, jest ono
+    /// zmaksymalizowane albo Mac jeszcze wykonuje zmianę rozmiaru, rozmiar dogania je później (<see cref="Pump"/>).
+    /// </summary>
+    private void FollowSource(Surface surface, RECT previous)
+    {
         if (surface.InSizeMove || IsZoomed(surface.Handle) || IsIconic(surface.Handle)
             || Environment.TickCount64 < surface.LocalResizeUntil)
         {
-            PublishProxies();
+            surface.SourceSizePending = true;
             return;
         }
-        var dx = window.MacScreen.Left - previous.Left;
-        var dy = window.MacScreen.Top - previous.Top;
-        var sourceResized = window.MacScreen.Width != previous.Width || window.MacScreen.Height != previous.Height;
-        var width = sourceResized ? window.MacScreen.Width : surface.Width;
-        var height = sourceResized ? window.MacScreen.Height : surface.Height;
-        if (dx == 0 && dy == 0 && !sourceResized) return;
+        surface.SourceSizePending = false;
+        var dx = surface.MacScreen.Left - previous.Left;
+        var dy = surface.MacScreen.Top - previous.Top;
+        var width = surface.MacScreen.Width;
+        var height = surface.MacScreen.Height;
+        if (dx == 0 && dy == 0 && width == surface.Width && height == surface.Height) return;
         Place(surface, new RECT
         {
             Left = surface.Client.Left + dx, Top = surface.Client.Top + dy,
             Right = surface.Client.Left + dx + width, Bottom = surface.Client.Top + dy + height,
         });
+        // Ten rozmiar ma już okno Maca – nie odsyłamy go jako nowej prośby.
+        surface.RequestedWidth = surface.Width;
+        surface.RequestedHeight = surface.Height;
     }
 
     /// <summary>Menu i podpowiedzi: to samo przesunięcie względem okna aplikacji co na Macu.</summary>
@@ -778,7 +801,7 @@ public sealed class DisplayViewer : IDisposable
 
     private static bool Contains(RECT r, int x, int y) => x >= r.Left && x < r.Right && y >= r.Top && y < r.Bottom;
 
-    private static RECT ImageClient(Surface surface) => WindowGeometry.Fit(
+    private static RECT ImageClient(Surface surface) => WindowGeometry.FitWithin(
         surface.PictureWidth > 0 ? surface.PictureWidth : surface.MacPixels.Width,
         surface.PictureHeight > 0 ? surface.PictureHeight : surface.MacPixels.Height, surface.Client);
 

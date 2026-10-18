@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- Mac windows on Windows: setting up the Mica caption no longer sends the Mac a resize request
+  with the pre-frame client size, which shrank the source window and stretched its picture with
+  bands above and below. The proxy also adopts the Mac window's final size after a local resize,
+  and window pictures are never upscaled (1:1 at the top left while the source catches up).
+- Static Mac content is re-encoded a few times after it settles, so text sharpens instead of
+  keeping the heavily quantized first frame after every change.
 - Size the Windows virtual monitor to the Mac screen's visible area (without menu bar and Dock)
   so maximized Windows windows are not covered and the pointer stays on Windows.
 - Do not dispose the device's cached D3D11 immediate context in per-window capture and the
