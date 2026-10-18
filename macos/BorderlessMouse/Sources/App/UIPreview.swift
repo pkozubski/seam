@@ -18,6 +18,13 @@ enum UIPreview {
         }
         let path = args[idx + 1]
         let state = AppState.demo()
+        // `--ui-settings <general|updates|advanced>` opens settings on that page;
+        // `--ui-update <available|downloading|installing|updated|failed>` fakes the updater.
+        if let i = args.firstIndex(of: "--ui-settings"), i + 1 < args.count, let pane = SettingsPane(rawValue: args[i + 1]) {
+            SettingsNavigation.shared.present(pane)
+        }
+        let updateIndex = args.firstIndex(of: "--ui-update")
+        state.updater.showPreview(updateIndex.flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "uptodate")
         var section = SidebarSection.connection
         if let s = args.firstIndex(of: "--ui-section"), s + 1 < args.count, let parsed = SidebarSection(rawValue: args[s + 1]) {
             section = parsed

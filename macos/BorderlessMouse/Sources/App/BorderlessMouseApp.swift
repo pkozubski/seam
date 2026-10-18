@@ -43,6 +43,7 @@ struct BorderlessMouseApp: App {
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 1180, height: 800)
+        .commands { SettingsCommands() }
 
         MenuBarExtra {
             MenuBarView().environmentObject(state)

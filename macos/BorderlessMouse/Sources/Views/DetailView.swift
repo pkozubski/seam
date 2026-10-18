@@ -13,7 +13,7 @@ struct DetailView: View {
             case .audio: AudioPage()
             case .clipboard: ClipboardPage()
             case .windows: WindowsPage()
-            case .settings: SettingsPage()
+            case .settings: SettingsDetail(navigation: .shared)
             case .log: LogPage()
             }
         }

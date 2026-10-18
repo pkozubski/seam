@@ -1,20 +1,22 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
-## Nowe w 2.1.18 — Windows wygląda jak macOS
+## Nowe w 2.1.20 — ustawienia i aktualizacje (macOS)
 
-- To samo grafitowe tło z poświatą co na macOS: pod paskiem tytułu, przyciemnionym panelem bocznym i treścią.
-- Ikony w panelu bocznym i przy przełącznikach stoją na grafitowych kafelkach z gradientem. Zaznaczona sekcja ma kafelek w kolorze akcentu.
-- Szałwiowy kolor akcentu z macOS zamiast systemowego: przełączniki, przyciski i wskaźnik sekcji.
-- Grafitowa ikona aplikacji z dwoma oknami w pliku .exe, na pasku tytułu, w zasobniku i jako logo w panelu bocznym.
-- macOS bez zmian względem 2.1.17, poza numerem wersji.
+- Ustawienia przejmują okno: panel boczny zamienia się w listę stron Ogólne, Aktualizacje i Zaawansowane, z wyszukiwarką i przyciskiem **Wstecz**. Otwiera je ⌘, albo „Ustawienia” w panelu bocznym, zamyka Esc.
+- Strona Aktualizacje: przycisk wersji w nagłówku zmienia się w „Zaktualizuj i uruchom ponownie”, a podczas instalacji w pasek postępu.
+- Pasek przechodzi przez pobieranie (z rozmiarem w MB), sprawdzanie podpisu i instalację, i nigdy się nie cofa.
+- Po aktualizacji uruchomionej ręcznie aplikacja wraca na stronę Aktualizacje, dokańcza pasek i pokazuje, co się zmieniło.
+- Kropka przy „Ustawieniach” oznacza czekającą aktualizację.
+- Windows bez zmian względem 2.1.19, poza numerem wersji.
 
-## 2.1.17 — grafitowe tło i kafelki ikon (macOS)
+Nowy pasek pojawi się przy następnej aktualizacji: samo 2.1.20 instaluje się jeszcze dotychczasowym mechanizmem.
 
-- Okno ma jedno ciągłe grafitowe tło: chłodne światło od góry i delikatna poświata pod statusem połączenia. Pasek boczny jest lekko przyciemniony, a pasek tytułu przezroczysty.
-- Ikony w pasku bocznym i przy przełącznikach stoją na grafitowych kafelkach z gradientem. Zaznaczona sekcja ma kafelek w kolorze akcentu.
-- Wraca grafitowa ikona aplikacji z dwoma oknami z wersji 2.1.15. Ta sama ikona jest teraz logo w pasku bocznym.
+## 2.1.19 — osobne strony funkcji
 
-Prosimy sprawdzić wygląd przy zmianie rozmiaru okna, ze zwiniętym paskiem bocznym i przy przewijaniu treści pod paskiem tytułu.
+- Każda sekcja panelu bocznego to osobna strona; „Sterowanie” nazywa się teraz „Klawiatura i mysz”.
+- Strony funkcji zaczynają się kartą z głównym przełącznikiem i stanem na żywo.
+- macOS: panel boczny podzielony na Funkcje i System; brakujące uprawnienie pokazuje baner z przyciskiem nadania.
+- Windows: nowa strona Ekrany do ustawienia położenia Maca.
 
 ## Aktualizacja
 

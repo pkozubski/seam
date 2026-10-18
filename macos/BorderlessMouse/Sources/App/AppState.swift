@@ -88,6 +88,10 @@ final class AppState: ObservableObject {
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshPermissions() }
         }
+        if let finished = Updater.consumeRelaunchMarker() {
+            updater.celebrate(version: finished.version, notes: finished.notes)
+            SettingsNavigation.shared.present(.updates)
+        }
         scheduleUpdateChecks()
         updaterSink = updater.$state
             .receive(on: DispatchQueue.main)
@@ -97,6 +101,7 @@ final class AppState: ObservableObject {
                 case .upToDate: self?.appendLog(L10n.text("Aktualizacje: masz najnowszą wersję \(Updater.currentVersion)", "Updates: version \(Updater.currentVersion) is current"))
                 case .failed(let msg): self?.appendLog(L10n.text("Aktualizacje: \(msg)", "Updates: \(msg)"))
                 case .installing: self?.appendLog(L10n.text("Aktualizacja pobrana, podmiana i restart…", "Update downloaded; replacing and restarting…"))
+                case .updated(let version): self?.appendLog(L10n.text("Zaktualizowano do \(version)", "Updated to \(version)"))
                 default: break
                 }
             }
@@ -200,7 +205,7 @@ final class AppState: ObservableObject {
     }
 
     func installUpdate() {
-        Task { @MainActor in await updater.install(codesignIdentity: settings.codesignIdentity) }
+        Task { @MainActor in await updater.install(codesignIdentity: settings.codesignIdentity, announce: true) }
     }
 
     var statusSummary: (text: String, color: Color) {

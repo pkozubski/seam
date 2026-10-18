@@ -6,18 +6,7 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                // The app's own icon, so the sidebar mark always matches the Dock.
-                Image(nsImage: NSApplication.shared.applicationIconImage)
-                    .resizable().interpolation(.high).scaledToFit()
-                    .frame(width: 50, height: 50)
-                    .accessibilityHidden(true)
-                Text("seam").font(.system(size: 26, weight: .medium)).foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 22)
+            SidebarBrand()
 
             List(selection: $selection) {
                 SidebarRow(section: .connection, selected: selection == .connection).tag(SidebarSection.connection)
@@ -38,7 +27,12 @@ struct SidebarView: View {
             .scrollContentBackground(.hidden)
 
             VStack(alignment: .leading, spacing: 10) {
-                Button { selection = .settings } label: { SidebarRow(section: .settings, selected: selection == .settings) }.buttonStyle(.plain)
+                Button { SettingsNavigation.shared.present() } label: {
+                    SidebarRow(section: .settings, selected: false)
+                        .overlay(alignment: .trailing) { UpdateBadge(updater: state.updater).padding(.trailing, 6) }
+                }
+                .buttonStyle(.plain)
+                .help(L10n.text("Ustawienia (⌘,)", "Settings (⌘,)"))
                 Divider()
                 Label(state.settings.deviceName, systemImage: "laptopcomputer")
                     .font(.callout.weight(.medium))
@@ -50,11 +44,28 @@ struct SidebarView: View {
             }
             .padding(18)
         }
-        .navigationSplitViewColumnWidth(min: 215, ideal: 230, max: 270)
     }
 
     private var missingPermissions: Int {
         [!state.accessibilityGranted, state.audioPermissionGranted == false,
          state.settings.displayEnabled && !state.screenCaptureGranted].filter { $0 }.count
+    }
+}
+
+/// App icon and name at the top of the sidebar, in both the main and the settings view.
+struct SidebarBrand: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            // The app's own icon, so the sidebar mark always matches the Dock.
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable().interpolation(.high).scaledToFit()
+                .frame(width: 50, height: 50)
+                .accessibilityHidden(true)
+            Text("seam").font(.system(size: 26, weight: .medium)).foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 22)
     }
 }

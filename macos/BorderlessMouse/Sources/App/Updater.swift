@@ -29,12 +29,26 @@ final class Updater: ObservableObject {
         case checking
         case upToDate(String)
         case available(Release)
-        case downloading(Double)
+        case downloading
+        case verifying
         case installing
+        /// This launch finished an update the user started; holds the new version.
+        case updated(String)
         case failed(String)
+
+        var isBusy: Bool {
+            switch self {
+            case .downloading, .verifying, .installing: return true
+            default: return false
+            }
+        }
     }
 
     @Published private(set) var state: State = .idle
+    /// Release notes of the version this launch just updated to.
+    @Published private(set) var installedNotes: String?
+    /// Fast-changing install progress, kept apart so only the bar redraws on every report.
+    let progress = UpdateProgress()
 
     static var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
@@ -65,21 +79,26 @@ final class Updater: ObservableObject {
 
     func check(silent: Bool) async {
         if case .checking = state { return }
-        if case .downloading = state { return }
-        if case .installing = state { return }
+        if state.isBusy { return }
+        let previous = state
         state = .checking
+        // Background checks keep the "updated" confirmation until something newer appears.
+        var quiet = State.idle
+        if case .updated = previous { quiet = previous }
         do {
             guard let release = try await fetchLatest() else {
-                state = silent ? .idle : .failed(L10n.text("Brak wydań na GitHubie", "No releases found on GitHub"))
+                state = silent ? quiet : .failed(L10n.text("Brak wydań na GitHubie", "No releases found on GitHub"))
                 return
             }
             if Self.isNewer(release.version, than: Self.currentVersion) {
                 state = .available(release)
+            } else if case .updated = previous {
+                state = previous
             } else {
                 state = .upToDate(Self.timeFormatter.string(from: Date()))
             }
         } catch {
-            state = silent ? .idle : .failed(error.localizedDescription)
+            state = silent ? quiet : .failed(error.localizedDescription)
         }
     }
 
@@ -138,17 +157,25 @@ final class Updater: ObservableObject {
 
     // MARK: - Instalacja
 
-    func install(codesignIdentity: String, mayRestart: @MainActor () async -> Bool = { true }) async {
+    /// `announce` leaves a marker so the relaunched app finishes the bar and shows what changed;
+    /// silent background installs skip it.
+    func install(codesignIdentity: String, announce: Bool = false,
+                 mayRestart: @MainActor () async -> Bool = { true }) async {
         guard case .available(let release) = state else { return }
-        state = .downloading(0)
+        progress.reset()
+        progress.creep(from: 0, toward: UpdateProgress.Milestone.prepared)
+        state = .downloading
         do {
-            let zipURL = try await download(release.assetURL) { [weak self] progress in
-                Task { @MainActor in self?.state = .downloading(progress) }
+            let zipURL = try await download(release.assetURL) { [weak self] received, total in
+                Task { @MainActor in self?.progress.download(received: received, total: total) }
             }
-            state = .installing
+            state = .verifying
+            progress.creep(from: UpdateProgress.Milestone.downloaded, toward: UpdateProgress.Milestone.verified)
             guard let checksumsURL = release.checksumsURL else { throw UpdaterError.missingChecksum }
             try await verifyChecksum(of: zipURL, against: checksumsURL)
             try await verifySignature(of: zipURL, against: release.signatureURL)
+            state = .installing
+            progress.creep(from: UpdateProgress.Milestone.verified, toward: UpdateProgress.Milestone.installed)
             let staging = zipURL.deletingLastPathComponent().appendingPathComponent("unpacked", isDirectory: true)
             try? FileManager.default.removeItem(at: staging)
             try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
@@ -177,16 +204,94 @@ final class Updater: ObservableObject {
             // A download can take long enough for the user to resume work.
             guard await mayRestart() else {
                 try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent())
+                progress.reset()
                 state = .available(release)
                 return
             }
+            progress.creep(from: UpdateProgress.Milestone.installed, toward: UpdateProgress.Milestone.handedOff)
+            if announce { Self.saveRelaunchMarker(for: release) }
             try swapAndRelaunch(newApp: newApp)
         } catch {
+            Self.clearRelaunchMarker()
+            progress.reset()
             state = .failed(error.localizedDescription)
         }
     }
 
-    private func download(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
+    // MARK: - Po ponownym uruchomieniu
+
+    private static let relaunchVersionKey = "Updater.relaunchVersion"
+    private static let relaunchNotesKey = "Updater.relaunchNotes"
+
+    private static func saveRelaunchMarker(for release: Release) {
+        UserDefaults.standard.set(release.version, forKey: relaunchVersionKey)
+        UserDefaults.standard.set(release.notes, forKey: relaunchNotesKey)
+    }
+
+    private static func clearRelaunchMarker() {
+        UserDefaults.standard.removeObject(forKey: relaunchVersionKey)
+        UserDefaults.standard.removeObject(forKey: relaunchNotesKey)
+    }
+
+    /// The update this launch completes, once: only when the running version is the one installed.
+    static func consumeRelaunchMarker() -> (version: String, notes: String)? {
+        defer { clearRelaunchMarker() }
+        guard let version = UserDefaults.standard.string(forKey: relaunchVersionKey),
+              version == currentVersion else { return nil }
+        return (version, UserDefaults.standard.string(forKey: relaunchNotesKey) ?? "")
+    }
+
+    /// Finishes the bar the previous process left at the hand-off point.
+    func celebrate(version: String, notes: String) {
+        installedNotes = notes.isEmpty ? nil : notes
+        state = .updated(version)
+        progress.reset()
+        progress.advance(to: UpdateProgress.Milestone.handedOff)
+        Task { @MainActor [progress] in
+            try? await Task.sleep(for: .milliseconds(500))
+            progress.finish()
+        }
+    }
+
+    /// States for `--ui-preview --ui-update <name>` screenshots; no network, nothing installed.
+    func showPreview(_ name: String) {
+        let page = URL(string: "https://github.com/\(Self.owner)/\(Self.repo)/releases")!
+        let release = Release(version: "2.1.20", tag: "dev-build", notes: Self.previewNotes, pageURL: page,
+                              assetURL: page, checksumsURL: page, signatureURL: page)
+        progress.reset()
+        switch name {
+        case "available": state = .available(release)
+        case "downloading":
+            state = .downloading
+            progress.download(received: 21_400_000, total: 48_200_000)
+        case "installing":
+            state = .installing
+            progress.advance(to: 0.8)
+        case "updated": celebrate(version: Self.currentVersion, notes: Self.previewNotes)
+        case "failed": state = .failed(L10n.text("Brak połączenia z GitHubem", "Cannot reach GitHub"))
+        default: state = .upToDate("18:04")
+        }
+    }
+
+    private static let previewNotes = """
+    Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
+
+    ## Nowe w 2.1.20 — ustawienia jak w nowoczesnych aplikacjach
+
+    - Ustawienia przejmują okno: lista stron z wyszukiwarką i przyciskiem **Wstecz**.
+    - Pasek aktualizacji z etapami pobierania, weryfikacji i instalacji.
+    - Po ponownym uruchomieniu aplikacja pokazuje, co się zmieniło.
+
+    ## Poprawki
+
+    - Pasek tytułu nie zasłania już treści przy przewijaniu.
+
+    ## Aktualizacja
+
+    Aplikacje z kanału testowego wykryją tę wersję automatycznie.
+    """
+
+    private func download(_ url: URL, progress: @escaping (Int64, Int64) -> Void) async throws -> URL {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("BorderlessMouse-update-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let dest = dir.appendingPathComponent(Self.assetName)
@@ -215,9 +320,9 @@ final class Updater: ObservableObject {
                 received += buffer.count
                 if received > Self.maximumDownloadBytes { throw UpdaterError.downloadTooLarge }
                 buffer.removeAll(keepingCapacity: true)
-                if total > 0, Date().timeIntervalSince(lastReport) > 0.1 {
+                if Date().timeIntervalSince(lastReport) > 0.1 {
                     lastReport = Date()
-                    progress(Double(received) / total)
+                    progress(Int64(received), Int64(max(total, 0)))
                 }
             }
         }
@@ -226,7 +331,7 @@ final class Updater: ObservableObject {
             if received > Self.maximumDownloadBytes { throw UpdaterError.downloadTooLarge }
             handle.write(Data(buffer))
         }
-        progress(1)
+        progress(Int64(received), Int64(received))
         return dest
     }
 
@@ -341,5 +446,64 @@ final class Updater: ObservableObject {
             case .tool(let tool, let msg): return "\(tool): \(msg)"
             }
         }
+    }
+}
+
+/// Install progress as one bar that never moves back. Each step owns a slice of it; steps
+/// that report nothing ease toward the end of their slice so the bar never looks stuck.
+@MainActor
+final class UpdateProgress: ObservableObject {
+    enum Milestone {
+        static let prepared = 0.04
+        static let downloaded = 0.60
+        static let verified = 0.72
+        static let installed = 0.86
+        /// Where the old process stops; the relaunched app sweeps on to the end.
+        static let handedOff = 0.92
+    }
+
+    @Published private(set) var value: Double = 0
+    @Published private(set) var receivedBytes: Int64 = 0
+    @Published private(set) var totalBytes: Int64 = 0
+    private var creepTask: Task<Void, Never>?
+
+    func reset() {
+        creepTask?.cancel()
+        value = 0
+        receivedBytes = 0
+        totalBytes = 0
+    }
+
+    /// Forward only: a late or repeated report never pulls the bar back.
+    func advance(to target: Double) {
+        let clamped = min(max(target, 0), 1)
+        if clamped > value { value = clamped }
+    }
+
+    func download(received: Int64, total: Int64) {
+        creepTask?.cancel()
+        receivedBytes = received
+        totalBytes = total
+        guard total > 0 else { return }
+        let fraction = min(Double(received) / Double(total), 1)
+        advance(to: Milestone.prepared + (Milestone.downloaded - Milestone.prepared) * fraction)
+    }
+
+    /// Eases from `floor` toward `ceiling` without reaching it.
+    func creep(from floor: Double, toward ceiling: Double) {
+        creepTask?.cancel()
+        advance(to: floor)
+        creepTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(120))
+                guard let self, !Task.isCancelled else { return }
+                self.advance(to: self.value + (ceiling - self.value) * 0.07)
+            }
+        }
+    }
+
+    func finish() {
+        creepTask?.cancel()
+        advance(to: 1)
     }
 }

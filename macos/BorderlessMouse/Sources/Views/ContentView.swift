@@ -6,25 +6,49 @@ struct ContentView: View {
     @State private var showConnectionStatus = false
     @State private var selection: SidebarSection?
     @State private var canvasWidth: CGFloat = 1180
+    @ObservedObject private var settingsNavigation = SettingsNavigation.shared
 
     init(initialSection: SidebarSection = .connection) {
-        _selection = State(initialValue: initialSection)
+        // Settings is no longer a page of the main sidebar; it takes over the window.
+        if initialSection == .settings { SettingsNavigation.shared.present() }
+        _selection = State(initialValue: initialSection == .settings ? .connection : initialSection)
     }
+
+    private var slide: Animation { SettingsChrome.slide(reduceMotion: reduceMotion) }
 
     var body: some View {
         NavigationSplitView {
-            SidebarView(selection: $selection)
-                .background {
-                    SeamBackdrop(canvasWidth: canvasWidth)
-                        .overlay(Color.black.opacity(0.24))
-                        .overlay(alignment: .trailing) { Color.white.opacity(0.06).frame(width: 0.5) }
-                        .ignoresSafeArea()
+            ZStack {
+                if settingsNavigation.isPresented {
+                    SettingsSidebar(navigation: settingsNavigation)
+                        .transition(.offset(x: -16).combined(with: .opacity))
+                } else {
+                    SidebarView(selection: $selection)
+                        .transition(.offset(x: -16).combined(with: .opacity))
                 }
+            }
+            .animation(slide, value: settingsNavigation.isPresented)
+            .navigationSplitViewColumnWidth(min: 215, ideal: 230, max: 270)
+            .background {
+                SeamBackdrop(canvasWidth: canvasWidth)
+                    .overlay(Color.black.opacity(0.24))
+                    .overlay(alignment: .trailing) { Color.white.opacity(0.06).frame(width: 0.5) }
+                    .ignoresSafeArea()
+            }
         } detail: {
-            DetailView(section: selection ?? .connection, openWindows: { selection = .windows })
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: selection)
-                .toolbarBackground(.hidden, for: .windowToolbar)
-                .modifier(SoftToolbarEdge())
+            ZStack {
+                if settingsNavigation.isPresented {
+                    SettingsDetail(navigation: settingsNavigation)
+                        .transition(.offset(x: 24).combined(with: .opacity))
+                } else {
+                    DetailView(section: selection ?? .connection, openWindows: { selection = .windows })
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: selection)
+                        .transition(.offset(x: 24).combined(with: .opacity))
+                }
+            }
+            .animation(slide, value: settingsNavigation.isPresented)
+            .toolbarBackground(.hidden, for: .windowToolbar)
+            .modifier(SoftToolbarEdge())
         }
         .background { SeamBackdrop().ignoresSafeArea() }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { canvasWidth = $0 }

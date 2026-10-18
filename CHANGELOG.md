@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.20 — test channel (2026-10-18)
+
+- macOS: settings take over the main window. The sidebar becomes the General, Updates and Advanced pages with search and a Back row; ⌘, toggles settings and Esc closes them.
+- macOS: Updates page with a version pill in the header that turns into "Update & restart" and then into the progress bar.
+- macOS: one forward-only progress bar across download (with sizes), signature checks and install; steps without byte counts ease forward so the bar never stalls.
+- macOS: after an update the user started, the relaunched app opens Updates, finishes the bar and shows the release notes. An accent dot on Settings marks a waiting update.
+- Windows: unchanged apart from the version number.
+
 ## 2.1.19 — test channel (2026-10-18)
 
 - Every sidebar section is its own page. macOS drops the Keyboard / Audio / Display / Clipboard segments that duplicated the sidebar; "Sterowanie" is now "Klawiatura i mysz" (Keyboard & mouse) on both platforms.
