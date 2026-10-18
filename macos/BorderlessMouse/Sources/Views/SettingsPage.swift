@@ -15,16 +15,6 @@ struct SettingsPage: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 200)
                 }
-                SettingRow(title: "Port TCP", subtitle: portError ?? L10n.localized("Zmiana restartuje nasłuchiwanie.")) {
-                    HStack {
-                        TextField("", text: $portText, prompt: Text("47800"))
-                            .labelsHidden()
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 90)
-                            .onSubmit(applyPort)
-                        Button("Zastosuj", action: applyPort)
-                    }
-                }
             }
             SettingsGroup("Uruchamianie") {
                 SettingRow(title: "Uruchamiaj przy logowaniu", subtitle: state.loginItemError ?? state.loginItemStatus) {
@@ -66,19 +56,37 @@ struct SettingsPage: View {
                 SettingRow(title: "Sprawdzaj automatycznie", subtitle: Updater.automaticUpdatesDescription) {
                     Toggle("", isOn: $state.settings.autoCheckUpdates).labelsHidden().toggleStyle(.switch)
                 }
-                DisclosureGroup("Zaawansowane: podpisywanie aktualizacji", isExpanded: $showAdvanced) {
+            }
+            DisclosureGroup("Zaawansowane", isExpanded: $showAdvanced) {
+                VStack(alignment: .leading, spacing: 12) {
+                    SettingRow(title: "Port TCP", subtitle: portError ?? L10n.localized("Zmiana restartuje nasłuchiwanie.")) {
+                        HStack {
+                            TextField("", text: $portText, prompt: Text("47800"))
+                                .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 90)
+                                .onSubmit(applyPort)
+                            Button("Zastosuj", action: applyPort)
+                        }
+                    }
+                    Divider()
                     VStack(alignment: .leading, spacing: 6) {
+                        Text("Własny certyfikat podpisu aktualizacji").font(.body.weight(.medium))
                         Text(L10n.text(
                             "Bezpłatna beta ma stały podpis bundle i osobny podpis ECDSA aktualizacji, ale nie jest notaryzowana przez Apple. Pole poniżej zostaw puste, chyba że podpisujesz lokalne buildy własnym certyfikatem.",
                             "The free beta has a stable bundle signature and a separate ECDSA update signature, but is not notarized by Apple. Leave the field below empty unless you sign local builds with your own certificate."))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.callout).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         TextField("", text: $state.settings.codesignIdentity, prompt: Text("Opcjonalny własny certyfikat"))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                     }
-                    .padding(.top, 6)
                 }
+                .padding(18)
+                .modifier(SurfaceStyle())
+                .padding(.top, 8)
             }
+            .padding(.horizontal, 4)
         }
         .onAppear { portText = String(state.settings.controlPort) }
     }

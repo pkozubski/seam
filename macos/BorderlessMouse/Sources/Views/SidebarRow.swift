@@ -3,6 +3,7 @@ import SwiftUI
 struct SidebarRow: View {
     let section: SidebarSection
     let selected: Bool
+    var attention = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
 
@@ -12,6 +13,10 @@ struct SidebarRow: View {
             Text(section.title)
                 .font(.body.weight(selected ? .semibold : .regular))
             Spacer(minLength: 0)
+            if attention {
+                Circle().fill(.orange).frame(width: 7, height: 7)
+                    .accessibilityLabel(L10n.text("Wymaga uwagi", "Needs attention"))
+            }
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())

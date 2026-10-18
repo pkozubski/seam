@@ -11,7 +11,7 @@ namespace BorderlessMouse.Views;
 public partial class MainWindow : AppWindow
 {
     /// <summary>Kolejność stron w pasku bocznym – używana też przez tryb <c>--screenshot</c>.</summary>
-    public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "control", "audio", "clipboard", "windows", "settings", "log" };
+    public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "displays", "control", "audio", "clipboard", "windows", "settings", "log" };
 
     private ConnectionStatusWindow? _statusWindow;
 
@@ -24,6 +24,10 @@ public partial class MainWindow : AppWindow
         foreach (var item in NavItems)
         {
             if (item.Content is string label) item.Content = L10n.TranslateText(label);
+        }
+        foreach (var header in Nav.MenuItems.OfType<NavigationViewItemHeader>())
+        {
+            if (header.Content is string label) header.Content = L10n.TranslateText(label);
         }
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
@@ -104,6 +108,7 @@ public partial class MainWindow : AppWindow
             page = tag switch
             {
                 "connection" => new ConnectionPage(),
+                "displays" => new DisplaysPage(),
                 "control" => new ControlPage(),
                 "audio" or "clipboard" or "windows" => new ControlPage(tag),
                 "settings" => new SettingsPage(),

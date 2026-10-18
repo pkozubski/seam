@@ -10,7 +10,7 @@ struct LogPage: View {
     }()
 
     var body: some View {
-        SettingsPageLayout(title: "Dziennik", subtitle: "Połączenia i aktywność Twojego biurka.") {
+        SettingsPageLayout(title: "Dziennik", subtitle: "Połączenia i zdarzenia aplikacji. Przydatne przy zgłaszaniu błędu.") {
             if state.log.isEmpty {
                 ContentUnavailableView {
                     Label("Brak zdarzeń", systemImage: "list.bullet.rectangle")
@@ -23,6 +23,7 @@ struct LogPage: View {
                     Text(L10n.text("Ostatnie zdarzenia", "Recent activity"))
                         .font(.headline).foregroundStyle(.secondary)
                     Spacer()
+                    Button("Kopiuj", action: copyLog)
                     Button("Wyczyść dziennik", action: state.clearLog)
                 }
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -43,5 +44,11 @@ struct LogPage: View {
                 .modifier(SurfaceStyle())
             }
         }
+    }
+
+    private func copyLog() {
+        let text = state.log.map { "\(Self.formatter.string(from: $0.time))  \($0.text)" }.joined(separator: "\n")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 }

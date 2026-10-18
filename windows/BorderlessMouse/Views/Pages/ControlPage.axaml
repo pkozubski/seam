@@ -7,161 +7,196 @@
              x:DataType="vm:MainViewModel">
     <ScrollViewer>
         <StackPanel Classes="page">
-            <TextBlock Classes="pageTitle" x:Name="SectionTitle" Text="Sterowanie" />
+            <StackPanel Spacing="4">
+                <TextBlock Classes="pageTitle" x:Name="SectionTitle" Text="Klawiatura i mysz" />
+                <TextBlock Classes="pageSubtitle" x:Name="SectionSubtitle" Text="Jedna klawiatura i mysz dla obu komputerów." />
+            </StackPanel>
 
-            <Border Classes="card" x:Name="InputSection">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="KLAWIATURA I MYSZ" />
-                    </StackPanel>
-                    <views:SettingRow Title="Udostępniaj klawiaturę i mysz"
-                                      Subtitle="Krawędź przełącza na Maca. Pełny ekran i przechwycona mysz blokują automatyczne przejście.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding InputSharingEnabled}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Mac stoi względem tego ekranu"
-                                      Subtitle="Krawędź, przez którą kursor przechodzi na Maca.">
-                        <ComboBox ItemsSource="{Binding MacSides}" SelectedItem="{Binding SelectedMacSide}" MinWidth="150" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Awaryjny skrót klawiszowy"
-                                      Subtitle="{Binding EmergencyHotkeyDescription}">
-                        <ComboBox ItemsSource="{Binding EmergencyHotkeys}" SelectedItem="{Binding SelectedEmergencyHotkey}" MinWidth="150" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Czułość myszy na Macu" Subtitle="{Binding RemoteMouseSpeedLabel}">
-                        <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25" IsSnapToTickEnabled="True"
-                                Value="{Binding RemoteMouseSpeed}" Width="190" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Ukrywaj kursor podczas sterowania Makiem"
-                                      Subtitle="Kursor zostaje przy krawędzi, przez którą wyszedł, i znika pod niewidocznym oknem.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding HideCursorWhileRemote}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Kursor" Subtitle="{Binding EmergencyHotkeyDescription}">
-                        <TextBlock Text="{Binding CursorStatusText}" FontWeight="Medium" Foreground="{Binding CursorStatusBrush}" />
-                    </views:SettingRow>
-                </StackPanel>
-            </Border>
-        
-
-            <Border Classes="card" x:Name="DisplaySection">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="EKRAN MACA" />
-                    </StackPanel>
-                    <views:SettingRow Title="Pokazuj ekran wirtualny Maca"
-                                      Subtitle="Ten monitor staje się drugim ekranem Maca. Przeciągnij okno na Macu w stronę Windowsa, a pojawi się tutaj.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayEnabled}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Tylko okna Maca"
-                                      Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem"
-                                      Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Stan ekranu" Subtitle="{Binding DisplayStatsText}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse Width="8" Height="8" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding DisplayStatusText}" MaxWidth="300" TextWrapping="Wrap" VerticalAlignment="Center" />
-                            <Button Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
+            <!-- KLAWIATURA I MYSZ -->
+            <StackPanel x:Name="InputSection" Spacing="14">
+                <Border Classes="card hero">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <views:IconTile Icon="icon-control" TileSize="44" IsActive="{Binding InputSharingEnabled}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Classes="heroTitle" Text="Udostępniaj klawiaturę i mysz" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="8" Height="8" Fill="{Binding CursorStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="subtitle" Text="{Binding CursorStatusText}" VerticalAlignment="Center" />
+                            </StackPanel>
                         </StackPanel>
-                    </views:SettingRow>
-                </StackPanel>
-            </Border>
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding InputSharingEnabled}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
 
-            <Border Classes="card" x:Name="WindowsSection">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="OKNA WINDOWS NA MACU" />
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="KLAWIATURA" /></StackPanel>
+                        <views:SettingRow Title="Skrót awaryjny" Subtitle="{Binding EmergencyHotkeyDescription}">
+                            <ComboBox ItemsSource="{Binding EmergencyHotkeys}" SelectedItem="{Binding SelectedEmergencyHotkey}" MinWidth="170" />
+                        </views:SettingRow>
                     </StackPanel>
-                    <views:SettingRow Title="Przenoś okna Windows na Maca"
-                                      Subtitle="Przeciągnij okno za krawędź po stronie Maca – pojawi się na ekranie Maca i dalej działa w Windowsie.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding WinViewEnabled}" />
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="MYSZ" /></StackPanel>
+                        <views:SettingRow Title="Czułość myszy na Macu" Subtitle="{Binding RemoteMouseSpeedLabel}">
+                            <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                    Value="{Binding RemoteMouseSpeed}" Width="210" />
+                        </views:SettingRow>
+                        <Rectangle Classes="divider" />
+                        <views:SettingRow Title="Ukrywaj kursor podczas sterowania Makiem"
+                                          Subtitle="Kursor zostaje przy krawędzi, przez którą wyszedł, i znika pod niewidocznym oknem.">
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding HideCursorWhileRemote}" />
+                        </views:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <views:SettingRow Title="Położenie Maca" Subtitle="Krawędź, przez którą kursor przechodzi na Maca, ustawiasz w zakładce Ekrany.">
+                        <Button Content="Otwórz Ekrany" Click="OpenDisplays" />
                     </views:SettingRow>
-                    <Rectangle Classes="divider" IsVisible="{Binding WinViewDriverMissing}" />
-                    <views:SettingRow Title="Sterownik monitora wirtualnego" IsVisible="{Binding WinViewDriverMissing}"
+                </Border>
+                <TextBlock Classes="note" Text="Zamianę klawiszy Ctrl i Cmd oraz przewijanie ustawiasz w aplikacji na Macu." />
+            </StackPanel>
+
+            <!-- OKNA -->
+            <StackPanel x:Name="WindowsSection" Spacing="14">
+                <Border Classes="card hero">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+                        <views:IconTile Icon="icon-windows" TileSize="44" IsActive="{Binding DisplayEnabled}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Classes="heroTitle" Text="Pokazuj ekran wirtualny Maca" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="8" Height="8" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="subtitle" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" MaxWidth="460" />
+                            </StackPanel>
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" VerticalAlignment="Center" />
+                        <ToggleSwitch Grid.Column="3" Classes="compact" IsChecked="{Binding DisplayEnabled}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="EKRAN MACA" /></StackPanel>
+                        <views:SettingRow Title="Tylko okna Maca"
+                                          Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
+                        </views:SettingRow>
+                        <Rectangle Classes="divider" />
+                        <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem"
+                                          Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" />
+                        </views:SettingRow>
+                        <TextBlock Classes="subtitle mono" Text="{Binding DisplayStatsText}"
+                                   IsVisible="{Binding DisplayStatsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card hero">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <views:IconTile Icon="icon-windows" TileSize="44" IsActive="{Binding WinViewEnabled}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Classes="heroTitle" Text="Przenoś okna Windows na Maca" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="8" Height="8" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="subtitle" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" MaxWidth="460" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding WinViewEnabled}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border Classes="card" IsVisible="{Binding WinViewDriverMissing}">
+                    <views:SettingRow Title="Sterownik monitora wirtualnego"
                                       Subtitle="Jednorazowa instalacja darmowego, podpisanego sterownika Virtual Display Driver (wymaga zgody administratora).">
-                        <Button Content="Zainstaluj" Command="{Binding InstallDisplayDriverCommand}" IsEnabled="{Binding !IsInstallingDriver}" />
+                        <Button Classes="accent" Content="Zainstaluj" Command="{Binding InstallDisplayDriverCommand}" IsEnabled="{Binding !IsInstallingDriver}" />
                     </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Stan" Subtitle="{Binding WinViewStatsText}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse Width="8" Height="8" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding WinViewStatusText}" MaxWidth="300" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Classes="note" Text="Przeciągnij okno za krawędź po stronie Maca – pojawi się na ekranie Maca i dalej działa w Windowsie." />
+                <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding WinViewStatsText}"
+                           IsVisible="{Binding WinViewStatsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+
+            <!-- DŹWIĘK -->
+            <StackPanel x:Name="AudioSection" Spacing="14">
+                <Border Classes="card hero">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                            <views:IconTile Icon="icon-audio" TileSize="44" IsActive="{Binding AudioEnabled}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                                <TextBlock Classes="heroTitle" Text="Odbieraj dźwięk z Maca" />
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <Ellipse Width="8" Height="8" Fill="{Binding AudioStatusBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Classes="subtitle" Text="{Binding AudioStatusText}" VerticalAlignment="Center" MaxWidth="460" />
+                                </StackPanel>
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding AudioEnabled}" VerticalAlignment="Center" />
+                        </Grid>
+                        <ProgressBar Classes="level" Minimum="0" Maximum="1" Value="{Binding AudioLevel}" IsVisible="{Binding AudioActive}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="ODTWARZANIE" /></StackPanel>
+                        <views:SettingRow Title="Urządzenie wyjściowe" Subtitle="Słuchawki lub głośniki podłączone do Windowsa.">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ComboBox ItemsSource="{Binding AudioDevices}" SelectedItem="{Binding SelectedAudioDevice}" MinWidth="220" MaxWidth="260" />
+                                <Button Command="{Binding RefreshAudioDevicesCommand}" ToolTip.Tip="Odśwież listę urządzeń">
+                                    <ui:FontIcon Glyph="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="14" />
+                                </Button>
+                            </StackPanel>
+                        </views:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="OPÓŹNIENIE" /></StackPanel>
+                        <views:SettingRow Title="Bufor sieciowy" Subtitle="{Binding JitterBufferLabel}">
+                            <Slider Minimum="5" Maximum="150" TickFrequency="5" IsSnapToTickEnabled="True"
+                                    Value="{Binding JitterBufferMs}" Width="210" />
+                        </views:SettingRow>
+                        <Rectangle Classes="divider" />
+                        <views:SettingRow Title="Tryb WASAPI exclusive"
+                                          Subtitle="Najniższe opóźnienie, ale blokuje kartę dla innych aplikacji. Przy braku wsparcia wraca do shared.">
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding ExclusiveMode}" />
+                        </views:SettingRow>
+                    </StackPanel>
+                </Border>
+                <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding AudioStatsText}"
+                           IsVisible="{Binding AudioStatsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+
+            <!-- SCHOWEK -->
+            <StackPanel x:Name="ClipboardSection" Spacing="14">
+                <Border Classes="card hero">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <views:IconTile Icon="icon-clipboard" TileSize="44" IsActive="{Binding ClipboardSyncEnabled}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Classes="heroTitle" Text="Synchronizuj schowek" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="8" Height="8" Fill="{Binding StatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="subtitle" Text="{Binding ClipboardStatusText}" VerticalAlignment="Center" MaxWidth="460" />
+                            </StackPanel>
                         </StackPanel>
-                    </views:SettingRow>
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" x:Name="AudioSection">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="DŹWIĘK" />
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding ClipboardSyncEnabled}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel Spacing="10">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="CO JEST PRZESYŁANE" /></StackPanel>
+                        <WrapPanel ItemSpacing="8" LineSpacing="8">
+                            <Border Classes="pill"><TextBlock Text="Tekst" FontSize="12" /></Border>
+                            <Border Classes="pill"><TextBlock Text="Zdjęcia i zrzuty ekranu" FontSize="12" /></Border>
+                            <Border Classes="pill"><TextBlock Text="Obrazy do 32 MiB" FontSize="12" /></Border>
+                        </WrapPanel>
+                        <TextBlock Classes="subtitle" Text="W obie strony, tylko w sieci lokalnej, szyfrowane jak całe połączenie." />
                     </StackPanel>
-                    <views:SettingRow Title="Odbieraj dźwięk z Maca"
-                                      Subtitle="Cały dźwięk systemowy Maca gra na wybranym urządzeniu przez szyfrowany strumień LAN.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding AudioEnabled}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Urządzenie wyjściowe" Subtitle="Słuchawki lub głośniki podłączone do Windowsa.">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <ComboBox ItemsSource="{Binding AudioDevices}" SelectedItem="{Binding SelectedAudioDevice}" MinWidth="220" MaxWidth="260" />
-                            <Button Command="{Binding RefreshAudioDevicesCommand}" ToolTip.Tip="Odśwież listę urządzeń">
-                                <ui:FontIcon Glyph="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="14" />
-                            </Button>
-                        </StackPanel>
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Bufor sieciowy" Subtitle="{Binding JitterBufferLabel}">
-                        <Slider Minimum="5" Maximum="150" TickFrequency="5" IsSnapToTickEnabled="True"
-                                Value="{Binding JitterBufferMs}" Width="190" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Tryb WASAPI exclusive"
-                                      Subtitle="Najniższe opóźnienie, ale blokuje kartę dla innych aplikacji. Przy braku wsparcia wraca do shared.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding ExclusiveMode}" />
-                    </views:SettingRow>
-                </StackPanel>
-            </Border>
-
-            <Border Classes="card" x:Name="AudioStatusSection">
-                <StackPanel Spacing="8">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Classes="icon" Text="&#xE767;" />
-                        <TextBlock Text="STAN STRUMIENIA" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Ellipse Width="8" Height="8" Fill="{Binding AudioStatusBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding AudioStatusText}" FontSize="13" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <ProgressBar Classes="level" Minimum="0" Maximum="1" Value="{Binding AudioLevel}" />
-                    <TextBlock Classes="subtitle mono" Text="{Binding AudioStatsText}" />
-                </StackPanel>
-            </Border>
-        
-
-            <Border Classes="card" x:Name="ClipboardSection">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="SCHOWEK" />
-                    </StackPanel>
-                    <views:SettingRow Title="Synchronizuj schowek (tekst i zdjęcia)"
-                                      Subtitle="Kopiuj i wklejaj tekst, zdjęcia oraz zrzuty ekranu w obie strony. Obrazy do 32 MiB.">
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding ClipboardSyncEnabled}" />
-                    </views:SettingRow>
-                    <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Ostatnia synchronizacja" Subtitle="{Binding ClipboardStatusText}">
-                        <Ellipse Width="8" Height="8" Fill="{Binding StatusBrush}" />
-                    </views:SettingRow>
-                </StackPanel>
-            </Border>
+                </Border>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

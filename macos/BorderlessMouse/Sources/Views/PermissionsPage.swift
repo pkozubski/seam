@@ -4,8 +4,8 @@ struct PermissionsPage: View {
     @EnvironmentObject private var state: AppState
 
     var body: some View {
-        SettingsPageLayout(title: "Uprawnienia", subtitle: "Zdecyduj, do czego BorderlessMouse ma dostęp.") {
-            SettingsGroup("Sterowanie myszą i klawiaturą") {
+        SettingsPageLayout(title: "Uprawnienia", subtitle: summary) {
+            SettingsGroup("Dla funkcji Klawiatura i mysz") {
                 SettingRow(title: "Dostępność",
                            subtitle: state.accessibilityGranted
                            ? L10n.text("Gotowe. Możesz sterować Makiem z Windowsa.", "Ready. You can control your Mac from Windows.")
@@ -21,7 +21,7 @@ struct PermissionsPage: View {
                     }
                 }
             }
-            SettingsGroup("Dźwięk") {
+            SettingsGroup("Dla funkcji Dźwięk") {
                 SettingRow(title: "Nagrywanie dźwięku systemowego",
                            subtitle: state.audioPermissionSubtitle) {
                     HStack(spacing: 8) {
@@ -44,7 +44,7 @@ struct PermissionsPage: View {
                     .disabled({ if case .checking = state.audioPermission { return true }; return false }())
                 }
             }
-            SettingsGroup("Ekran wirtualny") {
+            SettingsGroup("Dla funkcji Okna") {
                 SettingRow(title: "Nagrywanie ekranu",
                            subtitle: state.screenCaptureGranted
                            ? L10n.text("Nadane – Mac może pokazać ekran wirtualny na Windowsie.", "Granted — the Mac can show its virtual display on Windows.")
@@ -62,5 +62,11 @@ struct PermissionsPage: View {
             }
         }
         .onAppear { state.checkAudioPermission(force: false) }
+    }
+
+    private var summary: String {
+        let granted = [state.accessibilityGranted, state.audioPermission.isGranted, state.screenCaptureGranted].filter { $0 }.count
+        return L10n.text("Nadane: \(granted) z 3. Każde uprawnienie potrzebne jest tylko jednej funkcji.",
+                         "Granted: \(granted) of 3. Each permission is needed by one feature only.")
     }
 }

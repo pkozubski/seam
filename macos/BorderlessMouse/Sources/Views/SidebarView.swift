@@ -20,14 +20,16 @@ struct SidebarView: View {
             .padding(.bottom, 22)
 
             List(selection: $selection) {
-                Section {
-                    ForEach([SidebarSection.connection, .control, .audio, .clipboard, .windows]) { section in
+                SidebarRow(section: .connection, selected: selection == .connection).tag(SidebarSection.connection)
+                Section(L10n.text("Funkcje", "Features")) {
+                    ForEach([SidebarSection.control, .audio, .clipboard, .windows]) { section in
                         SidebarRow(section: section, selected: selection == section)
                             .tag(section)
                     }
                 }
-                Section {
-                    SidebarRow(section: .permissions, selected: selection == .permissions).tag(SidebarSection.permissions)
+                Section(L10n.text("System", "System")) {
+                    SidebarRow(section: .permissions, selected: selection == .permissions, attention: missingPermissions > 0)
+                        .tag(SidebarSection.permissions)
                     SidebarRow(section: .log, selected: selection == .log)
                         .tag(SidebarSection.log)
                 }
@@ -49,5 +51,10 @@ struct SidebarView: View {
             .padding(18)
         }
         .navigationSplitViewColumnWidth(min: 215, ideal: 230, max: 270)
+    }
+
+    private var missingPermissions: Int {
+        [!state.accessibilityGranted, state.audioPermissionGranted == false,
+         state.settings.displayEnabled && !state.screenCaptureGranted].filter { $0 }.count
     }
 }

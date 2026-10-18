@@ -46,7 +46,9 @@
 
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Połączenie" Tag="connection" />
-                <ui:NavigationViewItem Content="Sterowanie" Tag="control" />
+                <ui:NavigationViewItem Content="Ekrany" Tag="displays" />
+                <ui:NavigationViewItemHeader Content="Funkcje" />
+                <ui:NavigationViewItem Content="Klawiatura i mysz" Tag="control" />
                 <ui:NavigationViewItem Content="Dźwięk" Tag="audio" />
                 <ui:NavigationViewItem Content="Schowek" Tag="clipboard" />
                 <ui:NavigationViewItem Content="Okna" Tag="windows" />

@@ -9,10 +9,10 @@ struct DetailView: View {
             switch section {
             case .connection: ConnectionPage(openWindows: openWindows)
             case .permissions: PermissionsPage()
-            case .control: ControlPage()
-            case .audio: ControlPage(initialCategory: .audio)
-            case .clipboard: ControlPage(initialCategory: .clipboard)
-            case .windows: ControlPage(initialCategory: .display)
+            case .control: InputPage()
+            case .audio: AudioPage()
+            case .clipboard: ClipboardPage()
+            case .windows: WindowsPage()
             case .settings: SettingsPage()
             case .log: LogPage()
             }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.19 — test channel (2026-10-18)
+
+- Every sidebar section is its own page. macOS drops the Keyboard / Audio / Display / Clipboard segments that duplicated the sidebar; "Sterowanie" is now "Klawiatura i mysz" (Keyboard & mouse) on both platforms.
+- Feature pages open with a card holding the main switch and live status (Audio adds the level meter); options below are grouped (Keyboard, Scrolling, Playback, Latency, …).
+- macOS: sidebar grouped into Features and System. A missing permission shows a banner with a Grant button on the feature page that needs it, plus a dot next to Permissions.
+- macOS: scroll direction and the capture buffer (Fastest / Balanced / Stable) are segmented controls; TCP port and custom signing certificate move to a collapsed Advanced section; the log gets a Copy button.
+- Windows: new Displays page. Place the Mac by clicking one of four spots around this monitor; it replaces the "Mac stoi względem tego ekranu" list.
+- New Displays icon in the silver icon family.
+
 ## 2.1.18 — test channel (2026-10-18)
 
 - Windows: match the macOS look. The same graphite backdrop runs under the title bar, a darker sidebar pane and the content.

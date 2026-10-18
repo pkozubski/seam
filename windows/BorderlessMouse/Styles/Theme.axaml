@@ -185,4 +185,69 @@
         <Setter Property="Height" Value="8" />
         <Setter Property="CornerRadius" Value="4" />
     </Style>
+    <!-- Podtytuł strony i karta-włącznik na górze strony funkcji (jak FeatureHero na macOS) -->
+    <Style Selector="TextBlock.pageSubtitle">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.hero">
+        <Setter Property="Padding" Value="18" />
+    </Style>
+    <Style Selector="TextBlock.heroTitle">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.note">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="4,0,0,0" />
+    </Style>
+
+    <!-- Układ ekranów: kropkowane tło, monitor na środku, cztery miejsca na Maca -->
+    <Style Selector="Border.stage">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="#33000000" />
+        <Setter Property="BorderBrush" Value="#14FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.screen">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="BorderBrush" Value="#4A4D53" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#3A3D43" Offset="0" />
+                <GradientStop Color="#26282C" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Button.slot">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="#26FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.slot:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#14FFFFFF" />
+        <Setter Property="BorderBrush" Value="#5593AE8C" />
+    </Style>
+    <Style Selector="Button.slot.selected">
+        <Setter Property="BorderBrush" Value="#A9C2A2" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#3A4638" Offset="0" />
+                <GradientStop Color="#232A22" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Button.slot.selected:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#3A4638" />
+        <Setter Property="BorderBrush" Value="#C6DABF" />
+    </Style>
 </Styles>

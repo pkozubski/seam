@@ -12,7 +12,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .clipboard: return L10n.text("Schowek", "Clipboard")
         case .windows: return L10n.text("Okna", "Windows")
         case .permissions: return L10n.localized("Uprawnienia")
-        case .control: return L10n.localized("Sterowanie")
+        case .control: return L10n.text("Klawiatura i mysz", "Keyboard & mouse")
         case .settings: return L10n.localized("Ustawienia")
         case .log: return L10n.localized("Dziennik")
         }

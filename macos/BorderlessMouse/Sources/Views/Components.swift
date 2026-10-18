@@ -60,7 +60,7 @@ struct LevelMeter: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.08))
                 Capsule()
-                    .fill(level > 0.9 ? Color.orange : Color.accentColor)
+                    .fill(level > 0.9 ? Color.orange : DesignTokens.accent)
                     .frame(width: max(0, geo.size.width * CGFloat(min(level, 1))))
                     .animation(reduceMotion ? nil : .linear(duration: 0.05), value: level)
             }
