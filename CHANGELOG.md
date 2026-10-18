@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- Do not dispose the device's cached D3D11 immediate context in per-window capture and the
+  hardware encoder; a failure in one window no longer stops the whole window stream.
 - Windows apps on the Mac stream each window separately via Windows.Graphics.Capture and a
   hardware H.264 encoder (software fallback). Geometry is sent event-driven on the control
   channel, the virtual monitor uses Mac pixels at matching DPI, and Snap overlays are ignored.

@@ -137,7 +137,8 @@ public sealed unsafe class WindowCapture : IDisposable
         Window = hwnd;
         try
         {
-            _context = device.ImmediateContext; // każde odczytanie zwraca własną referencję
+            // Vortice zapamiętuje ten obiekt w urządzeniu – wspólny dla wszystkich okien i koderów, nie zwalniamy go.
+            _context = device.ImmediateContext;
             _videoDevice = device.QueryInterface<ID3D11VideoDevice>();
             _videoContext = _context.QueryInterface<ID3D11VideoContext>();
             _winrtDevice = CreateWinRtDevice(device);
@@ -282,7 +283,6 @@ public sealed unsafe class WindowCapture : IDisposable
         _videoContext = null;
         _videoDevice?.Dispose();
         _videoDevice = null;
-        _context?.Dispose();
         _context = null;
     }
 
@@ -381,6 +381,7 @@ public sealed unsafe class WindowCapture : IDisposable
                 IntPtr texture;
                 Check(((delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, int>)Slot(access, DxgiAccess_GetInterface))(access, &iid, &texture),
                     "IDirect3DDxgiInterfaceAccess.GetInterface");
+                if (texture == IntPtr.Zero) throw new COMException("Capture surface has no texture.", unchecked((int)0x80004003)); // E_POINTER
                 return new ID3D11Texture2D(texture);
             }
             finally
@@ -420,8 +421,10 @@ public sealed unsafe class WindowCapture : IDisposable
             }
         }
 
-        if (_inputCopy is null)
+        // Widoki są czyszczone przy odtworzeniu puli – kopia może zostać bez widoku.
+        if (_inputCopy is null || !_inputViews.ContainsKey(_inputCopy.NativePointer))
         {
+            _inputCopy?.Dispose();
             _inputCopy = _device.CreateTexture2D(new Texture2DDescription(desc.Format, desc.Width, desc.Height, 1, 1,
                 BindFlags.RenderTarget | BindFlags.ShaderResource, ResourceUsage.Default, CpuAccessFlags.None, 1, 0, ResourceOptionFlags.None));
             _inputViews[_inputCopy.NativePointer] = _videoDevice!.CreateVideoProcessorInputView(_inputCopy, _enumerator!, description);

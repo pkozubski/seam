@@ -173,8 +173,8 @@ public sealed class WinViewStreamer : IDisposable
         finally
         {
             if (timerPeriod) timeEndPeriod(1);
-            foreach (var session in sessions.Values) session.DisposeEncoder();
-            foreach (var session in sessions.Values) session.Capture.Dispose();
+            foreach (var session in sessions.Values) SafeDispose(session.DisposeEncoder);
+            foreach (var session in sessions.Values) SafeDispose(session.Capture.Dispose);
             sessions.Clear();
             device?.Dispose();
             sealer?.Dispose();
@@ -238,9 +238,10 @@ public sealed class WinViewStreamer : IDisposable
                     }
                     fresh = session.Capture.TryGetFrame();
                 }
-                catch (Exception ex) when (ex is SharpGenException or COMException or InvalidOperationException or ObjectDisposedException)
+                catch (Exception ex)
                 {
-                    // Okno zniknęło w trakcie – zamykamy tylko jego sesję.
+                    // Okno zniknęło w trakcie albo nagrywanie zawiodło – zamykamy tylko jego sesję.
+                    if (ex is not (SharpGenException or COMException or InvalidOperationException or ObjectDisposedException)) CrashLog.Write(ex);
                     (closed ??= []).Add(session.Handle);
                     failed[session.Handle] = now;
                     continue;
@@ -248,14 +249,24 @@ public sealed class WinViewStreamer : IDisposable
                 if (fresh) session.HasFrame = true;
                 // Prośba o klatkę kluczową przy nieruchomym oknie: kodujemy ostatni obraz jeszcze raz.
                 if (!fresh && !(session.NeedKeyframe && session.HasFrame)) continue;
-                if (SendFrame(device, session, fresh, clock, stream, sealer)) sent = true;
+                try
+                {
+                    if (SendFrame(device, session, fresh, clock, stream, sealer)) sent = true;
+                }
+                catch (Exception ex) when (ex is not (IOException or SocketException or ObjectDisposedException))
+                {
+                    // Błąd kodera jednego okna nie przerywa strumienia pozostałych.
+                    CrashLog.Write(ex);
+                    (closed ??= []).Add(session.Handle);
+                    failed[session.Handle] = now;
+                }
             }
             if (closed is not null)
             {
                 foreach (var handle in closed)
                 {
                     if (!sessions.Remove(handle, out var session)) continue;
-                    session.Dispose();
+                    SafeDispose(session.Dispose);
                 }
             }
             if (closed is not null || _encodersChanged) RefreshUsesGpu(sessions);
@@ -271,7 +282,7 @@ public sealed class WinViewStreamer : IDisposable
 
         foreach (var handle in sessions.Keys.Where(h => !wanted.ContainsKey(h)).ToList())
         {
-            sessions[handle].Dispose();
+            SafeDispose(sessions[handle].Dispose);
             sessions.Remove(handle);
         }
         foreach (var handle in failed.Keys.Where(h => !wanted.ContainsKey(h)).ToList()) failed.Remove(handle);
@@ -315,9 +326,10 @@ public sealed class WinViewStreamer : IDisposable
             {
                 encoded = session.Hw.Encode(texture, now.Ticks, force);
             }
-            catch (Exception ex) when (ex is SharpGenException or COMException or InvalidOperationException)
+            catch (Exception ex)
             {
                 // Koder sprzętowy zawiódł – to okno przechodzi na koder programowy.
+                if (ex is not (SharpGenException or COMException or InvalidOperationException)) CrashLog.Write(ex);
                 CreateEncoder(device, session, preferHardware: false);
                 force = true;
             }
@@ -341,6 +353,13 @@ public sealed class WinViewStreamer : IDisposable
         Interlocked.Increment(ref _framesSent);
         Interlocked.Add(ref _bytesSent, record.Length);
         return true;
+    }
+
+    /// <summary>Zwolnienie sesji nie może przerwać strumienia ani wątku.</summary>
+    private static void SafeDispose(Action dispose)
+    {
+        try { dispose(); }
+        catch (Exception ex) { CrashLog.Write(ex); }
     }
 
     private void CreateEncoder(ID3D11Device device, Session session, bool preferHardware)

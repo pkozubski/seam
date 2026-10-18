@@ -1,5 +1,6 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
+- Naprawiony błąd NullReferenceException, który zatrzymywał strumień okien Windows na Macu; błąd jednego okna nie przerywa już pozostałych.
 - Nowe przenoszenie okien Windows na Maca: każde okno ma własny strumień (Windows.Graphics.Capture, sprzętowy koder H.264), położenie idzie osobno od obrazu, a wirtualny monitor ma rozdzielczość Retina ze skalowaniem 200%. Koniec z tapetą przy krawędziach i rozmytym obrazem.
 - Ostrzejsze okna Maca na Windowsie przy skalowaniu poniżej 150%: wirtualny monitor rysuje w HiDPI 2×, a obraz jest zmniejszany na Macu do pikseli monitora Windows.
 - Menu aplikacji Maca na Windowsie przeniesione do paska tytułu, obok tytułu okna, na tle Mica; przyciski okna i Snap nadal systemowe.

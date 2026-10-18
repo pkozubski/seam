@@ -67,6 +67,7 @@ public sealed class HardwareH264Encoder : IDisposable
         _frameDuration = 10_000_000L / framesPerSecond;
         _frameBytes = width * height * 3 / 2;
         MediaFactory.MFStartup(true).CheckError();
+        // Vortice zapamiętuje ten obiekt w urządzeniu – wspólny z nagrywaniem okien, nie zwalniamy go.
         _context = device.ImmediateContext;
     }
 
@@ -492,7 +493,6 @@ public sealed class HardwareH264Encoder : IDisposable
         }
         _manager?.Dispose();
         foreach (var texture in _textures) texture?.Dispose();
-        _context.Dispose();
         _pending.Clear();
         MediaFactory.MFShutdown();
     }
