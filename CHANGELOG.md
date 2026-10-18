@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- Below 150% Windows scaling the virtual display uses a 2x HiDPI backing and capture downsamples
+  to Windows monitor pixels, so Mac text is Retina-rendered and shown 1:1 instead of soft 1x output.
 - Draw the Mac application menu in the Windows title bar next to the window title on a Mica
   backdrop instead of a separate light Win32 menu row; DWM keeps the caption buttons and Snap.
 - Recognize Chrome's layer-zero `AXWindow/AXUnknown` omnibox and extension bubbles

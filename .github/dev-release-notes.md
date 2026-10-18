@@ -1,5 +1,6 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
+- Ostrzejsze okna Maca na Windowsie przy skalowaniu poniżej 150%: wirtualny monitor rysuje w HiDPI 2×, a obraz jest zmniejszany na Macu do pikseli monitora Windows.
 - Menu aplikacji Maca na Windowsie przeniesione do paska tytułu, obok tytułu okna, na tle Mica; przyciski okna i Snap nadal systemowe.
 - Poprawione rozpoznawanie podpowiedzi adresu i panelu rozszerzeń Chrome: popupy nie dostają osobnego paska tytułu, menu ani pozycji na pasku zadań.
 - Zamknięte popupy są od razu usuwane, również przy zmaksymalizowanej przeglądarce. Kliknięcie popupu nie próbuje już aktywować go jako głównego okna.

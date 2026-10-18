@@ -14,6 +14,8 @@ final class WindowStreams {
     private let hasClient: () -> Bool
     private var pipelines: [UInt32: Pipeline] = [:]
     private var displayID: CGDirectDisplayID = 0
+    /// Szerokość monitora Windows w pikselach; 0 = nagrywanie w pikselach zaplecza.
+    private var outputWidth = 0
     private var active = false
     private var wantedWindows: [TrackedWindow] = []
     private var retryTimer: DispatchSourceTimer?
@@ -27,9 +29,10 @@ final class WindowStreams {
         queue.sync { pipelines.values.reduce(0) { $0 + $1.dropped } }
     }
 
-    func start(displayID: CGDirectDisplayID) {
+    func start(displayID: CGDirectDisplayID, outputWidth: Int = 0) {
         queue.async {
             self.displayID = displayID
+            self.outputWidth = outputWidth
             self.active = true
             self.retryTimer?.cancel()
             let timer = DispatchSource.makeTimerSource(queue: self.queue)
@@ -63,7 +66,11 @@ final class WindowStreams {
     private func reconcile() {
         guard active else { return }
         let windows = wantedWindows
-        let scale = WindowTracker.pixelScale(of: self.displayID)
+        // Okna nagrywamy w pikselach Windows (1:1 na ekranie), nie w pikselach zaplecza HiDPI:
+        // ScreenCaptureKit zmniejsza obraz Retina z dobrym filtrem i bez dodatkowej przepustowości.
+        let backing = WindowTracker.pixelScale(of: self.displayID)
+        let points = CGDisplayBounds(self.displayID).width
+        let scale = outputWidth > 0 && points > 0 ? min(backing, CGFloat(outputWidth) / points) : backing
         let wanted = Dictionary(windows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         for (id, pipeline) in self.pipelines where wanted[id] == nil {
             pipeline.stop()

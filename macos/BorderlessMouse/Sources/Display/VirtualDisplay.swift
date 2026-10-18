@@ -36,6 +36,9 @@ final class VirtualDisplay {
     /// Granica H.264 poziomu 5.2 w dekoderach Media Foundation.
     static let maxPixelWidth = 4096
     static let maxPixelHeight = 2304
+    /// Największe zaplecze HiDPI (6K) przy nadpróbkowaniu – strumień i tak ma rozmiar monitora Windows.
+    static let maxBackingWidth = 6144
+    static let maxBackingHeight = 3456
 
     static var isSupported: Bool {
         NSClassFromString("CGVirtualDisplay") != nil
@@ -47,14 +50,25 @@ final class VirtualDisplay {
     let displayID: CGDirectDisplayID
     let nativeWidth: Int
     let nativeHeight: Int
+    /// Rozmiar strumienia: piksele monitora Windows. Przy nadpróbkowaniu zaplecze ma ich 2×.
+    let outputWidth: Int
+    let outputHeight: Int
     private let display: CGVirtualDisplay
     private let queue = DispatchQueue(label: "blm.display.virtual")
 
     /// Tworzy monitor o rozdzielczości monitora Windows. Przy skalowaniu ≥ 150%
     /// domyślnym trybem jest HiDPI (połowa punktów, pełna ostrość pikseli).
-    init(name: String, pixelWidth: Int, pixelHeight: Int, scalePercent: Int) throws {
+    /// Poniżej 150% `supersample` daje zaplecze HiDPI 2× przy tej samej liczbie punktów:
+    /// macOS rysuje tekst jak na Retinie, a nagrywanie zmniejsza obraz do pikseli Windows.
+    /// Tekst macOS w trybie 1× (bez wygładzania podpikselowego) wygląda na Windowsie na rozmyty.
+    init(name: String, pixelWidth: Int, pixelHeight: Int, scalePercent: Int, supersample: Bool = false) throws {
         guard Self.isSupported else { throw DisplayError.unsupported }
-        let (width, height) = Self.fit(width: pixelWidth, height: pixelHeight)
+        let (outWidth, outHeight) = Self.fit(width: pixelWidth, height: pixelHeight)
+        let supersampled = supersample && scalePercent < 150
+            && outWidth * 2 <= Self.maxBackingWidth && outHeight * 2 <= Self.maxBackingHeight
+        let (width, height) = supersampled ? (outWidth * 2, outHeight * 2) : (outWidth, outHeight)
+        outputWidth = outWidth
+        outputHeight = outHeight
         nativeWidth = width
         nativeHeight = height
 
@@ -65,7 +79,7 @@ final class VirtualDisplay {
         descriptor.maxPixelsHigh = UInt32(height)
         // Rozmiar fizyczny z DPI Windowsa: macOS dobiera na jego podstawie domyślne skalowanie.
         let dpi = 96.0 * Double(max(scalePercent, 100)) / 100.0
-        descriptor.sizeInMillimeters = CGSize(width: Double(width) / dpi * 25.4, height: Double(height) / dpi * 25.4)
+        descriptor.sizeInMillimeters = CGSize(width: Double(outWidth) / dpi * 25.4, height: Double(outHeight) / dpi * 25.4)
         descriptor.vendorID = Self.vendorID
         descriptor.productID = Self.productID
         descriptor.serialNum = Self.serialNumber
@@ -82,7 +96,11 @@ final class VirtualDisplay {
         }
         guard display.apply(settings) else { throw DisplayError.settingsRejected }
         guard Self.waitUntilOnline(displayID) else { throw DisplayError.notOnline }
-        selectDefaultMode(hiDPI: scalePercent >= 150)
+        selectDefaultMode(hiDPI: supersampled || scalePercent >= 150)
+        // Bez trybu HiDPI zaplecze 2× oznaczałoby 2× więcej punktów, czyli o połowę mniejsze okna.
+        if supersampled, CGDisplayCopyDisplayMode(displayID).map({ $0.pixelWidth != $0.width * 2 }) ?? true {
+            throw DisplayError.settingsRejected
+        }
     }
 
     /// Aktualny rozmiar obrazu w pikselach (zależy od trybu wybranego w macOS).
@@ -90,6 +108,8 @@ final class VirtualDisplay {
         guard let mode = CGDisplayCopyDisplayMode(displayID) else { return (nativeWidth, nativeHeight) }
         return (mode.pixelWidth, mode.pixelHeight)
     }
+
+    var outputSize: (width: Int, height: Int) { (outputWidth, outputHeight) }
 
     var bounds: CGRect { CGDisplayBounds(displayID) }
 

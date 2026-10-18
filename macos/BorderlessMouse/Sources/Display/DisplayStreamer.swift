@@ -87,7 +87,9 @@ final class DisplayStreamer {
                 self.startFullCapture()
             } else {
                 self.capture?.stop()
-                if let displayID { self.windowStreams?.start(displayID: displayID) }
+                if let displayID {
+                    self.windowStreams?.start(displayID: displayID, outputWidth: self.virtualDisplay?.outputWidth ?? 0)
+                }
             }
         }
     }
@@ -128,8 +130,14 @@ final class DisplayStreamer {
         do {
             let display = try onQueue { () throws -> VirtualDisplay in
                 guard generation == self.generation else { throw StartError.superseded }
-                return try VirtualDisplay(name: name, pixelWidth: request.pixelWidth,
-                                          pixelHeight: request.pixelHeight, scalePercent: request.scalePercent)
+                // Zaplecze 2× może przekroczyć możliwości GPU – wtedy zwykły monitor 1×.
+                do {
+                    return try VirtualDisplay(name: name, pixelWidth: request.pixelWidth, pixelHeight: request.pixelHeight,
+                                              scalePercent: request.scalePercent, supersample: true)
+                } catch {
+                    return try VirtualDisplay(name: name, pixelWidth: request.pixelWidth,
+                                              pixelHeight: request.pixelHeight, scalePercent: request.scalePercent)
+                }
             }
             try onQueue {
                 guard generation == self.generation else { throw StartError.superseded }
@@ -140,7 +148,7 @@ final class DisplayStreamer {
                 self.displayIDStorage = display.displayID
                 self.frameLock.unlock()
             }
-            let (width, height) = display.pixelSize
+            let (width, height) = display.outputSize
             let requestedBitrate = Int(request.maxBitrateKbps) * 1000
             let encoder = try VideoEncoder(width: width, height: height, bitrate: requestedBitrate)
             let key = VideoStream.randomBytes(VideoStream.keyBytes)
@@ -302,7 +310,7 @@ final class DisplayStreamer {
                        dropped: dropped, width: encoder.width, height: encoder.height))
         lastStats = (frames, bytes)
 
-        let (width, height) = display.pixelSize
+        let (width, height) = display.outputSize
         guard width != encoder.width || height != encoder.height else { return }
         reconfigure(width: width, height: height)
     }
