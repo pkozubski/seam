@@ -117,19 +117,11 @@ internal static class DisplayNative
     public static extern bool AdjustWindowRectEx(ref RECT rect, uint style, [MarshalAs(UnmanagedType.Bool)] bool menu, uint exStyle);
 
     [DllImport("user32.dll")]
-    public static extern IntPtr CreateMenu();
-
-    [DllImport("user32.dll")]
     public static extern IntPtr CreatePopupMenu();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool AppendMenuW(IntPtr menu, uint flags, UIntPtr idOrSubmenu, string? text);
-
-    /// <summary>Menu okna (<c>SetMenu</c> z user32 – nazwa zmieniona, żeby nie kolidować z metodą podglądu).</summary>
-    [DllImport("user32.dll", EntryPoint = "SetMenu")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool SetWindowMenu(IntPtr hWnd, IntPtr menu);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -137,7 +129,29 @@ internal static class DisplayNative
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool DrawMenuBar(IntPtr hWnd);
+    public static extern bool EndMenu();
+
+    // ---------------- pasek tytułu z menu (DWM) ----------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MARGINS
+    {
+        public int Left, Right, Top, Bottom;
+    }
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);
+
+    /// <summary>Przyciski podpisu rysowane przez DWM w rozszerzonej ramce: najechanie, kliknięcie, Snap.</summary>
+    [DllImport("dwmapi.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DwmDefWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, out IntPtr result);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmGetWindowAttribute(IntPtr hWnd, uint attribute, out RECT value, uint size);
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetricsForDpi(int index, uint dpi);
 
     // ---------------- pasek menu w stylu macOS (GDI) ----------------
 

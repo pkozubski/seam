@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- Draw the Mac application menu in the Windows title bar next to the window title on a Mica
+  backdrop instead of a separate light Win32 menu row; DWM keeps the caption buttons and Snap.
 - Recognize Chrome's layer-zero `AXWindow/AXUnknown` omnibox and extension bubbles
   by their subrole and native window controls, instead of giving every AXWindow a
   separate application caption/menu. Do not make transient surfaces AXMain on click.
