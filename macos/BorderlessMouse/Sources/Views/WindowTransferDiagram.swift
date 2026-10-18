@@ -25,8 +25,9 @@ struct WindowTransferDiagram: View {
             let destination = reversed ? first : second
             let point = CGPoint(x: source.x + (destination.x - source.x) * progress,
                                 y: source.y + (destination.y - source.y) * progress)
-            let windowWidth = vertical ? screenWidth * 0.64 : size.width * 0.34
-            let windowHeight = min(screenHeight * 0.62, windowWidth * 0.63)
+            let preferredWidth = vertical ? screenWidth * 0.64 : size.width * 0.34
+            let windowHeight = min(screenHeight * 0.72, preferredWidth * 0.65)
+            let windowWidth = windowHeight / 0.65
 
             ZStack {
                 WindowDemoDesktop(isMac: !reversed)

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.21 — test channel (2026-10-18)
+## 2.1.22 — test channel (2026-10-18)
 
 - macOS and Windows: a new scrollable Windows tab explains the second-monitor model with a large window-crossing illustration, three visual steps, display arrangement and return direction.
 - Add two original bundled desktop wallpapers; the windows, arrows and localized labels remain native and sharp at every size.

@@ -1,6 +1,6 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
-## Nowe w 2.1.21 — zakładka Okna
+## Nowe w 2.1.22 — zakładka Okna
 
 - Nowy, przewijany widok pokazuje działanie drugiego urządzenia jako dodatkowego monitora: przeciągasz dowolne okno za wspólną krawędź ekranów.
 - Duża wizualizacja przejścia, instrukcja w trzech krokach, podgląd układu ekranów i przeniesienia okna z powrotem. macOS ma także przycisk odtwarzający przykład.
