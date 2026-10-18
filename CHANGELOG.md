@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.17 — test channel (2026-10-18)
+
+- macOS: replace the flat canvas with one continuous graphite backdrop (cool studio light, a faint accent glow under the status orb, grain against banding). The sidebar continues it under a darker veil and the title bar is transparent.
+- macOS: set sidebar and quick-toggle icons on graphite gradient plates; the selected section takes the accent color.
+- macOS: restore the graphite two-window app icon from 2.1.15 and show the app icon as the sidebar logo.
+- Windows: unchanged apart from the version number.
+
 ## 2.1.16 — test channel (2026-10-18)
 
 - Introduce the shared dark seam home screen with bundled glass artwork and eight silver 3D icons.

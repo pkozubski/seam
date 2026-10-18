@@ -1,15 +1,13 @@
 Wspólne wydanie testowe macOS (Apple Silicon i Intel) oraz Windows x64.
 
-## Nowe w 2.1.16 — interfejs seam
+## Nowe w 2.1.17 — grafitowe tło i kafelki ikon (macOS)
 
-- Wspólny grafitowy ekran główny macOS i Windows z grafiką szklanych okien.
-- Osiem srebrnych ikon 3D i nowa ikona aplikacji.
-- Okrągły status połączenia wystający poza dolną krawędź okna. Kliknięcie otwiera szczegóły połączenia; rozłączenie pozostaje osobną akcją.
-- Szybkie przełączniki myszy i klawiatury, dźwięku oraz schowka; osobne sekcje Dźwięk, Schowek i Okna.
-- Natywne kontrolki SwiftUI na macOS i kontrolki Fluent na Windowsie.
-- Zachowane poprawki przesyłania okien z wersji 2.1.15. Identyfikator aplikacji, protokół parowania i klucze aktualizacji pozostają zgodne z poprzednim wydaniem.
+- Okno ma jedno ciągłe grafitowe tło: chłodne światło od góry i delikatna poświata pod statusem połączenia. Pasek boczny jest lekko przyciemniony, a pasek tytułu przezroczysty.
+- Ikony w pasku bocznym i przy przełącznikach stoją na grafitowych kafelkach z gradientem. Zaznaczona sekcja ma kafelek w kolorze akcentu.
+- Wraca grafitowa ikona aplikacji z dwoma oknami z wersji 2.1.15. Ta sama ikona jest teraz logo w pasku bocznym.
+- Windows bez zmian względem 2.1.16, poza numerem wersji.
 
-To wydanie służy testom na obu komputerach. Szczególnie prosimy sprawdzić przesuwanie, minimalizowanie i przywracanie okna ze wskaźnikiem statusu, monitory o różnym DPI oraz pełny ekran.
+Prosimy sprawdzić wygląd przy zmianie rozmiaru okna, ze zwiniętym paskiem bocznym i przy przewijaniu treści pod paskiem tytułu.
 
 ## Aktualizacja
 

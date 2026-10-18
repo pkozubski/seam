@@ -110,7 +110,6 @@ printf 'APPL????' > "$OUT/Contents/PkgInfo"
 cp BorderlessMouse/Resources/AppIcon.icns BorderlessMouse/Resources/BorderlessMouse.entitlements "$OUT/Contents/Resources/"
 cp BorderlessMouse/Resources/ReleaseSigning.cer "$OUT/Contents/Resources/"
 cp ../assets/seam/*.png "$OUT/Contents/Resources/"
-cp ../assets/seam/seam.icns "$OUT/Contents/Resources/AppIcon.icns"
 cp ../THIRD_PARTY_NOTICES.md "$OUT/Contents/Resources/THIRD_PARTY_NOTICES.txt"
 for localization in BorderlessMouse/Resources/*.lproj; do
   [ -d "$localization" ] && cp -R "$localization" "$OUT/Contents/Resources/"

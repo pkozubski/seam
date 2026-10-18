@@ -7,7 +7,11 @@ struct SidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                SeamArtwork(name: "seam-icon").frame(width: 46, height: 46).accessibilityHidden(true)
+                // The app's own icon, so the sidebar mark always matches the Dock.
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable().interpolation(.high).scaledToFit()
+                    .frame(width: 50, height: 50)
+                    .accessibilityHidden(true)
                 Text("seam").font(.system(size: 26, weight: .medium)).foregroundStyle(.secondary)
                 Spacer(minLength: 0)
             }
@@ -44,7 +48,6 @@ struct SidebarView: View {
             }
             .padding(18)
         }
-        .background(DesignTokens.canvas)
         .navigationSplitViewColumnWidth(min: 215, ideal: 230, max: 270)
     }
 }

@@ -19,7 +19,7 @@ struct ConnectionOverview: View {
                 QuickToggleRow(title: L10n.text("Wspólny schowek", "Shared clipboard"), symbol: "clipboard", isOn: $state.settings.clipboardSyncEnabled)
                 Button(action: openWindows) {
                     HStack(spacing: 10) {
-                        SeamArtwork(name: "icon-windows").frame(width: 30, height: 30).accessibilityHidden(true)
+                        SeamIconTile(name: "icon-windows", size: 32)
                         Text(L10n.text("Przenieś okno", "Move a window"))
                     }.font(.body).frame(maxWidth: .infinity, alignment: .leading)
                 }

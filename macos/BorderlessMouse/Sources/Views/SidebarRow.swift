@@ -8,9 +8,7 @@ struct SidebarRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            SeamArtwork(name: "icon-\(section.rawValue)")
-                .frame(width: 30, height: 30)
-                .accessibilityHidden(true)
+            SeamIconTile(name: "icon-\(section.rawValue)", size: 30, active: selected)
             Text(section.title)
                 .font(.body.weight(selected ? .semibold : .regular))
             Spacer(minLength: 0)

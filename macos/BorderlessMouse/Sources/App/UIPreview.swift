@@ -47,6 +47,9 @@ enum UIPreview {
                               backing: .buffered, defer: false)
         window.title = "BorderlessMouse"
         window.toolbarStyle = .unified
+        // The app's Window scene gets this from `.toolbarBackground(.hidden, for: .windowToolbar)`;
+        // a hand-made NSWindow does not, so mirror it to keep the backdrop under the title bar.
+        window.titlebarAppearsTransparent = true
         if args.contains("--ui-light") { window.appearance = NSAppearance(named: .aqua) }
         if args.contains("--ui-dark") { window.appearance = NSAppearance(named: .darkAqua) }
         window.contentView = NSHostingView(rootView: root)

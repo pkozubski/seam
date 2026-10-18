@@ -12,6 +12,8 @@ struct ConnectionPage: View {
                     HStack(spacing: 12) {
                         SeamArtwork(name: "seam-windows")
                             .padding(26)
+                            .background(EllipticalGradient(colors: [DesignTokens.studioLight.opacity(0.18), .clear],
+                                                           endRadiusFraction: 0.5))
                             .frame(maxWidth: .infinity)
                             .accessibilityHidden(true)
                         ConnectionOverview(openWindows: openWindows)

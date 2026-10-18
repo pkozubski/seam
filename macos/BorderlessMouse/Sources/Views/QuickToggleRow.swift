@@ -16,9 +16,7 @@ struct QuickToggleRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            SeamArtwork(name: "icon-\(assetName)")
-                .frame(width: 30, height: 30)
-                .accessibilityHidden(true)
+            SeamIconTile(name: "icon-\(assetName)", size: 32)
             Text(LocalizedStringKey(title))
             Spacer(minLength: 8)
             Toggle(LocalizedStringKey(title), isOn: $isOn)
