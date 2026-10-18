@@ -5,9 +5,9 @@ import QuartzCore
 /// Okna Windows na Macu (kierunek Windows → Mac). Windows ma wirtualny monitor (sterownik
 /// Virtual Display Driver) o rozmiarze ekranu Maca, położony przy krawędzi, za którą stoi Mac.
 /// Okna przeciągnięte na ten monitor pojawiają się na Macu w tym samym miejscu jako zwykłe
-/// okna macOS; obraz to jeden strumień H.264 całego monitora, który każde okno przycina
-/// do swojego prostokąta. Mysz i klawiatura nad takim oknem działają w Windowsie – Mac
-/// tylko pokazuje kursor w odpowiednim miejscu.
+/// okna macOS. Każde okno ma własny strumień H.264 (kind 2, streamID = id okna), a położenie
+/// przychodzi wyłącznie z listy WINVIEW_WINDOWS i jest stosowane od razu. Mysz i klawiatura
+/// nad takim oknem działają w Windowsie – Mac tylko pokazuje kursor w odpowiednim miejscu.
 final class WinViewSession {
     /// Ekran Maca (globalne współrzędne CG, punkty), który odpowiada monitorowi Windows.
     let screen: CGRect
@@ -19,8 +19,9 @@ final class WinViewSession {
 
     private let receiver: WinViewReceiver
     private let decodeQueue = DispatchQueue(label: "blm.winview.decode", qos: .userInteractive)
-    private let decoder = H264Decompressor()
-    private var awaitingKeyframe = true
+    /// Kolejka dekodera: dekoder dla każdego strumienia okna.
+    private var decoders: [UInt32: H264Decompressor] = [:]
+    private var listedIDs: Set<UInt32> = []
     private var lastKeyframeRequest = Date.distantPast
     private let proxies = WinWindowProxies()
 
@@ -30,8 +31,9 @@ final class WinViewSession {
     private var displaySize = CGSize(width: 1, height: 1)
     /// Numery okien macOS pokazujących okna Windows (do sprawdzania, czy nie są zasłonięte).
     private var proxyNumbers: Set<Int> = []
-    /// Klatki niosą własną listę okien – lista z kanału sterowania służy już tylko do trafiania.
-    private var framesCarryWindows = false
+    /// Najnowsze obrazy czekające na wątek główny (pod `lock`).
+    private var pendingImages: [UInt32: WinStreamImage] = [:]
+    private var drainScheduled = false
     private var lastRelease = Date.distantPast
     private let primaryHeight = CGDisplayBounds(CGMainDisplayID()).height
 
@@ -55,10 +57,14 @@ final class WinViewSession {
         receiver.onFrame = nil
         receiver.onClosed = nil
         receiver.stop()
-        decodeQueue.async { [decoder] in decoder.invalidate() }
+        // Usunięte dekodery zwalniają sesje VideoToolbox w deinit.
+        decodeQueue.async { [weak self] in self?.decoders.removeAll() }
         let proxies = self.proxies
         DispatchQueue.main.async { proxies.removeAll() }
-        lock.withLock { hitRects = [] }
+        lock.withLock {
+            hitRects = []
+            pendingImages = [:]
+        }
     }
 
     var stats: (frames: UInt64, bytes: UInt64) { (receiver.framesReceived, receiver.bytesReceived) }
@@ -70,14 +76,19 @@ final class WinViewSession {
     func update(_ list: WinWindowList) {
         let rects = list.windows.map { CGRect(x: CGFloat($0.x), y: CGFloat($0.y), width: CGFloat($0.width), height: CGFloat($0.height)) }
         let size = CGSize(width: list.displayWidth, height: list.displayHeight)
-        let proxiesFollow = lock.withLock {
+        lock.withLock {
             hitRects = rects
             displaySize = size
-            return !framesCarryWindows
         }
-        // Położenie okien macOS zmienia się razem z obrazem (lista w klatce), inaczej
-        // okno wyprzedza swoją zawartość i w szczelinie widać tapetę monitora Windows.
-        guard proxiesFollow else { return }
+        // Dekodery zamkniętych okien (były na liście, już ich nie ma) – nowy strumień o tym
+        // samym id zacznie się od klatki kluczowej.
+        let ids = Set(list.windows.map(\.id))
+        decodeQueue.async { [weak self] in
+            guard let self else { return }
+            for id in self.listedIDs.subtracting(ids) { self.decoders[id] = nil }
+            self.listedIDs = ids
+        }
+        // Położenie z listy od razu, bez czekania na obraz.
         let screen = self.screen
         DispatchQueue.main.async { [proxies] in proxies.update(list, screen: screen) }
     }
@@ -160,30 +171,57 @@ final class WinViewSession {
     // MARK: - Obraz
 
     private func decode(_ frame: VideoStream.Frame) {
+        guard frame.kind == .windowAccessUnit else { return }
         decodeQueue.async { [weak self] in
             guard let self else { return }
-            if self.awaitingKeyframe && !frame.isKeyframe { return }
-            do {
-                guard let image = try self.decoder.decode(frame.payload) else { return }
-                self.awaitingKeyframe = false
-                let list = frame.windows.flatMap(WinWindowList.init(payload:))
-                if list != nil { self.lock.withLock { self.framesCarryWindows = true } }
-                let screen = self.screen
-                DispatchQueue.main.async { [proxies] in
-                    // Obraz i położenie okien z tej samej chwili – w jednej transakcji.
-                    CATransaction.begin()
-                    CATransaction.setDisableActions(true)
-                    if let list { proxies.update(list, screen: screen) }
-                    proxies.show(image)
-                    CATransaction.commit()
+            let id = frame.streamID
+            let decoder: H264Decompressor
+            if let existing = self.decoders[id] {
+                decoder = existing
+            } else {
+                // Strumień okna zaczyna się od klatki kluczowej – do tego czasu nie ma czego dekodować.
+                guard frame.isKeyframe else {
+                    self.requestKeyframe()
+                    return
                 }
+                decoder = H264Decompressor()
+                self.decoders[id] = decoder
+            }
+            do {
+                guard let buffer = try decoder.decode(frame.payload),
+                      let surface = CVPixelBufferGetIOSurface(buffer)?.takeUnretainedValue() else { return }
+                self.deliver(id, WinStreamImage(buffer: buffer, surface: surface, width: frame.width, height: frame.height,
+                                                cornerRadius: frame.cornerRadius))
             } catch {
-                self.awaitingKeyframe = true
+                self.decoders[id] = nil
                 self.requestKeyframe()
             }
         }
     }
 
+    /// Na wątek główny trafia tylko najnowszy obraz każdego okna – zablokowany wątek
+    /// główny nie odtwarza potem zaległych klatek.
+    private func deliver(_ id: UInt32, _ image: WinStreamImage) {
+        let schedule: Bool = lock.withLock {
+            pendingImages[id] = image
+            guard !drainScheduled else { return false }
+            drainScheduled = true
+            return true
+        }
+        guard schedule else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let images: [UInt32: WinStreamImage] = self.lock.withLock {
+                let images = self.pendingImages
+                self.pendingImages = [:]
+                self.drainScheduled = false
+                return images
+            }
+            self.proxies.show(images)
+        }
+    }
+
+    /// Kolejka dekodera.
     private func requestKeyframe() {
         guard Date().timeIntervalSince(lastKeyframeRequest) > 0.5 else { return }
         lastKeyframeRequest = Date()
@@ -191,13 +229,27 @@ final class WinViewSession {
     }
 }
 
+/// Zdekodowany obraz okna Windows: `width`×`height` to treść w lewym górnym rogu bufora
+/// (bufor ma rozmiar „kubełka”, wielokrotność 64).
+struct WinStreamImage {
+    let buffer: CVPixelBuffer
+    let surface: IOSurfaceRef
+    let width: Int
+    let height: Int
+    /// Promień rogów w pikselach monitora Windows (0 = proste rogi).
+    let cornerRadius: UInt16
+}
+
 /// Okna macOS pokazujące okna Windows (wątek główny).
 final class WinWindowProxies {
     private final class Proxy {
         let window: NSWindow
-        let clip = CALayer()
-        let image = CALayer()
+        /// Jedna warstwa z obrazem strumienia okna, przycięta do rogów okna.
+        let content = CALayer()
         var descriptor: WinWindowDescriptor
+        var image: WinStreamImage?
+        /// Ma obraz i leży (choć częściowo) na monitorze Windows.
+        var shown = false
 
         init(descriptor: WinWindowDescriptor) {
             self.descriptor = descriptor
@@ -212,23 +264,26 @@ final class WinWindowProxies {
             let view = NSView()
             view.wantsLayer = true
             window.contentView = view
-            clip.masksToBounds = true
-            clip.backgroundColor = NSColor.clear.cgColor
-            image.contentsGravity = .resize
-            image.actions = ["contents": NSNull(), "position": NSNull(), "bounds": NSNull(), "frame": NSNull()]
-            clip.actions = ["bounds": NSNull(), "position": NSNull(), "frame": NSNull(), "cornerRadius": NSNull()]
-            clip.addSublayer(image)
-            view.layer?.addSublayer(clip)
+            content.masksToBounds = true
+            content.backgroundColor = NSColor.clear.cgColor
+            content.contentsGravity = .resize
+            content.magnificationFilter = .linear
+            content.minificationFilter = .linear
+            content.actions = ["contents": NSNull(), "contentsRect": NSNull(), "contentsScale": NSNull(),
+                               "position": NSNull(), "bounds": NSNull(), "frame": NSNull(), "cornerRadius": NSNull()]
+            view.layer?.addSublayer(content)
         }
     }
 
     private var proxies: [UInt32: Proxy] = [:]
+    /// Obrazy strumieni, także tych, których okna lista jeszcze nie zawiera.
+    private var images: [UInt32: WinStreamImage] = [:]
     /// Kolejność od najwyższego (jak na Windowsie).
     private var order: [UInt32] = []
     private var displaySize = CGSize(width: 1, height: 1)
     private var screen = CGRect.zero
-    private var surface: IOSurfaceRef?
-    private var buffer: CVPixelBuffer?
+    /// Skala ekranu Maca (piksele na punkt) – do zaokrąglania ramek do siatki pikseli.
+    private var scale: CGFloat = 2
     private var foreground: UInt32?
     /// Wywoływane po zmianie zbioru okien (wątek główny).
     var onNumbersChanged: ((Set<Int>) -> Void)?
@@ -261,13 +316,21 @@ final class WinWindowProxies {
 
     func update(_ list: WinWindowList, screen: CGRect) {
         self.screen = screen
+        scale = Self.backingScale(for: screen)
         displaySize = CGSize(width: list.displayWidth, height: list.displayHeight)
         let ids = list.windows.map(\.id)
-        for (id, proxy) in proxies where !ids.contains(id) {
+        let listed = Set(ids)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for (id, proxy) in proxies where !listed.contains(id) {
             proxy.window.orderOut(nil)
             proxies[id] = nil
+            images[id] = nil
         }
+        // Obrazy strumieni spoza listy nie mogą się gromadzić bez końca.
+        if images.count > 64 { images = images.filter { listed.contains($0.key) } }
         var created = false
+        var appeared = false
         for descriptor in list.windows {
             let proxy: Proxy
             if let existing = proxies[descriptor.id] {
@@ -275,52 +338,61 @@ final class WinWindowProxies {
                 proxy.descriptor = descriptor
             } else {
                 proxy = Proxy(descriptor: descriptor)
+                proxy.image = images[descriptor.id]
                 proxies[descriptor.id] = proxy
                 created = true
             }
-            layout(proxy)
+            if layout(proxy) { appeared = true }
             if proxy.window.title != descriptor.title { proxy.window.title = descriptor.title }
         }
         let newForeground = list.windows.first(where: \.isForeground)?.id
         let reordered = ids != order
         order = ids
-        if created || reordered || (newForeground != nil && newForeground != foreground) {
+        if created || appeared || reordered || (newForeground != nil && newForeground != foreground) {
             // Okno aktywne na Windowsie (kliknięte, nowe) – cała grupa wychodzi na wierzch Maca.
             restack(bringToFront: created || newForeground != foreground)
         }
+        CATransaction.commit()
         foreground = newForeground
         publishNumbers()
+    }
+
+    /// Najnowsze obrazy strumieni okien.
+    func show(_ updates: [UInt32: WinStreamImage]) {
+        guard !updates.isEmpty else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        var appeared = false
+        for (id, image) in updates {
+            images[id] = image
+            guard let proxy = proxies[id] else { continue }
+            proxy.image = image
+            if layout(proxy) { appeared = true }
+        }
+        // Pierwszy obraz okna (nowe okno, menu) – grupa wychodzi na wierzch jak na Windowsie.
+        if appeared { restack(bringToFront: true) }
+        CATransaction.commit()
+        if appeared { publishNumbers() }
     }
 
     func bringToFront() { restack(bringToFront: true) }
 
     func windowNumber(for id: UInt32) -> Int? { proxies[id]?.window.windowNumber }
 
-    func show(_ image: CVPixelBuffer) {
-        guard let surface = CVPixelBufferGetIOSurface(image)?.takeUnretainedValue() else { return }
-        buffer = image // trzyma IOSurface, dopóki nie przyjdzie następna klatka
-        self.surface = surface
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        for proxy in proxies.values { proxy.image.contents = surface }
-        CATransaction.commit()
-    }
-
     func removeAll() {
         for proxy in proxies.values { proxy.window.orderOut(nil) }
         proxies = [:]
+        images = [:]
         order = []
-        surface = nil
-        buffer = nil
         foreground = nil
         publishNumbers()
     }
 
     private func restack(bringToFront: Bool) {
-        // Od najniższego do najwyższego: każde kolejne nad poprzednim.
+        // Od najniższego do najwyższego: każde kolejne nad poprzednim. Okna bez obrazu czekają ukryte.
         var below: Int?
         for id in order.reversed() {
-            guard let proxy = proxies[id] else { continue }
+            guard let proxy = proxies[id], proxy.shown else { continue }
             if let below {
                 proxy.window.order(.above, relativeTo: below)
             } else if bringToFront || !proxy.window.isVisible {
@@ -332,40 +404,63 @@ final class WinWindowProxies {
         }
     }
 
-    private func layout(_ proxy: Proxy) {
-        // Część okna poza monitorem Windows nie ma obrazu i nie może wyjść poza ekran Maca.
-        let full = proxy.descriptor
-        let left = max(Int(full.x), 0), top = max(Int(full.y), 0)
-        let right = min(Int(full.x) + Int(full.width), Int(displaySize.width))
-        let bottom = min(Int(full.y) + Int(full.height), Int(displaySize.height))
-        guard right > left, bottom > top else {
-            proxy.window.orderOut(nil)
-            return
+    private func snap(_ value: CGFloat) -> CGFloat { (value * scale).rounded() / scale }
+
+    /// Ramka okna z listy i wycinek obrazu. Zwraca true, gdy okno trzeba (ponownie) pokazać.
+    /// Wywoływać wewnątrz transakcji z wyłączonymi animacjami.
+    @discardableResult
+    private func layout(_ proxy: Proxy) -> Bool {
+        let d = proxy.descriptor
+        let full = CGRect(x: CGFloat(d.x), y: CGFloat(d.y), width: CGFloat(d.width), height: CGFloat(d.height))
+        // Część okna poza monitorem Windows nie może wyjść poza ekran Maca.
+        let visible = full.intersection(CGRect(origin: .zero, size: displaySize))
+        guard let image = proxy.image, !visible.isNull, visible.width > 0, visible.height > 0 else {
+            proxy.shown = false
+            if proxy.window.isVisible { proxy.window.orderOut(nil) }
+            return false
         }
-        let d = WinWindowDescriptor(id: full.id, x: Int32(left), y: Int32(top), width: UInt16(right - left),
-                                    height: UInt16(bottom - top), flags: full.flags, title: full.title)
         let sx = screen.width / displaySize.width, sy = screen.height / displaySize.height
-        // Globalne CG (y w dół) → AppKit (y w górę od dołu ekranu głównego).
+        // Krawędzie w globalnych CG (y w dół), zaokrąglone do pikseli ekranu – obraz bez przeskalowania.
+        let left = snap(screen.minX + visible.minX * sx), right = snap(screen.minX + visible.maxX * sx)
+        let top = snap(screen.minY + visible.minY * sy), bottom = snap(screen.minY + visible.maxY * sy)
+        // Globalne CG → AppKit (y w górę od dołu ekranu głównego).
         let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.maxY
-        let frame = CGRect(x: screen.minX + CGFloat(d.x) * sx,
-                           y: primaryHeight - (screen.minY + CGFloat(d.y) * sy) - CGFloat(d.height) * sy,
-                           width: max(CGFloat(d.width) * sx, 1), height: max(CGFloat(d.height) * sy, 1))
+        let minSide = 1 / scale
+        let frame = CGRect(x: left, y: primaryHeight - bottom, width: max(right - left, minSide), height: max(bottom - top, minSide))
         if proxy.window.frame != frame { proxy.window.setFrame(frame, display: false) }
-        let bounds = CGRect(origin: .zero, size: frame.size)
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        proxy.clip.frame = bounds
-        // Windows 11 zaokrągla okna promieniem 8 px; zmaksymalizowane i menu mają proste rogi.
-        let maximized = d.width >= UInt16(clamping: Int(displaySize.width)) && d.height >= UInt16(clamping: Int(displaySize.height) - 80)
-        proxy.clip.cornerRadius = maximized ? 0 : 8 * sx
-        // Warstwa obrazu ma rozmiar całego monitora Windows i jest przesunięta tak,
-        // żeby w oknie wypadł jego prostokąt (y w górę – warstwy AppKit nie są odwrócone).
-        proxy.image.frame = CGRect(x: -CGFloat(d.x) * sx,
-                                   y: -(displaySize.height - CGFloat(d.y) - CGFloat(d.height)) * sy,
-                                   width: displaySize.width * sx, height: displaySize.height * sy)
-        if let surface { proxy.image.contents = surface }
-        CATransaction.commit()
-        // Okno wróciło na monitor Windows po całkowitym zjechaniu z niego.
-        if !proxy.window.isVisible { proxy.window.orderFrontRegardless() }
+
+        let layer = proxy.content
+        layer.frame = CGRect(origin: .zero, size: frame.size)
+        layer.contentsScale = scale
+        layer.contents = image.surface
+        // Wycinek w pikselach treści (y w dół od lewego górnego rogu); treść może mieć chwilowo
+        // inny rozmiar niż okno z listy (zmiana rozmiaru) – wtedy jest skalowana.
+        let kx = CGFloat(image.width) / full.width, ky = CGFloat(image.height) / full.height
+        let bufferWidth = CGFloat(CVPixelBufferGetWidth(image.buffer))
+        let bufferHeight = CGFloat(CVPixelBufferGetHeight(image.buffer))
+        let crop = CGRect(x: (visible.minX - full.minX) * kx, y: (visible.minY - full.minY) * ky,
+                          width: visible.width * kx, height: visible.height * ky)
+            .intersection(CGRect(x: 0, y: 0, width: bufferWidth, height: bufferHeight))
+        // contentsRect jest w jednostkach obrazu w układzie warstwy; warstwa AppKit nie jest
+        // odwrócona (y w górę), więc y = 0 to DÓŁ bufora, a treść z jego lewego górnego rogu
+        // zaczyna się na y = 1 - (dół wycinka) / wysokość bufora.
+        if !crop.isNull, bufferWidth > 0, bufferHeight > 0 {
+            layer.contentsRect = CGRect(x: crop.minX / bufferWidth, y: 1 - crop.maxY / bufferHeight,
+                                        width: crop.width / bufferWidth, height: crop.height / bufferHeight)
+        }
+        layer.cornerRadius = CGFloat(image.cornerRadius) * sx
+
+        let appeared = !proxy.shown || !proxy.window.isVisible
+        proxy.shown = true
+        return appeared
+    }
+
+    /// Skala (backingScaleFactor) ekranu Maca o podanych granicach w globalnych CG.
+    private static func backingScale(for bounds: CGRect) -> CGFloat {
+        for screen in NSScreen.screens {
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { continue }
+            if CGDisplayBounds(CGDirectDisplayID(number.uint32Value)) == bounds { return screen.backingScaleFactor }
+        }
+        return NSScreen.main?.backingScaleFactor ?? 2
     }
 }

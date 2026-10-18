@@ -4,7 +4,7 @@ import Network
 /// Jednorazowy odbiornik strumienia okien Windows (kierunek Windows → Mac). Mac nasłuchuje
 /// (tak jak przy ekranie wirtualnym Maca), więc Windows nie musi otwierać portu w zaporze.
 /// Pierwszy klient z poprawnym tokenem zostaje, nasłuch się zamyka, a dalej płyną
-/// zaszyfrowane rekordy w formacie z `VideoStream` (kind 1 = cały wirtualny monitor Windows).
+/// zaszyfrowane rekordy w formacie z `VideoStream` (kind 2 = strumień jednego okna Windows).
 final class WinViewReceiver {
     enum ReceiverError: LocalizedError {
         case listener(String)
@@ -17,7 +17,7 @@ final class WinViewReceiver {
         }
     }
 
-    /// Klatka H.264 (na kolejce odbiornika).
+    /// Klatka H.264 okna (kind 2, na kolejce odbiornika).
     var onFrame: ((VideoStream.Frame) -> Void)?
     var onConnected: (() -> Void)?
     /// Strumień się urwał albo był niepoprawny; nil = zatrzymany lokalnie.
@@ -155,14 +155,16 @@ final class WinViewReceiver {
                 self.close(L10n.text("Przerwane połączenie strumienia okien.", "The window stream connection was interrupted."))
                 return
             }
-            guard let clear = self.opener.open(data), let frame = VideoStream.Frame(decoding: clear),
-                  frame.kind == .h264AccessUnit || frame.kind == .winViewAccessUnit else {
+            guard let clear = self.opener.open(data) else {
                 self.close(L10n.text("Błąd integralności strumienia okien.", "Window stream integrity check failed."))
                 return
             }
             self.framesReceived &+= 1
             self.bytesReceived &+= UInt64(VideoStream.lengthBytes + length)
-            self.onFrame?(frame)
+            // Rekord uwierzytelniony, ale nieznanego lub starego rodzaju – pomijamy, strumień trwa.
+            if let frame = VideoStream.Frame(decoding: clear), frame.kind == .windowAccessUnit {
+                self.onFrame?(frame)
+            }
             self.readLength(connection)
         }
     }

@@ -107,6 +107,22 @@ public static class VideoStream
         return clear;
     }
 
+    /// <summary>Tekst jawny klatki jednego okna (kind 2): nagłówek 20 B, potem Annex B.</summary>
+    public static byte[] EncodeWindowFrame(bool keyframe, int width, int height, ulong captureMicros, uint streamId,
+        ushort cornerRadius, ReadOnlySpan<byte> annexB)
+    {
+        var clear = new byte[WindowFrameHeaderBytes + annexB.Length];
+        clear[0] = KindWindowAccessUnit;
+        clear[1] = keyframe ? FlagKeyframe : (byte)0;
+        BinaryPrimitives.WriteUInt16LittleEndian(clear.AsSpan(2), (ushort)width);
+        BinaryPrimitives.WriteUInt16LittleEndian(clear.AsSpan(4), (ushort)height);
+        BinaryPrimitives.WriteUInt64LittleEndian(clear.AsSpan(6), captureMicros);
+        BinaryPrimitives.WriteUInt32LittleEndian(clear.AsSpan(14), streamId);
+        BinaryPrimitives.WriteUInt16LittleEndian(clear.AsSpan(18), cornerRadius);
+        annexB.CopyTo(clear.AsSpan(WindowFrameHeaderBytes));
+        return clear;
+    }
+
     /// <summary>Szyfruje kolejne rekordy (strumień okien Windows → Mac). Jeden wątek.</summary>
     public sealed class Sealer : IDisposable
     {

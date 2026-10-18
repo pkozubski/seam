@@ -327,8 +327,8 @@ enum DisplaySelfTest {
         return (count > 0 ? total / Double(count) * 1000 : .infinity, keyframeBytes)
     }
 
-    /// Strumień „monitora Windows” 640×400 (górna połowa czerwona, dolna niebieska) trafia do
-    /// WinViewSession jak z Windowsa; okno Windows na środku monitora musi pokazać się na
+    /// Strumień okna Windows 320×200 (górna połowa czerwona, dolna niebieska) trafia do
+    /// WinViewSession jak z Windowsa; okno na środku monitora 640×400 musi pokazać się na
     /// ekranie Maca we właściwym miejscu, z obrazem we właściwej orientacji.
     private static func winViewLoopback(check: (Bool, String) -> Void) throws {
         let width = 640, height = 400
@@ -364,20 +364,21 @@ enum DisplaySelfTest {
                                          title: "Notatnik (test)")
         let list = WinWindowList(displayWidth: width, displayHeight: height, windows: [window])
         session.update(list)
-        let encoder = try VideoEncoder(width: width, height: height)
+        let windowWidth = Int(window.width), windowHeight = Int(window.height)
+        let encoder = try VideoEncoder(width: windowWidth, height: windowHeight)
         var sealer = VideoStream.Sealer(key: key)
         let sent = DispatchSemaphore(value: 0)
         encoder.onFrame = { encoded in
-            // Klatka z listą okien z tej samej chwili (kind 3), tak jak wysyła Windows.
-            let frame = VideoStream.Frame(kind: .winViewAccessUnit, flags: encoded.isKeyframe ? [.keyframe] : [],
-                                          width: width, height: height, captureMicros: 0, payload: encoded.annexB,
-                                          windows: list.payload)
+            // Osobny strumień okna (kind 2), tak jak wysyła Windows; położenie idzie osobno (WINVIEW_WINDOWS).
+            let frame = VideoStream.Frame(kind: .windowAccessUnit, flags: encoded.isKeyframe ? [.keyframe] : [],
+                                          width: windowWidth, height: windowHeight, captureMicros: 0, payload: encoded.annexB,
+                                          streamID: window.id, cornerRadius: 0)
             if let record = sealer.seal(frame.encoded()) {
                 client.send(content: record, completion: .contentProcessed { _ in sent.signal() })
             }
         }
         let top = Color(r: 220, g: 30, b: 30), bottom = Color(r: 40, g: 60, b: 230)
-        let image = try makeFrame(width: width, height: height, color: top, bottomColor: bottom)
+        let image = try makeFrame(width: windowWidth, height: windowHeight, color: top, bottomColor: bottom)
         for index in 0..<3 {
             encoder.encode(image, presentationTime: CMTime(value: CMTimeValue(index), timescale: 60))
             _ = sent.wait(timeout: .now() + 2)

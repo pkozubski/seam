@@ -1017,9 +1017,11 @@ public partial class MainViewModel : ObservableObject
             }
             var monitor = VirtualDisplayDriver.Find() ?? throw new InvalidOperationException(
                 T("Nie znaleziono monitora wirtualnego.", "The virtual monitor was not found."));
-            // Monitor wirtualny ma rozmiar ekranu Maca w punktach – okna wyglądają na Macu jak u siebie.
-            var width = info.ScreenWidth;
-            var height = info.ScreenHeight;
+            // Monitor wirtualny ma rozmiar ekranu Maca w pikselach (Retina) – Mac nie powiększa obrazu,
+            // a skalowanie Windows (niżej) zachowuje rozmiar okien jak na Macu.
+            var scale = info.ScalePercent > 0 ? info.ScalePercent : 100;
+            var width = Even((int)Math.Round(info.ScreenWidth * scale / 100.0));
+            var height = Even((int)Math.Round(info.ScreenHeight * scale / 100.0));
             if (!VirtualDisplayDriver.Modes(monitor.DeviceName).Contains((width, height)) && VirtualDisplayDriver.TryAddMode(width, height))
             {
                 for (var i = 0; i < 24; i++)
@@ -1033,7 +1035,11 @@ public partial class MainViewModel : ObservableObject
                 }
             }
             if (!_winViewRequested) return;
-            (width, height) = ClosestMode(VirtualDisplayDriver.Modes(monitor.DeviceName), width, height);
+            var available = VirtualDisplayDriver.Modes(monitor.DeviceName);
+            // Bez trybu pikselowego lepszy jest dokładny rozmiar w punktach niż przybliżony.
+            (width, height) = !available.Contains((width, height)) && available.Contains((info.ScreenWidth, info.ScreenHeight))
+                ? (info.ScreenWidth, info.ScreenHeight)
+                : ClosestMode(available, width, height);
             DisplayNative.ExcludedArea = monitor.Attached ? monitor.Bounds : null;
             var physical = DisplayNative.Monitors();
             if (physical.Count == 0) throw new InvalidOperationException("No monitors");
@@ -1052,18 +1058,29 @@ public partial class MainViewModel : ObservableObject
             if (attached is not { Attached: true } live) throw new InvalidOperationException(
                 T("Windows nie podłączył monitora wirtualnego.", "Windows did not attach the virtual monitor."));
             DisplayNative.ExcludedArea = live.Bounds;
+            // Skalowanie Windows jak na Macu (np. 200 %) – aplikacje rysują w gęstości Retina.
+            // Liczone z faktycznej rozdzielczości, bo mógł zostać wybrany tryb zastępczy.
+            var dpi = VirtualDisplayDriver.NearestDpiScale((int)Math.Round(live.Bounds.Width * 100.0 / Math.Max(1, info.ScreenWidth)));
+            if (VirtualDisplayDriver.SetDpiScale(live.DeviceName, dpi))
+                Log(T($"Okna Windows: skalowanie monitora wirtualnego {dpi}%", $"Windows apps: virtual monitor scaling {dpi}%"));
+            else
+                Log(T($"Okna Windows: nie udało się ustawić skalowania {dpi}% – okna mogą być małe",
+                    $"Windows apps: could not set {dpi}% scaling — windows may look small"));
             var client = _client;
             _winTracker = new WinViewTracker(live.Bounds, frame => { if (client.IsConnected) client.Send(frame); });
-            _winTracker.Start();
-            _capture?.SetWinView(_winTracker, Union(DisplayNative.Monitors().Select(m => m.Bounds)));
             if (_winStreamer is null)
             {
                 _winStreamer = new WinViewStreamer();
                 _winStreamer.Failed += message => Post(() => OnWinViewFailed(message));
             }
             var tracker = _winTracker;
-            _winStreamer.WindowsSnapshot = tracker.SnapshotPayload;
-            _winStreamer.Start(live.DeviceName, IPAddress.Parse(_client.RemoteAddress), info.Port, info.Key, info.Token);
+            var streamer = _winStreamer;
+            tracker.WindowsChanged += streamer.UpdateWindows;
+            tracker.Start();
+            _capture?.SetWinView(tracker, Union(DisplayNative.Monitors().Select(m => m.Bounds)));
+            streamer.Start(live.DeviceName, IPAddress.Parse(_client.RemoteAddress), info.Port, info.Key, info.Token);
+            // Pierwsza lista okien dla strumienia – przez wątek śledzenia, żeby nie wyprzedzić nowszej.
+            tracker.Resend();
             _winViewRunning = true;
             _winViewStatsClock.Restart();
             _winViewStatsBytes = _winViewStatsFrames = 0;
@@ -1085,6 +1102,8 @@ public partial class MainViewModel : ObservableObject
             System.Security.Cryptography.CryptographicOperations.ZeroMemory(info.Token);
         }
     }
+
+    private static int Even(int value) => Math.Max(2, value & ~1);
 
     private static (int width, int height) ClosestMode(List<(int Width, int Height)> modes, int width, int height)
     {
@@ -1125,7 +1144,11 @@ public partial class MainViewModel : ObservableObject
     {
         _winViewRunning = false;
         _capture?.SetWinView(null, default);
-        _winTracker?.Stop();
+        if (_winTracker is { } tracker)
+        {
+            if (_winStreamer is { } streamer) tracker.WindowsChanged -= streamer.UpdateWindows;
+            tracker.Dispose();
+        }
         _winTracker = null;
         _winStreamer?.Stop();
         WinViewStatsText = "";

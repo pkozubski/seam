@@ -29,13 +29,22 @@ public static class VirtualDisplayDriver
     private const string NefconUrl = "https://github.com/nefarius/nefcon/releases/download/v1.14.0/nefcon_v1.14.0.zip";
     private const string NefconSha256 = "A15557DA24A9EFCA203158DE3B43B0EAF982DB231F0194031F1ED428BC13E669";
 
-    /// <summary>Rozmiary ekranów MacBooków w punktach (domyślne i popularne skalowania) oraz monitory zewnętrzne.</summary>
+    /// <summary>
+    /// Rozmiary ekranów MacBooków w punktach (domyślne i popularne skalowania) oraz monitory zewnętrzne,
+    /// a także te same ekrany w pikselach Retina (×2) – monitor wirtualny ma rozdzielczość pikselową Maca.
+    /// </summary>
     private static readonly (int Width, int Height)[] DefaultModes =
     [
         (1280, 800), (1440, 900), (1680, 1050), (1280, 832), (1470, 956), (1710, 1112), (1440, 932), (1710, 1107),
         (1352, 878), (1512, 982), (1800, 1169), (1496, 967), (1728, 1117), (2056, 1329), (1920, 1200),
         (1920, 1080), (2560, 1440), (2560, 1600),
+        (2880, 1800), (3360, 2100), (2560, 1664), (2940, 1912), (3420, 2224), (2880, 1864), (3420, 2214),
+        (2704, 1756), (3024, 1964), (3600, 2338), (2992, 1934), (3456, 2234), (4112, 2658), (3840, 2400),
+        (3840, 2160), (5120, 2880), (5120, 3200),
     ];
+
+    /// <summary>Skalowania ekranu, które Windows oferuje w ustawieniach (kolejność jak w API DPI).</summary>
+    public static readonly int[] DpiScales = [100, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500];
 
     /// <summary>Monitor sterownika: nazwa GDI (\\.\DISPLAYn), czy jest na pulpicie i gdzie.</summary>
     public readonly record struct Monitor(string DeviceName, bool Attached, NativeMethods.RECT Bounds);
@@ -122,6 +131,79 @@ public static class VirtualDisplayDriver
         if (result != DISP_CHANGE_SUCCESSFUL)
             throw new InvalidOperationException(T($"Nie udało się zastosować układu monitorów (kod {result}).",
                 $"Could not apply the monitor layout (code {result})."));
+    }
+
+    /// <summary>Najbliższe skalowanie z listy Windows.</summary>
+    public static int NearestDpiScale(int percent) => DpiScales.MinBy(v => Math.Abs(v - percent));
+
+    /// <summary>
+    /// Ustawia skalowanie ekranu (100–500 %) monitora <paramref name="gdiDeviceName"/> (\\.\DISPLAYn).
+    /// Nieudokumentowane API ustawień Windows (DisplayConfigGet/SetDeviceInfo z typami -3/-4, jak
+    /// github.com/imniko/SetDPI): skala jest podawana jako przesunięcie od zalecanej w liście DpiScales.
+    /// </summary>
+    public static bool SetDpiScale(string gdiDeviceName, int percent)
+    {
+        if (!FindSource(gdiDeviceName, out var adapter, out var sourceId)) return false;
+        var get = new DISPLAYCONFIG_SOURCE_DPI_SCALE_GET
+        {
+            header = new DISPLAYCONFIG_DEVICE_INFO_HEADER
+            {
+                type = DISPLAYCONFIG_DEVICE_INFO_GET_DPI_SCALE, size = (uint)Marshal.SizeOf<DISPLAYCONFIG_SOURCE_DPI_SCALE_GET>(),
+                adapterId = adapter, id = sourceId,
+            },
+        };
+        if (DisplayConfigGetDeviceInfo(ref get) != 0) return false;
+        // Zalecana skala ma indeks -minScaleRel; dostępny zakres to [minScaleRel, maxScaleRel] wokół niej.
+        var recommended = -get.minScaleRel;
+        if (recommended < 0 || recommended >= DpiScales.Length) return false;
+        var wanted = Array.IndexOf(DpiScales, NearestDpiScale(percent));
+        var relative = Math.Clamp(wanted - recommended, get.minScaleRel, get.maxScaleRel);
+        if (relative == get.curScaleRel) return true;
+        var set = new DISPLAYCONFIG_SOURCE_DPI_SCALE_SET
+        {
+            header = new DISPLAYCONFIG_DEVICE_INFO_HEADER
+            {
+                type = DISPLAYCONFIG_DEVICE_INFO_SET_DPI_SCALE, size = (uint)Marshal.SizeOf<DISPLAYCONFIG_SOURCE_DPI_SCALE_SET>(),
+                adapterId = adapter, id = sourceId,
+            },
+            scaleRel = relative,
+        };
+        return DisplayConfigSetDeviceInfo(ref set) == 0;
+    }
+
+    /// <summary>Źródło (adapter + id) aktywnej ścieżki wyświetlania o podanej nazwie GDI.</summary>
+    private static bool FindSource(string gdiDeviceName, out LUID adapter, out uint sourceId)
+    {
+        adapter = default;
+        sourceId = 0;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, out var pathCount, out var modeCount) != 0) return false;
+            var paths = new DISPLAYCONFIG_PATH_INFO[pathCount];
+            var modes = new DISPLAYCONFIG_MODE_INFO[modeCount];
+            var result = QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, ref pathCount, paths, ref modeCount, modes, IntPtr.Zero);
+            if (result == ERROR_INSUFFICIENT_BUFFER) continue; // układ zmienił się między wywołaniami
+            if (result != 0) return false;
+            for (var i = 0; i < pathCount; i++)
+            {
+                var name = new DISPLAYCONFIG_SOURCE_DEVICE_NAME
+                {
+                    header = new DISPLAYCONFIG_DEVICE_INFO_HEADER
+                    {
+                        type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, size = (uint)Marshal.SizeOf<DISPLAYCONFIG_SOURCE_DEVICE_NAME>(),
+                        adapterId = paths[i].sourceInfo.adapterId, id = paths[i].sourceInfo.id,
+                    },
+                    viewGdiDeviceName = "",
+                };
+                if (DisplayConfigGetDeviceInfo(ref name) != 0) continue;
+                if (!string.Equals(name.viewGdiDeviceName, gdiDeviceName, StringComparison.OrdinalIgnoreCase)) continue;
+                adapter = paths[i].sourceInfo.adapterId;
+                sourceId = paths[i].sourceInfo.id;
+                return true;
+            }
+            return false;
+        }
+        return false;
     }
 
     /// <summary>
@@ -332,6 +414,113 @@ public static class VirtualDisplayDriver
     private const uint CDS_UPDATEREGISTRY = 0x00000001;
     private const uint CDS_NORESET = 0x10000000;
     private const int DISP_CHANGE_SUCCESSFUL = 0;
+
+    private const uint QDC_ONLY_ACTIVE_PATHS = 0x00000002;
+    private const int ERROR_INSUFFICIENT_BUFFER = 122;
+    private const int DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME = 1;
+    // nieudokumentowane typy używane przez Ustawienia Windows
+    private const int DISPLAYCONFIG_DEVICE_INFO_GET_DPI_SCALE = -3;
+    private const int DISPLAYCONFIG_DEVICE_INFO_SET_DPI_SCALE = -4;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LUID
+    {
+        public uint LowPart;
+        public int HighPart;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISPLAYCONFIG_DEVICE_INFO_HEADER
+    {
+        public int type;
+        public uint size;
+        public LUID adapterId;
+        public uint id;
+    }
+
+    /// <summary>0x20 bajtów (nagłówek + trzy przesunięcia od zalecanej skali).</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISPLAYCONFIG_SOURCE_DPI_SCALE_GET
+    {
+        public DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+        public int minScaleRel;
+        public int curScaleRel;
+        public int maxScaleRel;
+    }
+
+    /// <summary>0x18 bajtów.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISPLAYCONFIG_SOURCE_DPI_SCALE_SET
+    {
+        public DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+        public int scaleRel;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct DISPLAYCONFIG_SOURCE_DEVICE_NAME
+    {
+        public DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string viewGdiDeviceName;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISPLAYCONFIG_PATH_SOURCE_INFO
+    {
+        public LUID adapterId;
+        public uint id;
+        public uint modeInfoIdx;
+        public uint statusFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISPLAYCONFIG_PATH_TARGET_INFO
+    {
+        public LUID adapterId;
+        public uint id;
+        public uint modeInfoIdx;
+        public int outputTechnology;
+        public int rotation;
+        public int scaling;
+        public uint refreshRateNumerator;
+        public uint refreshRateDenominator;
+        public int scanLineOrdering;
+        public int targetAvailable;
+        public uint statusFlags;
+    }
+
+    /// <summary>72 bajty.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DISPLAYCONFIG_PATH_INFO
+    {
+        public DISPLAYCONFIG_PATH_SOURCE_INFO sourceInfo;
+        public DISPLAYCONFIG_PATH_TARGET_INFO targetInfo;
+        public uint flags;
+    }
+
+    /// <summary>64 bajty – zawartość nie jest potrzebna, tylko bufor dla QueryDisplayConfig.</summary>
+    [StructLayout(LayoutKind.Sequential, Size = 64)]
+    private struct DISPLAYCONFIG_MODE_INFO
+    {
+        public int infoType;
+        public uint id;
+        public LUID adapterId;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern int GetDisplayConfigBufferSizes(uint flags, out uint numPathArrayElements, out uint numModeInfoArrayElements);
+
+    [DllImport("user32.dll")]
+    private static extern int QueryDisplayConfig(uint flags, ref uint numPathArrayElements, [Out] DISPLAYCONFIG_PATH_INFO[] pathArray,
+        ref uint numModeInfoArrayElements, [Out] DISPLAYCONFIG_MODE_INFO[] modeInfoArray, IntPtr currentTopologyId);
+
+    [DllImport("user32.dll")]
+    private static extern int DisplayConfigGetDeviceInfo(ref DISPLAYCONFIG_SOURCE_DEVICE_NAME requestPacket);
+
+    [DllImport("user32.dll")]
+    private static extern int DisplayConfigGetDeviceInfo(ref DISPLAYCONFIG_SOURCE_DPI_SCALE_GET requestPacket);
+
+    [DllImport("user32.dll")]
+    private static extern int DisplayConfigSetDeviceInfo(ref DISPLAYCONFIG_SOURCE_DPI_SCALE_SET setPacket);
 
     private static DEVMODEW NewMode() => new() { dmSize = (ushort)Marshal.SizeOf<DEVMODEW>(), dmDeviceName = "", dmFormName = "" };
 
