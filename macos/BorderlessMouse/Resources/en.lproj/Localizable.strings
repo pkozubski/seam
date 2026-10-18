@@ -112,3 +112,31 @@
 "Udostępniaj ekran wirtualny" = "Share a virtual display";
 "Monitor Windowsa staje się drugim ekranem Maca. Przeciągnij okno w stronę Windowsa, a pojawi się na jego ekranie." = "The Windows monitor becomes a second Mac display. Drag a window toward Windows and it appears on that screen.";
 "Stan" = "Status";
+
+"Twoje wspólne biurko" = "Your shared desk";
+
+"Tylko w sieci lokalnej" = "Only on your local network";
+
+"Mysz, klawiatura i Twoje rzeczy — zawsze pod ręką." = "Your mouse, keyboard and everyday essentials. Together.";
+
+"Szczegóły połączenia" = "Connection details";
+
+"Wpisz ten kod na komputerze z Windows. Zachowaj go dla siebie." = "Enter this code on your Windows computer. Keep it private.";
+
+"Zdecyduj, do czego BorderlessMouse ma dostęp." = "Choose what BorderlessMouse can access.";
+
+"Dostosuj sposób, w jaki Twoje komputery współpracują." = "Make your computers work the way you do.";
+
+"Małe ustawienia. Twoje codzienne biurko." = "A few preferences for your everyday desk.";
+
+"Słuchaj dźwięku z Maca na komputerze z Windows." = "Listen to your Mac’s audio on your Windows computer.";
+
+"Otwórz aplikację" = "Open app";
+
+"Więcej" = "More";
+
+"Połączenia i aktywność Twojego biurka." = "Connections and activity across your desk.";
+
+"Tutaj pojawią się informacje o połączeniu i działaniu aplikacji." = "Connection and app activity will appear here.";
+
+"Wyczyść dziennik" = "Clear activity";

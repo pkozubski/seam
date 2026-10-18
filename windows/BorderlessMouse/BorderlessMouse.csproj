@@ -10,7 +10,7 @@
     <RootNamespace>BorderlessMouse</RootNamespace>
     <AssemblyName>BorderlessMouse</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
+    <ApplicationIcon>../../assets/seam/seam.ico</ApplicationIcon>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
+    <AvaloniaResource Include="../../assets/seam/*.png" Link="Assets/%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="BorderlessMouse.ClipboardChecks" />
     <None Include="../../THIRD_PARTY_NOTICES.md"
           Link="THIRD_PARTY_NOTICES.txt"

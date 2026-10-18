@@ -7,9 +7,9 @@
              x:DataType="vm:MainViewModel">
     <ScrollViewer>
         <StackPanel Classes="page">
-            <TextBlock Classes="pageTitle" Text="Sterowanie" />
+            <TextBlock Classes="pageTitle" x:Name="SectionTitle" Text="Sterowanie" />
 
-            <Border Classes="card">
+            <Border Classes="card" x:Name="InputSection">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
                         <TextBlock Text="KLAWIATURA I MYSZ" />
@@ -46,7 +46,7 @@
             </Border>
         
 
-            <Border Classes="card">
+            <Border Classes="card" x:Name="DisplaySection">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
                         <TextBlock Text="EKRAN MACA" />
@@ -76,7 +76,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Classes="card">
+            <Border Classes="card" x:Name="WindowsSection">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
                         <TextBlock Text="OKNA WINDOWS NA MACU" />
@@ -100,7 +100,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Classes="card">
+            <Border Classes="card" x:Name="AudioSection">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
                         <TextBlock Text="DŹWIĘK" />
@@ -131,7 +131,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Classes="card">
+            <Border Classes="card" x:Name="AudioStatusSection">
                 <StackPanel Spacing="8">
                     <StackPanel Classes="sectionHeader">
                         <TextBlock Classes="icon" Text="&#xE767;" />
@@ -147,7 +147,7 @@
             </Border>
         
 
-            <Border Classes="card">
+            <Border Classes="card" x:Name="ClipboardSection">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
                         <TextBlock Text="SCHOWEK" />

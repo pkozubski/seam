@@ -21,6 +21,17 @@ public static class L10n
 
     private static readonly IReadOnlyDictionary<string, string> English = new Dictionary<string, string>
     {
+        ["Dźwięk"] = "Audio",
+        ["Schowek"] = "Clipboard",
+        ["Okna"] = "Windows",
+        ["Dwa komputery.\nJedna przestrzeń."] = "Two computers.\nOne space.",
+        ["Mysz i klawiatura"] = "Mouse & keyboard",
+        ["Dźwięk z Maca"] = "Audio from Mac",
+        ["Wspólny schowek"] = "Shared clipboard",
+        ["Przenieś okno"] = "Move a window",
+        ["Rozłącz komputery"] = "Disconnect computers",
+        ["Wszystko gotowe. Pracuj jak na jednym komputerze."] = "All set. Work as if it were one computer.",
+        ["Parowanie i szczegóły połączenia"] = "Pairing and connection details",
         ["Połączenie"] = "Connection",
         ["Połączenie z Makiem"] = "Connect to Mac",
         ["Sterowanie"] = "Control",
@@ -124,6 +135,11 @@ public static class L10n
         }
         if (control is ContentControl content && content.Content is string label && English.TryGetValue(label, out var translatedContent))
             content.Content = translatedContent;
+        if (control is Expander expander && expander.Header is string header && English.TryGetValue(header, out var translatedHeader))
+            expander.Header = translatedHeader;
+        var accessibleName = Avalonia.Automation.AutomationProperties.GetName(control);
+        if (accessibleName is not null && English.TryGetValue(accessibleName, out var translatedName))
+            Avalonia.Automation.AutomationProperties.SetName(control, translatedName);
         if (control is TextBox box && box.Watermark is string watermark && English.TryGetValue(watermark, out var translatedWatermark))
             box.Watermark = translatedWatermark;
         if (control is InfoBar info)

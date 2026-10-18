@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using BorderlessMouse.Views.Pages;
@@ -10,7 +11,9 @@ namespace BorderlessMouse.Views;
 public partial class MainWindow : AppWindow
 {
     /// <summary>Kolejność stron w pasku bocznym – używana też przez tryb <c>--screenshot</c>.</summary>
-    public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "control", "settings", "log" };
+    public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "control", "audio", "clipboard", "windows", "settings", "log" };
+
+    private ConnectionStatusWindow? _statusWindow;
 
     private readonly Dictionary<string, Control> _pages = new();
 
@@ -26,12 +29,31 @@ public partial class MainWindow : AppWindow
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
 
-        // Mica na Windows 11; gdzie niedostępna – jednolite tło jak w Ustawieniach
+        // Keep the native title bar; the attached status uses its own transparent surface.
         TransparencyLevelHint = new[] { WindowTransparencyLevel.Mica, WindowTransparencyLevel.None };
-        Opened += (_, _) => ApplyBackdrop();
+        Opened += (_, _) =>
+        {
+            ApplyBackdrop();
+            if (_statusWindow is null)
+            {
+                _statusWindow = new ConnectionStatusWindow { DataContext = DataContext };
+                _statusWindow.DetailsRequested += () =>
+                {
+                    NavigateTo("connection");
+                    if (PageHost.Content is ConnectionPage page) page.ShowDetails();
+                    Activate();
+                };
+            }
+            SyncStatusWindow();
+        };
+        PositionChanged += (_, _) => SyncStatusWindow();
+        Closed += (_, _) => { _statusWindow?.Close(); _statusWindow = null; };
         PropertyChanged += (_, e) =>
         {
             if (e.Property == ActualTransparencyLevelProperty) ApplyBackdrop();
+            if (e.Property == BoundsProperty || e.Property == WindowStateProperty || e.Property == IsVisibleProperty)
+                SyncStatusWindow();
+            if (e.Property == DataContextProperty && _statusWindow is not null) _statusWindow.DataContext = DataContext;
         };
 
         Closing += (_, e) =>
@@ -71,6 +93,7 @@ public partial class MainWindow : AppWindow
             {
                 "connection" => new ConnectionPage(),
                 "control" => new ControlPage(),
+                "audio" or "clipboard" or "windows" => new ControlPage(tag),
                 "settings" => new SettingsPage(),
                 "log" => new LogPage(),
                 _ => new ConnectionPage(),
@@ -81,15 +104,27 @@ public partial class MainWindow : AppWindow
         PageHost.Content = page;
     }
 
+    internal ConnectionStatusWindow? StatusWindow => _statusWindow;
+
+    private void SyncStatusWindow()
+    {
+        if (_statusWindow is null) return;
+        if (!IsVisible || WindowState == WindowState.Minimized)
+        {
+            _statusWindow.Hide();
+            return;
+        }
+        // Avalonia macOS previews use point-based screen coordinates; Windows uses pixels.
+        var scale = OperatingSystem.IsMacOS() ? 1 : RenderScaling;
+        var bottom = Screens.ScreenFromWindow(this)?.WorkingArea.Bottom ?? int.MaxValue;
+        var x = Position.X + (int)((Bounds.Width / 2 - 63) * scale);
+        var y = Math.Min(Position.Y + (int)((Bounds.Height - 78) * scale), bottom - (int)(126 * scale));
+        _statusWindow.Position = new PixelPoint(x, y);
+        if (!_statusWindow.IsVisible) _statusWindow.Show(this);
+    }
+
     private void ApplyBackdrop()
     {
-        if (ActualTransparencyLevel == WindowTransparencyLevel.Mica)
-        {
-            Background = Brushes.Transparent;
-        }
-        else if (this.TryFindResource("SolidBackgroundFillColorBaseBrush", ActualThemeVariant, out var brush) && brush is IBrush b)
-        {
-            Background = b;
-        }
+        Background = new SolidColorBrush(Color.Parse("#1D1F21"));
     }
 }

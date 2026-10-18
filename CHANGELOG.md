@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.16 — test channel (2026-10-18)
+
+- Introduce the shared dark seam home screen with bundled glass artwork and eight silver 3D icons.
+- Keep platform controls: SwiftUI on macOS and FluentAvalonia on Windows.
+- Display connection status in an attached circular panel extending beyond the bottom window edge. Open connection details on click and clamp the panel to the screen's working area.
+- Add direct audio, clipboard and window navigation alongside quick sharing toggles.
+- Retain the 2.1.15 transport fixes, pairing protocol, bundle identity and signed dev updater.
+
 ## Unreleased
 
 ### Updates

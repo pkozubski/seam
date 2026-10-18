@@ -42,13 +42,14 @@ struct BorderlessMouseApp: App {
         }
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
-        .defaultSize(width: 880, height: 620)
+        .defaultSize(width: 1180, height: 800)
 
         MenuBarExtra {
             MenuBarView().environmentObject(state)
         } label: {
             Image(systemName: state.cursorOnMac ? "cursorarrow.motionlines.click" : "cursorarrow.motionlines")
         }
+        .menuBarExtraStyle(.window)
     }
 }
 

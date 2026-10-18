@@ -8,15 +8,21 @@ struct SettingRow<Control: View>: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(LocalizedStringKey(title))
+                    .font(.body.weight(.medium))
                 if let subtitle {
-                    Text(LocalizedStringKey(subtitle)).font(.caption).foregroundStyle(.secondary)
+                    Text(LocalizedStringKey(subtitle))
+                        .font(.callout).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 8)
             control
+                .accessibilityLabel(Text(LocalizedStringKey(title)))
         }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -47,17 +53,20 @@ struct StatusDot: View {
 
 struct LevelMeter: View {
     let level: Float
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.08))
                 Capsule()
-                    .fill(LinearGradient(colors: [.green, .yellow, .red], startPoint: .leading, endPoint: .trailing))
+                    .fill(level > 0.9 ? Color.orange : Color.accentColor)
                     .frame(width: max(0, geo.size.width * CGFloat(min(level, 1))))
-                    .animation(.linear(duration: 0.05), value: level)
+                    .animation(reduceMotion ? nil : .linear(duration: 0.05), value: level)
             }
         }
         .frame(height: 8)
+        .accessibilityLabel(L10n.text("Poziom dźwięku", "Audio level"))
+        .accessibilityValue("\(Int(max(0, min(level, 1)) * 100))%")
     }
 }

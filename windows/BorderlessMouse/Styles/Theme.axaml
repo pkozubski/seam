@@ -24,8 +24,8 @@
             </ResourceDictionary.ThemeDictionaries>
 
             <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,100%">
-                <GradientStop Color="#3B82F6" Offset="0" />
-                <GradientStop Color="#8B5CF6" Offset="1" />
+                <GradientStop Color="#879D84" Offset="0" />
+                <GradientStop Color="#677C65" Offset="1" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="LevelGradient" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#34C759" Offset="0" />
@@ -63,6 +63,12 @@
         </ResourceDictionary>
     </Styles.Resources>
 
+    <Style Selector="TextBlock.seamIcon">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="Foreground" Value="#B5B8C0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
     <!-- Układ stron paska bocznego: tytuł jak w Ustawieniach Windows 11, karty z odstępem -->
     <Style Selector="TextBlock.pageTitle">
         <Setter Property="FontSize" Value="26" />

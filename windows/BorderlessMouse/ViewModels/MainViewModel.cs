@@ -204,13 +204,13 @@ public partial class MainViewModel : ObservableObject
     // Stan
     // ------------------------------------------------------------------
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] private bool _isConnected;
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] private bool _isConnecting;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] [NotifyPropertyChangedFor(nameof(OrbStatusText))] private bool _isConnected;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] [NotifyPropertyChangedFor(nameof(OrbStatusText))] private bool _isConnecting;
     [ObservableProperty] private string _statusText = T("Rozłączono", "Disconnected");
     [ObservableProperty] private IBrush _statusBrush = Gray;
     [ObservableProperty] private string _connectionInfo = T("Nie połączono.", "Not connected.");
     [ObservableProperty] private string _macStatusText = "";
-    [ObservableProperty] private string _peerName = "";
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(DeskNames))] private string _peerName = "";
     [ObservableProperty] private double _rttMs;
     [ObservableProperty] private bool _cursorOnMac;
     [ObservableProperty] private string _cursorStatusText = T("Na tym komputerze", "On this PC");
@@ -239,6 +239,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private double _updateProgress;
 
     public string VersionLabel => T($"Wersja {Updater.CurrentVersion}", $"Version {Updater.CurrentVersion}");
+
+    public string OrbStatusText => IsConnected ? T("Połączono", "Connected") : (IsConnecting ? T("Łączenie…", "Connecting…") : T("Rozłączono", "Offline"));
+
+    public string DeskNames => $"{(string.IsNullOrWhiteSpace(PeerName) ? T("Twój Mac", "Your Mac") : PeerName)}  /  {Environment.MachineName}";
 
     public string ConnectButtonText => IsConnected || IsConnecting ? T("Rozłącz", "Disconnect") : T("Połącz", "Connect");
     public string RemoteMouseSpeedLabel => T($"{RemoteMouseSpeed:0.00}× – Raw Input nie ma akceleracji Windows, więc dostrój tempo kursora na Macu.", $"{RemoteMouseSpeed:0.00}× — adjust the Mac pointer speed because Raw Input has no Windows acceleration.");

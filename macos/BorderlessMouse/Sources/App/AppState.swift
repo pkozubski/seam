@@ -16,7 +16,7 @@ final class AppState: ObservableObject {
 
     @Published var settings: Settings {
         didSet {
-            guard settings != oldValue else { return }
+            guard settings != oldValue, !isPreview else { return }
             if settings.launchAtLogin != oldValue.launchAtLogin {
                 applyLaunchAtLogin(settings.launchAtLogin)
             }
@@ -70,7 +70,7 @@ final class AppState: ObservableObject {
 
     private init(preview: Bool = false) {
         isPreview = preview
-        let s = Settings.load()
+        let s = preview ? Settings() : Settings.load()
         settings = s
         engine = Engine(config: s.engineConfig)
         engine.onEvent = { [weak self] event in
@@ -134,6 +134,9 @@ final class AppState: ObservableObject {
 
     private func fillWithDemoData() {
         settings.hasCompletedOnboarding = true
+        settings.deviceName = "MacBook Pro"
+        pairingCode = "DEMO1-DEMO2-DEMO3-DEMO4-DEMO5-0"
+        pairingStorageError = nil
         isListening = true
         peer = ControlServer.PeerInfo(name: L10n.text("PC-BIURO", "PC-DESK"), address: "192.168.1.42")
         cursorOnMac = true
@@ -156,6 +159,22 @@ final class AppState: ObservableObject {
             LogEntry(time: Date().addingTimeInterval(-20), text: L10n.text("Audio: 48000 Hz · stereo · 16-bit, bufor 256 ramek", "Audio: 48000 Hz · stereo · 16-bit, 256-frame buffer")),
             LogEntry(time: Date().addingTimeInterval(-4), text: L10n.text("Kursor przeszedł na Maca", "Pointer moved to Mac")),
         ]
+        let args = CommandLine.arguments
+        if args.contains("--ui-disconnected") {
+            peer = nil
+            cursorOnMac = false
+            audioStreaming = false
+            displayStreaming = false
+            log = []
+        }
+        if args.contains("--ui-missing-permissions") {
+            accessibilityGranted = false
+            screenCaptureGranted = false
+            audioPermission = .unknown
+        }
+        if args.contains("--ui-onboarding") {
+            settings.hasCompletedOnboarding = false
+        }
     }
 
     func clearLog() { log.removeAll() }

@@ -6,30 +6,25 @@
                xmlns:pages="using:BorderlessMouse.Views.Pages"
                x:Class="BorderlessMouse.Views.MainWindow"
                x:DataType="vm:MainViewModel"
-               Title="BorderlessMouse"
-               Icon="avares://BorderlessMouse/Assets/icon.png"
-               Width="920" Height="660"
-               MinWidth="760" MinHeight="540"
+               FontFamily="Segoe UI, Helvetica Neue, Arial"
+               Title="seam"
+               Icon="avares://BorderlessMouse/Assets/seam-icon.png"
+               Width="1180" Height="800"
+               MinWidth="980" MinHeight="680"
                WindowStartupLocation="CenterScreen">
 
     <Grid RowDefinitions="32,*">
 
         <!-- Pasek tytułu (obszar przeciągania okna): ikona + nazwa jak w aplikacjach Windows 11 -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="12,0,150,0">
-            <Image Source="avares://BorderlessMouse/Assets/icon.png" Width="16" Height="16" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Text="BorderlessMouse" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
-            <Border Grid.Column="2" Classes="pill" Padding="8,2">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Ellipse Width="7" Height="7" Fill="{Binding StatusBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" />
-                </StackPanel>
-            </Border>
+            <Image Source="avares://BorderlessMouse/Assets/seam-icon.png" Width="16" Height="16" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="seam" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
         </Grid>
 
         <!-- Pasek boczny (WinUI 3 NavigationView) + zawartość strony -->
         <ui:NavigationView x:Name="Nav" Grid.Row="1"
                            PaneDisplayMode="Left"
-                           OpenPaneLength="220"
+                           OpenPaneLength="230"
                            CompactModeThresholdWidth="0"
                            ExpandedModeThresholdWidth="700"
                            IsBackButtonVisible="False"
@@ -38,37 +33,33 @@
 
             <ui:NavigationView.PaneHeader>
                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,8,0,10">
-                    <Image Source="avares://BorderlessMouse/Assets/logo.png" Width="36" Height="36" />
+                    <Image Source="avares://BorderlessMouse/Assets/seam-icon.png" Width="46" Height="46" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="BorderlessMouse" FontWeight="SemiBold" FontSize="14" />
-                        <TextBlock Text="Windows" Classes="subtitle" />
+                        <TextBlock Text="seam" FontWeight="Medium" FontSize="26" />
+
                     </StackPanel>
                 </StackPanel>
             </ui:NavigationView.PaneHeader>
 
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Połączenie" Tag="connection">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource Glyph="&#xE839;" FontFamily="{StaticResource IconFont}" />
-                    </ui:NavigationViewItem.IconSource>
+                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-connection.png" /></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
                 <ui:NavigationViewItem Content="Sterowanie" Tag="control">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource Glyph="&#xE765;" FontFamily="{StaticResource IconFont}" />
-                    </ui:NavigationViewItem.IconSource>
+                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-control.png" /></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="Ustawienia" Tag="settings">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource Glyph="&#xE713;" FontFamily="{StaticResource IconFont}" />
-                    </ui:NavigationViewItem.IconSource>
-                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Dźwięk" Tag="audio"><ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-audio.png" /></ui:NavigationViewItem.IconSource></ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Schowek" Tag="clipboard"><ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-clipboard.png" /></ui:NavigationViewItem.IconSource></ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Okna" Tag="windows"><ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-windows.png" /></ui:NavigationViewItem.IconSource></ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="Ustawienia" Tag="settings">
+                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-settings.png" /></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
+
                 <ui:NavigationViewItem Content="Dziennik" Tag="log">
-                    <ui:NavigationViewItem.IconSource>
-                        <ui:FontIconSource Glyph="&#xE7C3;" FontFamily="{StaticResource IconFont}" />
-                    </ui:NavigationViewItem.IconSource>
+                    <ui:NavigationViewItem.IconSource><ui:ImageIconSource Source="avares://BorderlessMouse/Assets/icon-log.png" /></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
             </ui:NavigationView.FooterMenuItems>
 

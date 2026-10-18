@@ -87,17 +87,16 @@ autostart, wypisuje użyty mechanizm i przywraca poprzedni stan.
 ## Interfejs
 
 Przy pierwszym uruchomieniu obie aplikacje prowadzą przez parowanie i wymagane zgody.
-Interfejs automatycznie używa polskiego dla polskiego języka systemu, a angielskiego dla
-pozostałych. Obie aplikacje mają natywny dla swojego systemu pasek boczny z sekcjami
-(Połączenie, Uprawnienia – tylko Mac, Sterowanie, Ustawienia, Dziennik). Każda sekcja to
-jedna przewijana strona z grupami (np. Sterowanie: klawiatura i mysz, dźwięk, schowek;
-Ustawienia: ogólne, uruchamianie, aktualizacje). Wiersze to „tytuł + opis + kontrolka”.
+Interfejs używa polskiego dla polskiego języka systemu, a angielskiego dla pozostałych.
+Wersja testowa seam ma wspólny grafitowy ekran główny, szklane okna i srebrne ikony 3D.
+Pasek boczny zawiera Połączenie, Sterowanie, Dźwięk, Schowek, Okna, Ustawienia i Dziennik
+oraz Uprawnienia na Macu. Okrągły status wystaje poza dolną krawędź okna i otwiera
+szczegóły połączenia; przy krawędzi ekranu pozostaje w dostępnym obszarze.
 
-* macOS: SwiftUI `NavigationSplitView` (sidebar jak w Ustawieniach systemowych) i
-  `Form(.grouped)`; wskaźnik stanu jest elementem paska narzędzi.
-* Windows: FluentAvalonia `NavigationView` (WinUI 3, Mica, systemowy kolor akcentu) z
-  kartami na stronach; komunikaty (aktualizacja, brak uprawnienia na Macu) są nad treścią
-  każdej strony.
+* macOS: SwiftUI `NavigationSplitView`, systemowe przełączniki i przyciski, osobny panel
+  szybkich ustawień w pasku menu. Status jest przypiętym oknem `NSPanel`.
+* Windows: FluentAvalonia `NavigationView` i kontrolki Fluent. Komunikaty o aktualizacji
+  i uprawnieniach pozostają nad stroną, a status jest przezroczystym oknem podrzędnym.
 
 Wygląd kontrolek na Macu zależy od SDK, z którym zlinkowano aplikację: build z SDK macOS 26
 dostaje na Tahoe nowy wygląd systemu (szklane przełączniki, pigułkowe przyciski), starszy SDK
@@ -107,12 +106,20 @@ i Xcode, a CI buduje na `macos-26` z wymogiem `REQUIRE_SDK_MAJOR=26`.
 Podgląd wyglądu bez uruchamiania sieci i uprawnień:
 
 * macOS: `BorderlessMouse.app/Contents/MacOS/BorderlessMouse --ui-preview zrzut.png
-  [--ui-section connection|permissions|control|settings|log]` – okno pojawia się na
+  [--ui-section connection|permissions|control|audio|clipboard|windows|settings|log]` – okno pojawia się na
   ekranie na około sekundę (sidebar i toolbar renderuje dopiero kompozytor).
 * Windows: `BorderlessMouse.exe --screenshot zrzut.png` (zapisuje pierwszą stronę pod tą
   nazwą, a pozostałe jako `zrzut-control.png`, `zrzut-settings.png`, `zrzut-log.png`).
 
-W tym trybie aplikacja nie łączy się z niczym i pokazuje przykładowe dane.
+W tym trybie aplikacja nie łączy się z niczym i pokazuje przykładowe dane. Podgląd macOS
+używa fikcyjnego kodu parowania i nie zapisuje zmian ustawień. `--ui-compact` wybiera
+mniejsze okno, `--ui-disconnected` brak połączenia, `--ui-missing-permissions` brak zgód,
+a `--ui-menu` i `--ui-onboarding` panel menu i kreator. `--ui-interactive` pozostawia
+okno do ręcznej kontroli UI. Ekran główny ma ciemny motyw zgodny z projektem seam.
+Podglądy obejmują także wystający status połączenia.
+
+Wspólne grafiki, ikony i prompty źródłowe znajdują się w `assets/seam/`. Build Maca kopiuje
+je do bundle, a Windows osadza je jako zasoby; aplikacje nie pobierają grafik z sieci.
 
 ## Auto-updater
 

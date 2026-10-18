@@ -3,16 +3,16 @@
              xmlns:sty="using:FluentAvalonia.Styling"
              xmlns:loc="using:BorderlessMouse.Localization"
              x:Class="BorderlessMouse.App"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
     <Application.Styles>
         <!-- Fluent Design v2 / WinUI 3 (FluentAvalonia): motyw i kolor akcentu z systemu -->
-        <sty:FluentAvaloniaTheme PreferSystemTheme="True" PreferUserAccentColor="True" />
+        <sty:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="True" />
         <StyleInclude Source="avares://BorderlessMouse/Styles/Theme.axaml" />
     </Application.Styles>
 
     <TrayIcon.Icons>
         <TrayIcons>
-            <TrayIcon Icon="avares://BorderlessMouse/Assets/icon.png"
+            <TrayIcon Icon="avares://BorderlessMouse/Assets/seam-icon.png"
                       ToolTipText="BorderlessMouse"
                       Clicked="TrayIcon_OnClicked">
                 <TrayIcon.Menu>
