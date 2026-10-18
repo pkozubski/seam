@@ -35,18 +35,30 @@ OUT="build/BorderlessMouse.app"
 
 # SDK decyduje o wyglądzie: binarka zlinkowana z SDK macOS 26 dostaje na Tahoe nowy
 # wygląd systemu (szklane kontrolki), starsze SDK dają tryb kompatybilności.
-# Dlatego wybieramy najnowszy SDK spośród Command Line Tools i wszystkich Xcode.
+# Dlatego wybieramy najnowszy SDK spośród Command Line Tools i wszystkich Xcode, ale tylko
+# taki, który obecny swiftc potrafi wczytać (obraz CI bywa z SDK nowszym niż kompilator).
+sdk_works() {
+  local probe
+  probe="$(mktemp -d)"
+  echo 'print(0)' > "$probe/probe.swift"
+  swiftc -typecheck -sdk "$1" "$probe/probe.swift" >/dev/null 2>&1
+  local status=$?
+  rm -rf "$probe"
+  return $status
+}
 pick_sdk() {
-  local best="" best_ver="0"
-  for sdk in /Library/Developer/CommandLineTools/SDKs/MacOSX[0-9]*.sdk \
-             /Applications/Xcode*.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX[0-9]*.sdk; do
-    [ -d "$sdk" ] || continue
-    local ver
-    ver="$(basename "$sdk" | sed -E 's/MacOSX([0-9.]+)\.sdk/\1/')"
-    if [ "$(printf '%s\n%s\n' "$best_ver" "$ver" | sort -V | tail -1)" = "$ver" ] && [ "$ver" != "$best_ver" ]; then
-      best="$sdk"; best_ver="$ver"
-    fi
-  done
+  local best="" best_ver="0" sdk ver
+  while IFS=$'\t' read -r ver sdk; do
+    [ -n "$sdk" ] || continue
+    if sdk_works "$sdk"; then best="$sdk"; best_ver="$ver"; break; fi
+    echo "→ pomijam SDK $ver – swiftc go nie obsługuje" >&2
+  done < <(
+    for sdk in /Library/Developer/CommandLineTools/SDKs/MacOSX[0-9]*.sdk \
+               /Applications/Xcode*.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX[0-9]*.sdk; do
+      [ -d "$sdk" ] || continue
+      printf '%s\t%s\n' "$(basename "$sdk" | sed -E 's/MacOSX([0-9.]+)\.sdk/\1/')" "$sdk"
+    done | sort -t$'\t' -k1,1 -rV
+  )
   if [ -z "$best" ]; then best="$(xcrun --sdk macosx --show-sdk-path)"; best_ver="$(xcrun --sdk macosx --show-sdk-version)"; fi
   SDK="$best"; SDK_VERSION="$best_ver"
 }
