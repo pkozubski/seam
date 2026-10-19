@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Seam.ViewModels;
 using Seam.Views.Pages;
 using Seam.Localization;
+using Seam.Net;
 using FluentAvalonia.UI.Controls;
 using FluentAvalonia.UI.Windowing;
 
@@ -30,11 +31,14 @@ public partial class MainWindow : AppWindow
         {
             if (header.Content is string label) header.Content = L10n.TranslateText(label);
         }
+        VersionText.Text = $"seam · {Updater.CurrentVersion}";
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
 
         TransparencyLevelHint = new[] { WindowTransparencyLevel.Mica, WindowTransparencyLevel.None };
         Opened += (_, _) => ApplyBackdrop();
+        // ikony paska bocznego są renderowane w pikselach ekranu, więc po zmianie skali od nowa
+        ScalingChanged += (_, _) => UpdateNavIcons();
         PropertyChanged += (_, e) =>
         {
             if (e.Property == ActualTransparencyLevelProperty) ApplyBackdrop();
@@ -58,6 +62,7 @@ public partial class MainWindow : AppWindow
         };
 
         NavigateTo(PageTags[0]);
+        UpdateNavIcons();
     }
 
     /// <summary>Wybiera stronę w pasku bocznym po jej znaczniku.</summary>
@@ -67,7 +72,6 @@ public partial class MainWindow : AppWindow
         if (item is null) return;
         if (!ReferenceEquals(Nav.SelectedItem, item)) Nav.SelectedItem = item;
         ShowPage(tag);
-        UpdateNavIcons();
     }
 
     private IEnumerable<NavigationViewItem> NavItems =>
@@ -79,7 +83,7 @@ public partial class MainWindow : AppWindow
     }
 
     /// <summary>
-    /// Ikony paska bocznego bez płytek; wybraną sekcję wyróżnia zielony kafel NavigationView.
+    /// Ikony paska bocznego bez płytek; wybraną sekcję wyróżnia szklana pigułka NavigationView.
     /// Połączenie niesie kropkę stanu: to cały status, zwinięty do paska bocznego.
     /// </summary>
     private void UpdateNavIcons()
@@ -88,7 +92,7 @@ public partial class MainWindow : AppWindow
         foreach (var item in NavItems)
         {
             if (item.Tag is string tag)
-                item.IconSource = new ImageIconSource { Source = IconTile.RenderNav(tag, ReferenceEquals(item, Nav.SelectedItem), tag == "connection" ? status : null) };
+                item.IconSource = new ImageIconSource { Source = IconTile.RenderNav(tag, RenderScaling, tag == "connection" ? status : null) };
             if (item.Tag is "connection" && _vm is not null) ToolTip.SetTip(item, _vm.StatusText);
         }
     }
@@ -96,7 +100,6 @@ public partial class MainWindow : AppWindow
     private void Nav_OnSelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
     {
         if (e.SelectedItem is NavigationViewItem { Tag: string tag }) ShowPage(tag);
-        UpdateNavIcons();
     }
 
     private void ShowPage(string tag)

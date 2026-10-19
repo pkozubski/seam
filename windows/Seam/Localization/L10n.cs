@@ -46,6 +46,7 @@ public static class L10n
         ["Klawiatura i mysz"] = "Keyboard & mouse",
         ["Ekrany"] = "Displays",
         ["Funkcje"] = "Features",
+        ["Tylko w sieci lokalnej"] = "Local network only",
         ["Jedna klawiatura i mysz dla obu komputerów."] = "One keyboard and mouse for both computers.",
         ["Dźwięk systemowy Maca grany na tym komputerze."] = "The Mac's system audio played on this PC.",
         ["Kopiuj na jednym komputerze, wklejaj na drugim."] = "Copy on one computer, paste on the other.",

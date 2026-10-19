@@ -68,7 +68,7 @@
             <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="White" />
             <Thickness x:Key="NavigationViewContentGridBorderThickness">0</Thickness>
             <CornerRadius x:Key="NavigationViewContentGridCornerRadius">0</CornerRadius>
-            <!-- Ikony paska bocznego (IconTile.RenderNav: 30 px); 36 + 2 + 2 = szerokość kolumny ikony -->
+            <!-- Ikony paska bocznego (IconTile.RenderNav: 36 px w pikselach ekranu); 36 + 2 + 2 = szerokość kolumny ikony -->
             <x:Double x:Key="NavigationViewIconBoxWidth">36</x:Double>
             <x:Double x:Key="NavigationViewItemOnLeftIconBoxHeight">36</x:Double>
             <Thickness x:Key="NavigationViewItemOnLeftIconBoxMargin">2,0,2,0</Thickness>
@@ -289,6 +289,13 @@
     <Style Selector="Button.slot.selected:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="#3A4638" />
         <Setter Property="BorderBrush" Value="#C6DABF" />
+    </Style>
+
+    <!-- Nagłówki sekcji paska bocznego (Funkcje, System): małe i przygaszone jak na macOS -->
+    <Style Selector="ui|NavigationViewItemHeader">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#6BFFFFFF" />
     </Style>
 
     <!-- Pasek boczny: zaznaczona pozycja w szklanej pigułce zamiast paska z lewej -->

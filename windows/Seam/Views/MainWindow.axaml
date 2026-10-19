@@ -18,13 +18,12 @@
         <!-- Jedno tło pod paskiem tytułu, paskiem bocznym i treścią, bez osobnych pasów; zielone tylko na zakładce Okna -->
         <views:SeamBackdrop x:Name="Backdrop" Grid.RowSpan="2" />
 
-        <!-- Pasek tytułu (obszar przeciągania okna): logo nad paskiem bocznym, nazwa strony na środku -->
-        <Image Source="avares://Seam/Assets/icon.png" Width="18" Height="18" Margin="22,0,0,0"
-               HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" />
+        <!-- Pasek tytułu (obszar przeciągania okna): nazwa strony na środku; logo jest w pasku bocznym -->
         <TextBlock x:Name="PageTitle" FontSize="12.5" FontWeight="SemiBold" Foreground="#E6FFFFFF"
                    HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
 
-        <!-- Pasek boczny (WinUI 3 NavigationView): ikony z nazwami na tle okna, zaznaczenie w szklanej pigułce -->
+        <!-- Pasek boczny (WinUI 3 NavigationView), jak na macOS: logo z nazwą, sekcje Funkcje i System,
+             na dole Ustawienia, a pod nimi stopka z tym komputerem. Zaznaczenie w szklanej pigułce. -->
         <ui:NavigationView x:Name="Nav" Grid.Row="1"
                            PaneDisplayMode="Left"
                            OpenPaneLength="220"
@@ -32,26 +31,34 @@
                            IsPaneToggleButtonVisible="False"
                            IsBackButtonVisible="False"
                            IsSettingsVisible="False"
+                           RenderOptions.BitmapInterpolationMode="HighQuality"
                            SelectionChanged="Nav_OnSelectionChanged">
 
             <ui:NavigationView.PaneHeader>
-                <Border Height="14" />
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="16,0,0,16">
+                    <Image Source="avares://Seam/Assets/logo.png" Width="46" Height="46"
+                           RenderOptions.BitmapInterpolationMode="HighQuality" />
+                    <TextBlock Text="seam" FontSize="25" FontWeight="Medium" Foreground="#A3FFFFFF"
+                               VerticalAlignment="Center" Margin="0,0,0,3" />
+                </StackPanel>
             </ui:NavigationView.PaneHeader>
 
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Połączenie" Tag="connection" />
                 <ui:NavigationViewItem Content="Ekrany" Tag="displays" />
+                <ui:NavigationViewItemHeader Content="Funkcje" />
                 <ui:NavigationViewItem Content="Klawiatura i mysz" Tag="control" />
                 <ui:NavigationViewItem Content="Dźwięk" Tag="audio" />
                 <ui:NavigationViewItem Content="Schowek" Tag="clipboard" />
                 <ui:NavigationViewItem Content="Okna" Tag="windows" />
+                <ui:NavigationViewItemHeader Content="System" />
+                <ui:NavigationViewItem Content="Dziennik" Tag="log" />
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
-                <ui:NavigationViewItem Content="Ustawienia" Tag="settings" />
-                <ui:NavigationViewItem Content="Dziennik" Tag="log" />
+                <!-- dolny margines robi miejsce na stopkę z tym komputerem (PaneFooter byłby nad Ustawieniami) -->
+                <ui:NavigationViewItem Content="Ustawienia" Tag="settings" Margin="0,0,0,104" />
             </ui:NavigationView.FooterMenuItems>
-
 
             <Grid RowDefinitions="Auto,Auto,*">
                 <!-- Komunikaty globalne – widoczne na każdej stronie -->
@@ -75,6 +82,24 @@
                 <ContentControl Grid.Row="2" x:Name="PageHost" />
             </Grid>
         </ui:NavigationView>
+
+        <!-- Stopka paska bocznego pod Ustawieniami, jak na macOS: ten komputer, sieć lokalna, wersja -->
+        <StackPanel Grid.Row="1" Width="220" Margin="0,0,0,16" Spacing="7"
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <Rectangle Height="1" Fill="#1FFFFFFF" Margin="20,0,20,5" />
+            <StackPanel Orientation="Horizontal" Spacing="9" Margin="20,0">
+                <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE7F8;" FontSize="15"
+                           Foreground="#D9FFFFFF" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding DeviceName}" FontSize="13.5" FontWeight="SemiBold"
+                           Foreground="#E6FFFFFF" TextTrimming="CharacterEllipsis" MaxWidth="150" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="9" Margin="20,0">
+                <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE72E;" FontSize="12"
+                           Foreground="#80FFFFFF" VerticalAlignment="Center" Margin="2,0,1,0" />
+                <TextBlock Text="Tylko w sieci lokalnej" FontSize="12" Foreground="#99FFFFFF" />
+            </StackPanel>
+            <TextBlock x:Name="VersionText" FontSize="11.5" Foreground="#61FFFFFF" Margin="20,0" />
+        </StackPanel>
 
         <!-- Separator paska bocznego: znika w tle u góry i u dołu, jak w CleanMyMac -->
         <Rectangle Grid.RowSpan="2" Width="1" HorizontalAlignment="Left" Margin="220,0,0,0" IsHitTestVisible="False">

@@ -26,7 +26,7 @@ public sealed class IconTile : Panel
     private static readonly Color[] GraphitePlate = { Color.Parse("#595D66"), Color.Parse("#1F2024") };
     private static readonly Color[] ActivePlate = { Color.Parse("#6E856B"), Color.Parse("#2B382D") };
     private static readonly Dictionary<string, Bitmap?> Artwork = new();
-    private static readonly Dictionary<(string, bool, Color?), IImage> Rendered = new();
+    private static readonly Dictionary<(string, double, Color?), IImage> Rendered = new();
 
     static IconTile()
     {
@@ -58,38 +58,45 @@ public sealed class IconTile : Panel
 
     /// <summary>
     /// Ikona paska bocznego bez płytki: <c>nav-{tag}</c> (wyrównane optycznie, z marginesem w pliku),
-    /// a gdyby jej zabrakło, dawna <c>icon-{tag}</c>. Ikony są przygaszone, żeby wtapiały się w tło;
-    /// zaznaczona jest jaśniejsza (pigułkę rysuje NavigationView). <paramref name="badge"/> dodaje
-    /// kropkę stanu w prawym górnym rogu, zawsze w pełnym kolorze.
+    /// a gdyby jej zabrakło, dawna <c>icon-{tag}</c>. Jak na macOS: pełna jasność i jedno skalowanie
+    /// wysokiej jakości prosto do pikseli ekranu (<paramref name="scaling"/> = RenderScaling okna),
+    /// bez dalszego przeskalowania w NavigationView. <paramref name="badge"/> dodaje kropkę stanu.
     /// </summary>
-    public static IImage RenderNav(string tag, bool selected, Color? badge = null, double size = 30, double glyph = 23)
+    public static IImage RenderNav(string tag, double scaling, Color? badge = null, double size = 36, double glyph = 24)
     {
-        var key = (tag, selected, badge);
+        var key = (tag, scaling, badge);
         if (Rendered.TryGetValue(key, out var cached)) return cached;
-        const double scale = 3;
-        var canvas = size * scale;
-        var content = new Panel { Width = size, Height = size };
-        if ((Load($"nav-{tag}") ?? Load($"icon-{tag}")) is { } artwork)
-            content.Children.Add(new Image
+        var canvas = (int)Math.Round(size * scaling);
+        var glyphPixels = (int)Math.Round(glyph * scaling);
+        var bitmap = new RenderTargetBitmap(new PixelSize(canvas, canvas), new Vector(96 * scaling, 96 * scaling));
+        using (var context = bitmap.CreateDrawingContext())
+        {
+            // pozycje w pikselach urządzenia, przeliczone na DIP: obraz trafia 1:1 w siatkę pikseli
+            var offset = (canvas - glyphPixels) / 2;
+            if ((LoadExact($"nav-{tag}", glyphPixels) ?? LoadExact($"icon-{tag}", glyphPixels)) is { } artwork)
+                context.DrawImage(artwork, new Rect(offset / scaling, offset / scaling, glyphPixels / scaling, glyphPixels / scaling));
+            if (badge is { } color)
             {
-                Source = artwork, Width = glyph, Height = glyph, Stretch = Stretch.Uniform, Opacity = selected ? 0.95 : 0.68,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-            });
-        if (badge is { } color)
-            content.Children.Add(new Ellipse
-            {
-                Width = 10, Height = 10,
-                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                Fill = new SolidColorBrush(color),
-                Stroke = new SolidColorBrush(Color.Parse("#99000000")), StrokeThickness = 1.5,
-            });
-        var host = new LayoutTransformControl { LayoutTransform = new ScaleTransform(scale, scale), Child = content };
-        host.Measure(new Size(canvas, canvas));
-        host.Arrange(new Rect(0, 0, canvas, canvas));
-        var bitmap = new RenderTargetBitmap(new PixelSize((int)canvas, (int)canvas), new Vector(96, 96));
-        bitmap.Render(host);
+                var center = new Point((offset + glyphPixels) / scaling - 1.5, offset / scaling + 1.5);
+                context.DrawEllipse(new SolidColorBrush(color), new Pen(new SolidColorBrush(Color.Parse("#99000000")), 1.5), center, 5, 5);
+            }
+        }
         Rendered[key] = bitmap;
         return bitmap;
+    }
+
+    /// <summary>Ikona zdekodowana od razu do docelowej szerokości w pikselach (jedno skalowanie, wysoka jakość).</summary>
+    private static Bitmap? LoadExact(string icon, int width)
+    {
+        try
+        {
+            using var stream = AssetLoader.Open(new Uri($"avares://Seam/Assets/{icon}.png"));
+            return Bitmap.DecodeToWidth(stream, width, BitmapInterpolationMode.HighQuality);
+        }
+        catch (FileNotFoundException)
+        {
+            return null;
+        }
     }
 
     private void Build()
