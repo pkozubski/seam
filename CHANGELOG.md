@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — test channel
+
+- Windows: one graphite backdrop runs under the title bar, sidebar and content with no separate bands and no grain; cards are translucent glass, switches are green with a white knob, and primary buttons are light. Only the Windows tab turns the whole window green, using the design tokens (tokens.css).
+- Windows: the sidebar blends into the backdrop with icons and names; the selected section sits in a rounded glass pill (no side bar), and a thin separator fades out towards the top and bottom. The title bar shows the current page name. The floating connection orb is gone; connection status is a coloured dot on the Connection icon, with the full status in its tooltip.
+- macOS and Windows: new smaller plateless sidebar icons for every section: Connection, Displays, Keyboard & mouse, Audio, Clipboard, Windows, Permissions (macOS), Settings and Log (`assets/seam/nav-*.png`); icons are balanced by visual weight rather than longest side and dimmed on Windows so they blend into the backdrop (the selected one stays brighter), and the selected section gets a green tile.
+- Windows: redesigned Windows tab. A main switch for both directions under the headline, a card with the window-moving illustration and a See how button, a live connection card (MacBook ● — PC, Connection settings) and the screen arrangement with Mac/PC tiles. Per-direction switches, the driver and display options sit below the how-it-works steps.
+- Windows previews (`--screenshot`) no longer save their demo data to `settings.json`; before, a preview could replace the Mac address and turn off automatic connection.
+
 ## 2.1.23 — test channel (2026-10-19)
 
 - BorderlessMouse is now **Seam**: app name, Windows executable (`Seam.exe`), macOS bundle (`Seam.app`), release files and the repository (github.com/pkozubski/seam).

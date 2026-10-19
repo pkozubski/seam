@@ -1,6 +1,8 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:views="using:Seam.Views">
+        xmlns:views="using:Seam.Views"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:uip="using:FluentAvalonia.UI.Controls.Primitives">
 
     <!-- Wspólny język wizualny z wersją macOS: karty, wiersze ustawień, pastylka stanu.
          Kontrolki (przełączniki, listy, suwaki) pochodzą z FluentAvalonia (WinUI 3). -->
@@ -15,11 +17,15 @@
                     <SolidColorBrush x:Key="PillBackground" Color="#E9EDF5" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="CardBackground" Color="#CC2A2A2D" />
-                    <SolidColorBrush x:Key="CardBorder" Color="#3A3A3E" />
+                    <!-- Szklane karty: jaśniejsza góra, przez kartę prześwituje zielone tło okna -->
+                    <LinearGradientBrush x:Key="CardBackground" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#1CFFFFFF" Offset="0" />
+                        <GradientStop Color="#0DFFFFFF" Offset="1" />
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="CardBorder" Color="#21FFFFFF" />
                     <SolidColorBrush x:Key="MutedText" Color="#A1A1A6" />
-                    <SolidColorBrush x:Key="RowDivider" Color="#38383C" />
-                    <SolidColorBrush x:Key="PillBackground" Color="#38383E" />
+                    <SolidColorBrush x:Key="RowDivider" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="PillBackground" Color="#1FFFFFFF" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
@@ -32,18 +38,44 @@
                 <GradientStop Color="#FFD60A" Offset="0.6" />
                 <GradientStop Color="#FF453A" Offset="1" />
             </LinearGradientBrush>
-            <!-- Tło okna (SeamBackdrop) przechodzi pod panel boczny, przyciemniony jak na macOS, i pod treść -->
-            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#3D000000" />
-            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#3D000000" />
+            <!-- Tło okna (SeamBackdrop) przechodzi bez przerwy pod pasek tytułu, pasek boczny i treść -->
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
             <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent" />
-            <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="#0FFFFFFF" />
-            <Thickness x:Key="NavigationViewContentGridBorderThickness">1,0,0,0</Thickness>
+            <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="Transparent" />
+            <!-- Przełączniki: żywa zieleń z białą gałką zamiast bladego akcentu -->
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#34C759" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#45D168" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#2DB04E" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#34C759" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#33FFFFFF" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#40FFFFFF" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#E8E8EA" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="White" />
+            <!-- Przyciski drugorzędne: neutralne szkło na grafitowym tle -->
+            <SolidColorBrush x:Key="ButtonBackground" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#0DFFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E6E6E8" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="White" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="White" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="White" />
+            <Thickness x:Key="NavigationViewContentGridBorderThickness">0</Thickness>
             <CornerRadius x:Key="NavigationViewContentGridCornerRadius">0</CornerRadius>
-            <!-- Płytki ikon (IconTile.Render: 30 px + margines na cień); 36 + 2 + 2 = szerokość kolumny ikony -->
+            <!-- Ikony paska bocznego (IconTile.RenderNav: 30 px); 36 + 2 + 2 = szerokość kolumny ikony -->
             <x:Double x:Key="NavigationViewIconBoxWidth">36</x:Double>
             <x:Double x:Key="NavigationViewItemOnLeftIconBoxHeight">36</x:Double>
             <Thickness x:Key="NavigationViewItemOnLeftIconBoxMargin">2,0,2,0</Thickness>
-            <x:Double x:Key="NavigationViewItemOnLeftMinHeight">48</x:Double>
+            <x:Double x:Key="NavigationViewItemOnLeftMinHeight">44</x:Double>
+            <Thickness x:Key="NavigationViewItemButtonMargin">0,3,0,3</Thickness>
+            <!-- bez paska po lewej: zaznaczenie pokazuje sama pigułka -->
+            <x:Double x:Key="NavigationViewSelectionIndicatorWidth">0</x:Double>
 
             <SolidColorBrush x:Key="StatusGreen" Color="#34C759" />
             <SolidColorBrush x:Key="StatusOrange" Color="#FF9F0A" />
@@ -96,8 +128,8 @@
         <Setter Property="Background" Value="{DynamicResource CardBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="16" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="18" />
     </Style>
 
     <Style Selector="Border.pill">
@@ -157,6 +189,7 @@
 
     <Style Selector="Button">
         <Setter Property="MinHeight" Value="40" />
+        <Setter Property="CornerRadius" Value="10" />
     </Style>
 
     <Style Selector="TextBox">
@@ -167,17 +200,24 @@
         <Setter Property="MinHeight" Value="40" />
     </Style>
 
+    <!-- Główna akcja: jasny przycisk na zielonym tle, obok szklanych przycisków drugorzędnych -->
     <Style Selector="Button.accent">
-        <Setter Property="Background" Value="{DynamicResource AccentGradient}" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="#F2F8E6" />
+        <Setter Property="BorderBrush" Value="#F2F8E6" />
+        <Setter Property="Foreground" Value="#143B1E" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Padding" Value="16,7" />
         <Setter Property="CornerRadius" Value="8" />
     </Style>
     <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="#97AD93" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="Foreground" Value="#143B1E" />
     </Style>
+    <Style Selector="Button.accent:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#DCE6D2" />
+        <Setter Property="Foreground" Value="#143B1E" />
+    </Style>
+
 
     <!-- miernik poziomu jak na Macu: gradient zielony → czerwony -->
     <Style Selector="ProgressBar.level">
@@ -249,5 +289,40 @@
     <Style Selector="Button.slot.selected:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="#3A4638" />
         <Setter Property="BorderBrush" Value="#C6DABF" />
+    </Style>
+
+    <!-- Pasek boczny: zaznaczona pozycja w szklanej pigułce zamiast paska z lewej -->
+    <Style Selector="ui|NavigationViewItem">
+        <Setter Property="FontSize" Value="14.5" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter /template/ Border#LayoutRoot">
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter">
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="Margin" Value="8,0,8,0" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter:selected /template/ Border#LayoutRoot">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#2EFFFFFF" Offset="0" />
+                <GradientStop Color="#17FFFFFF" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="#33FFFFFF" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter:selected:pointerover /template/ Border#LayoutRoot">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#3BFFFFFF" Offset="0" />
+                <GradientStop Color="#21FFFFFF" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="#40FFFFFF" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter:selected:pressed /template/ Border#LayoutRoot">
+        <Setter Property="BorderBrush" Value="#33FFFFFF" />
     </Style>
 </Styles>

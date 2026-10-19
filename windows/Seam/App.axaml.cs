@@ -76,7 +76,7 @@ public partial class App : Application
                         using var composite = new RenderTargetBitmap(full.PixelSize, new Vector(192, 192));
                         using (var drawing = composite.CreateDrawingContext())
                         {
-                            drawing.DrawRectangle(Avalonia.Media.Brush.Parse("#103735"), null, new Rect(guide.Bounds.Size));
+                            drawing.DrawRectangle(Avalonia.Media.Brush.Parse("#053A18"), null, new Rect(guide.Bounds.Size));
                             drawing.DrawImage(full, new Rect(0, 0, full.PixelSize.Width, full.PixelSize.Height), new Rect(guide.Bounds.Size));
                         }
                         composite.Save(path);
@@ -107,22 +107,7 @@ public partial class App : Application
         var size = new PixelSize((int)_mainWindow.Bounds.Width * 2, (int)_mainWindow.Bounds.Height * 2);
         using var bitmap = new RenderTargetBitmap(size, new Vector(192, 192));
         bitmap.Render(_mainWindow);
-        var status = _mainWindow.StatusWindow;
-        if (status is null || !status.IsVisible) { bitmap.Save(path); return; }
-        status.UpdateLayout();
-        using var orb = new RenderTargetBitmap(new PixelSize(252, 252), new Vector(192, 192));
-        orb.Render(status);
-        var scale = OperatingSystem.IsMacOS() ? 1 : _mainWindow.RenderScaling;
-        var offsetX = (status.Position.X - _mainWindow.Position.X) / scale;
-        var offsetY = (status.Position.Y - _mainWindow.Position.Y) / scale;
-        var height = Math.Max(_mainWindow.Bounds.Height, offsetY + 126);
-        using var composite = new RenderTargetBitmap(new PixelSize(size.Width, (int)Math.Ceiling(height * 2)), new Vector(192, 192));
-        using (var drawing = composite.CreateDrawingContext())
-        {
-            drawing.DrawImage(bitmap, new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height), new Rect(0, 0, _mainWindow.Bounds.Width, _mainWindow.Bounds.Height));
-            drawing.DrawImage(orb, new Rect(0, 0, 252, 252), new Rect(offsetX, offsetY, 126, 126));
-        }
-        composite.Save(path);
+        bitmap.Save(path);
     }
 
     public void ShowMainWindow()

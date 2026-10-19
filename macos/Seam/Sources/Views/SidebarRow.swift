@@ -9,7 +9,11 @@ struct SidebarRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            SeamIconTile(name: "icon-\(section.rawValue)", size: 30, active: selected)
+            SeamArtwork(name: section.iconName)
+                .frame(width: 22, height: 22)
+                .frame(width: 30, height: 30)
+                .background(selected ? Color(red: 0.27, green: 0.74, blue: 0.25).opacity(0.45) : .clear,
+                            in: RoundedRectangle(cornerRadius: 9))
             Text(section.title)
                 .font(.body.weight(selected ? .semibold : .regular))
             Spacer(minLength: 0)

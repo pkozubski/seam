@@ -8,8 +8,8 @@ struct WindowsSidebar: View {
         VStack(spacing: 12) {
             ForEach([SidebarSection.connection, .control, .audio, .clipboard, .windows, .permissions, .log]) { section in
                 Button { selection = section } label: {
-                    SeamArtwork(name: "icon-\(section.rawValue)")
-                        .frame(width: 26, height: 26).frame(width: 48, height: 48)
+                    SeamArtwork(name: section.iconName)
+                        .frame(width: 24, height: 24).frame(width: 48, height: 48)
                         .background(selection == section ? Color.white.opacity(0.13) : .clear,
                                     in: RoundedRectangle(cornerRadius: 13))
                 }
@@ -18,7 +18,7 @@ struct WindowsSidebar: View {
             }
             Spacer()
             Button { SettingsNavigation.shared.present() } label: {
-                SeamArtwork(name: "icon-settings").frame(width: 26, height: 26).frame(width: 48, height: 48)
+                SeamArtwork(name: SidebarSection.settings.iconName).frame(width: 24, height: 24).frame(width: 48, height: 48)
             }
             .buttonStyle(.plain).help(L10n.text("Ustawienia", "Settings"))
             .accessibilityLabel(L10n.text("Ustawienia", "Settings"))

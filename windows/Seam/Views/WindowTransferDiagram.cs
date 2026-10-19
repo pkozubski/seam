@@ -52,11 +52,13 @@ public sealed class WindowTransferDiagram : Control
             vertical ? new Point(first.Right, h / 2) : new Point(w / 2, h));
         if (!ShowWindow) return;
         var progress = Math.Clamp(Progress, 0, 1);
+        var large = h >= 200;
         var point = source + (destination - source) * progress;
+        // Na małym diagramie okno schodzi nieco niżej, żeby nie zasłaniać podpisów „Mac” i „Windows”
+        if (!large && !vertical) point = point.WithY(point.Y + Math.Min(6, sh * 0.07));
         var ww = vertical ? sw * 0.64 : w * 0.34;
         var wh = Math.Min(sh * 0.64, ww * 0.63);
         var window = new Rect(point.X - ww / 2, point.Y - wh / 2, ww, wh);
-        var large = h >= 200;
         using (context.PushClip(new RoundedRect(window, 7)))
         {
             context.DrawRectangle(Brush.Parse("#F1F3EF"), null, window);

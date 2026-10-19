@@ -15,39 +15,32 @@
                WindowStartupLocation="CenterScreen">
 
     <Grid RowDefinitions="32,*">
-        <!-- Grafitowe tło jak na macOS – pod paskiem tytułu, panelem bocznym i treścią -->
-        <views:SeamBackdrop Grid.RowSpan="2" />
+        <!-- Jedno tło pod paskiem tytułu, paskiem bocznym i treścią, bez osobnych pasów; zielone tylko na zakładce Okna -->
+        <views:SeamBackdrop x:Name="Backdrop" Grid.RowSpan="2" />
 
-        <!-- Pasek tytułu (obszar przeciągania okna): ikona + nazwa jak w aplikacjach Windows 11 -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="12,0,150,0">
-            <Image Source="avares://Seam/Assets/icon.png" Width="16" Height="16" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Text="seam" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
-        </Grid>
+        <!-- Pasek tytułu (obszar przeciągania okna): logo nad paskiem bocznym, nazwa strony na środku -->
+        <Image Source="avares://Seam/Assets/icon.png" Width="18" Height="18" Margin="22,0,0,0"
+               HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" />
+        <TextBlock x:Name="PageTitle" FontSize="12.5" FontWeight="SemiBold" Foreground="#E6FFFFFF"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
 
-        <!-- Pasek boczny (WinUI 3 NavigationView) + zawartość strony -->
+        <!-- Pasek boczny (WinUI 3 NavigationView): ikony z nazwami na tle okna, zaznaczenie w szklanej pigułce -->
         <ui:NavigationView x:Name="Nav" Grid.Row="1"
                            PaneDisplayMode="Left"
-                           OpenPaneLength="230"
-                           CompactModeThresholdWidth="0"
-                           ExpandedModeThresholdWidth="700"
+                           OpenPaneLength="220"
+                           IsPaneOpen="True"
+                           IsPaneToggleButtonVisible="False"
                            IsBackButtonVisible="False"
                            IsSettingsVisible="False"
                            SelectionChanged="Nav_OnSelectionChanged">
 
             <ui:NavigationView.PaneHeader>
-                <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,8,0,10">
-                    <Image Source="avares://Seam/Assets/logo.png" Width="50" Height="50" />
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="seam" FontWeight="Medium" FontSize="26" Foreground="{DynamicResource MutedText}" />
-
-                    </StackPanel>
-                </StackPanel>
+                <Border Height="14" />
             </ui:NavigationView.PaneHeader>
 
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Połączenie" Tag="connection" />
                 <ui:NavigationViewItem Content="Ekrany" Tag="displays" />
-                <ui:NavigationViewItemHeader Content="Funkcje" />
                 <ui:NavigationViewItem Content="Klawiatura i mysz" Tag="control" />
                 <ui:NavigationViewItem Content="Dźwięk" Tag="audio" />
                 <ui:NavigationViewItem Content="Schowek" Tag="clipboard" />
@@ -59,9 +52,6 @@
                 <ui:NavigationViewItem Content="Dziennik" Tag="log" />
             </ui:NavigationView.FooterMenuItems>
 
-            <ui:NavigationView.PaneFooter>
-                <TextBlock Text="{Binding VersionLabel}" Classes="subtitle" Margin="16,0,0,12" />
-            </ui:NavigationView.PaneFooter>
 
             <Grid RowDefinitions="Auto,Auto,*">
                 <!-- Komunikaty globalne – widoczne na każdej stronie -->
@@ -85,5 +75,17 @@
                 <ContentControl Grid.Row="2" x:Name="PageHost" />
             </Grid>
         </ui:NavigationView>
+
+        <!-- Separator paska bocznego: znika w tle u góry i u dołu, jak w CleanMyMac -->
+        <Rectangle Grid.RowSpan="2" Width="1" HorizontalAlignment="Left" Margin="220,0,0,0" IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Color="#00FFFFFF" Offset="0.04" />
+                    <GradientStop Color="#2EFFFFFF" Offset="0.3" />
+                    <GradientStop Color="#2EFFFFFF" Offset="0.7" />
+                    <GradientStop Color="#00FFFFFF" Offset="0.96" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
     </Grid>
 </wnd:AppWindow>

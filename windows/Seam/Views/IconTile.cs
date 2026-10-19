@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -25,7 +26,7 @@ public sealed class IconTile : Panel
     private static readonly Color[] GraphitePlate = { Color.Parse("#595D66"), Color.Parse("#1F2024") };
     private static readonly Color[] ActivePlate = { Color.Parse("#6E856B"), Color.Parse("#2B382D") };
     private static readonly Dictionary<string, Bitmap?> Artwork = new();
-    private static readonly Dictionary<(string, bool), IImage> Rendered = new();
+    private static readonly Dictionary<(string, bool, Color?), IImage> Rendered = new();
 
     static IconTile()
     {
@@ -56,27 +57,38 @@ public sealed class IconTile : Panel
     }
 
     /// <summary>
-    /// Płytka jako obraz dla ikon NavigationView, które przyjmują tylko IImage.
-    /// Margines wokół płytki mieści jej cień.
+    /// Ikona paska bocznego bez płytki: <c>nav-{tag}</c> (wyrównane optycznie, z marginesem w pliku),
+    /// a gdyby jej zabrakło, dawna <c>icon-{tag}</c>. Ikony są przygaszone, żeby wtapiały się w tło;
+    /// zaznaczona jest jaśniejsza (pigułkę rysuje NavigationView). <paramref name="badge"/> dodaje
+    /// kropkę stanu w prawym górnym rogu, zawsze w pełnym kolorze.
     /// </summary>
-    public static IImage Render(string icon, bool active, double size = 30, double margin = 3)
+    public static IImage RenderNav(string tag, bool selected, Color? badge = null, double size = 30, double glyph = 23)
     {
-        if (Rendered.TryGetValue((icon, active), out var cached)) return cached;
-        // FAImageIcon draws with a source rect in DIPs, which Avalonia reads as pixels, so a
-        // high-DPI bitmap gets cropped. Render a 3× scaled tile into a 96 DPI bitmap instead;
-        // the NavigationView icon box scales it back down.
+        var key = (tag, selected, badge);
+        if (Rendered.TryGetValue(key, out var cached)) return cached;
         const double scale = 3;
-        var canvas = (size + margin * 2) * scale;
-        var host = new LayoutTransformControl
-        {
-            LayoutTransform = new ScaleTransform(scale, scale),
-            Child = new IconTile { Icon = icon, IsActive = active, TileSize = size, Margin = new Thickness(margin) },
-        };
+        var canvas = size * scale;
+        var content = new Panel { Width = size, Height = size };
+        if ((Load($"nav-{tag}") ?? Load($"icon-{tag}")) is { } artwork)
+            content.Children.Add(new Image
+            {
+                Source = artwork, Width = glyph, Height = glyph, Stretch = Stretch.Uniform, Opacity = selected ? 0.95 : 0.68,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            });
+        if (badge is { } color)
+            content.Children.Add(new Ellipse
+            {
+                Width = 10, Height = 10,
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                Fill = new SolidColorBrush(color),
+                Stroke = new SolidColorBrush(Color.Parse("#99000000")), StrokeThickness = 1.5,
+            });
+        var host = new LayoutTransformControl { LayoutTransform = new ScaleTransform(scale, scale), Child = content };
         host.Measure(new Size(canvas, canvas));
         host.Arrange(new Rect(0, 0, canvas, canvas));
         var bitmap = new RenderTargetBitmap(new PixelSize((int)canvas, (int)canvas), new Vector(96, 96));
         bitmap.Render(host);
-        Rendered[(icon, active)] = bitmap;
+        Rendered[key] = bitmap;
         return bitmap;
     }
 

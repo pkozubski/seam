@@ -1,44 +1,61 @@
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 
 namespace Seam.Views;
 
 /// <summary>
-/// Grafitowe tło okna jak na macOS (SeamBackdrop): chłodne światło od góry, słaba poświata
-/// akcentu pod statusem połączenia i drobne ziarno, żeby ciemne gradienty nie tworzyły pasów.
+/// Tło całego okna (pasek tytułu, pasek boczny i treść). Domyślnie grafit jak na macOS: chłodne światło
+/// od góry i słaba poświata akcentu. Zakładka Okna przełącza je na zieleń z tokenów projektu
+/// (tokens.css): żółtozielona poświata nad środkiem i zielona z lewej. Bez ziarna.
 /// </summary>
 public sealed class SeamBackdrop : Panel
 {
-    private static readonly Lazy<Bitmap> Grain = new(CreateGrain);
+    public static readonly StyledProperty<bool> IsGreenProperty =
+        AvaloniaProperty.Register<SeamBackdrop, bool>(nameof(IsGreen));
+
+    private readonly Panel _green;
+
+    static SeamBackdrop() => IsGreenProperty.Changed.AddClassHandler<SeamBackdrop>((b, _) => b._green.IsVisible = b.IsGreen);
 
     public SeamBackdrop()
     {
         IsHitTestVisible = false;
-        Children.Add(new Border
+        Children.Add(new Panel
         {
-            Background = new LinearGradientBrush
+            Children =
             {
-                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-                GradientStops = { new GradientStop(Color.Parse("#222428"), 0), new GradientStop(Color.Parse("#141517"), 1) },
+                Linear(new RelativePoint(0, 1, RelativeUnit.Relative), ("#222428", 0), ("#141517", 1)),
+                Glow(Color.Parse("#78828F"), 0.34, 0.6, -0.05, 0.72),
+                Glow(Color.Parse("#91AD8C"), 0.17, 0.55, 1.02, 0.42),
+                Glow(Colors.Black, 0.4, 0, 1, 0.75),
             },
         });
-        Children.Add(Glow(Color.Parse("#78828F"), 0.34, 0.6, -0.05, 0.72));
-        Children.Add(Glow(Color.Parse("#91AD8C"), 0.17, 0.55, 1.02, 0.42));
-        Children.Add(Glow(Colors.Black, 0.4, 0, 1, 0.75));
-        Children.Add(new Border
+        _green = new Panel
         {
-            Background = new ImageBrush(Grain.Value)
+            IsVisible = false,
+            Children =
             {
-                TileMode = TileMode.Tile,
-                Stretch = Stretch.Fill,
-                DestinationRect = new RelativeRect(0, 0, 64, 64, RelativeUnit.Absolute),
+                Linear(new RelativePoint(1, 0.85, RelativeUnit.Relative), ("#064B1C", 0), ("#022F15", 0.78)),
+                Glow(Color.Parse("#558B04"), 0.9, 0.54, -0.08, 0.61),
+                Glow(Color.Parse("#006F24"), 0.8, 0, 0.6, 0.55),
             },
-        });
+        };
+        Children.Add(_green);
+    }
+
+    /// <summary>Zielone tło zakładki Okna zamiast grafitu.</summary>
+    public bool IsGreen
+    {
+        get => GetValue(IsGreenProperty);
+        set => SetValue(IsGreenProperty, value);
+    }
+
+    private static Border Linear(RelativePoint end, params (string Color, double Offset)[] stops)
+    {
+        var brush = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = end };
+        foreach (var (color, offset) in stops) brush.GradientStops.Add(new GradientStop(Color.Parse(color), offset));
+        return new Border { Background = brush };
     }
 
     private static Border Glow(Color color, double opacity, double x, double y, double radius) => new()
@@ -57,28 +74,4 @@ public sealed class SeamBackdrop : Panel
             },
         },
     };
-
-    /// <summary>Kafelek szumu rysowany raz na uruchomienie, 1 piksel szumu na piksel ekranu przy 200%.</summary>
-    private static Bitmap CreateGrain()
-    {
-        const int side = 128;
-        var bitmap = new WriteableBitmap(new PixelSize(side, side), new Vector(192, 192), PixelFormat.Bgra8888, AlphaFormat.Premul);
-        using var buffer = bitmap.Lock();
-        var row = new byte[side * 4];
-        for (var y = 0; y < side; y++)
-        {
-            for (var x = 0; x < side; x++)
-            {
-                var alpha = (byte)Random.Shared.Next(0, 23);
-                // Premultiplied: a white speck stores its alpha as the color, a dark one stores 0.
-                var value = Random.Shared.Next(2) == 0 ? alpha : (byte)0;
-                row[x * 4] = value;
-                row[x * 4 + 1] = value;
-                row[x * 4 + 2] = value;
-                row[x * 4 + 3] = alpha;
-            }
-            Marshal.Copy(row, 0, buffer.Address + y * buffer.RowBytes, row.Length);
-        }
-        return bitmap;
-    }
 }

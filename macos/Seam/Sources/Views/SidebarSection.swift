@@ -18,6 +18,9 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Ikona paska bocznego bez płytki (`assets/seam/nav-*.png`, wyrównane optycznie, z marginesem w pliku).
+    var iconName: String { "nav-\(rawValue)" }
+
     var systemImage: String {
         switch self {
         case .connection: return "link"

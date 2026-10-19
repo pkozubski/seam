@@ -52,6 +52,8 @@ public partial class MainViewModel : ObservableObject
     private TaskCompletionSource? _disconnectedTcs;
     private bool _desiredConnection;
     private bool _loading = true;
+    // Podgląd (--screenshot) wypełnia UI danymi demo – nie mogą trafić do prawdziwego settings.json
+    private bool _offline;
     private bool _audioRequested;
     private bool _warnedAccessibility;
 
@@ -183,10 +185,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(JitterBufferLabel))] private double _jitterBufferMs;
     [ObservableProperty] private bool _exclusiveMode;
     [ObservableProperty] private bool _clipboardSyncEnabled;
-    [ObservableProperty] private bool _displayEnabled;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(WindowSharingEnabled))] private bool _displayEnabled;
     [ObservableProperty] private bool _showMacDisplayWhileRemote;
     [ObservableProperty] private bool _displayWindowMode;
-    [ObservableProperty] private bool _winViewEnabled;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(WindowSharingEnabled))] private bool _winViewEnabled;
     [ObservableProperty] private bool _winViewDriverMissing;
     [ObservableProperty] private bool _isInstallingDriver;
     [ObservableProperty] private bool _autoCheckUpdates;
@@ -204,8 +206,8 @@ public partial class MainViewModel : ObservableObject
     // Stan
     // ------------------------------------------------------------------
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] [NotifyPropertyChangedFor(nameof(OrbStatusText))] private bool _isConnected;
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] [NotifyPropertyChangedFor(nameof(OrbStatusText))] private bool _isConnecting;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] private bool _isConnected;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ConnectButtonText))] private bool _isConnecting;
     [ObservableProperty] private string _statusText = T("Rozłączono", "Disconnected");
     [ObservableProperty] private IBrush _statusBrush = Gray;
     [ObservableProperty] private string _connectionInfo = T("Nie połączono.", "Not connected.");
@@ -238,9 +240,18 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isInstallingUpdate;
     [ObservableProperty] private double _updateProgress;
 
+    /// <summary>Główny przełącznik zakładki Okna: włącza i wyłącza oba kierunki naraz.</summary>
+    public bool WindowSharingEnabled
+    {
+        get => DisplayEnabled || WinViewEnabled;
+        set
+        {
+            DisplayEnabled = value;
+            WinViewEnabled = value;
+        }
+    }
     public string VersionLabel => T($"Wersja {Updater.CurrentVersion}", $"Version {Updater.CurrentVersion}");
 
-    public string OrbStatusText => IsConnected ? T("Połączono", "Connected") : (IsConnecting ? T("Łączenie…", "Connecting…") : T("Rozłączono", "Offline"));
 
     public string DeskNames => $"{(string.IsNullOrWhiteSpace(PeerName) ? T("Twój Mac", "Your Mac") : PeerName)}  /  {Environment.MachineName}";
 
@@ -263,6 +274,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void StartOffline()
     {
+        _offline = true;
         _loading = true;
         AutoConnect = false;
         _loading = false;
@@ -1679,7 +1691,7 @@ public partial class MainViewModel : ObservableObject
 
     private void SaveSettings()
     {
-        if (_loading) return;
+        if (_loading || _offline) return;
         _settings.Save();
     }
 

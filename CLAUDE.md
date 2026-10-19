@@ -73,7 +73,10 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
 - Interfejs po polsku z angielskim tłumaczeniem: Swift `L10n.text("pl", "en")`, C# `T("pl", "en")`; teksty
   w XAML są po polsku, a ich angielskie odpowiedniki są w słowniku w `windows/Seam/Localization/L10n.cs`.
 - Komentarze w kodzie po polsku, zwięzłe; nazwy typów i API po angielsku.
-- Wygląd obu aplikacji jest wspólny (ciemny grafit, srebrne ikony 3D z `assets/seam/`, marka „seam” małymi literami).
+- Wygląd obu aplikacji jest wspólny (ciemny grafit, srebrne ikony z `assets/seam/`, marka „seam” małymi literami).
+  Windows (inspiracja: CleanMyMac): jedno tło pod paskiem tytułu, paskiem bocznym i treścią, szklane karty, pasek
+  boczny z ikonami `nav-*` bez płytek, zaznaczenie w szklanej pigułce i kropka stanu na ikonie Połączenie.
+  **Zielona jest tylko zakładka Okna** (tokeny z projektu w `WindowsPage.axaml`, `SeamBackdrop.IsGreen`), reszta grafitowa.
   Pasek boczny: jedna strona na sekcję, każda strona funkcji zaczyna się kartą z głównym przełącznikiem.
   Użytkownik odrzucił: podzakładki na stronach i `SettingsExpander` (Windows).
 - Najpierw makieta/zrzut do akceptacji przy większych zmianach UI; użytkownik ocenia wygląd ze zrzutów.

@@ -2,150 +2,249 @@
              xmlns:vm="using:Seam.ViewModels" xmlns:views="using:Seam.Views"
              xmlns:conv="using:Avalonia.Data.Converters"
              x:Class="Seam.Views.Pages.WindowsPage" x:DataType="vm:MainViewModel">
+    <!-- Projekt „Your apps, on both computers”: główny przełącznik w pastylce, ilustracja po lewej,
+         połączenie i układ ekranów po prawej. Funkcje szczegółowe są niżej, pod przewinięciem. -->
+    <!-- Zielone tokeny projektu (tokens.css) tylko na tej stronie; reszta aplikacji jest grafitowa -->
+    <UserControl.Resources>
+        <LinearGradientBrush x:Key="CardBackground" StartPoint="0%,0%" EndPoint="100%,85%">
+            <GradientStop Color="#3DDEF5C9" Offset="0" />
+            <GradientStop Color="#1CBEE0B8" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="CardBorder" Color="#38D8F6CA" />
+        <SolidColorBrush x:Key="MutedText" Color="#C3D5BC" />
+        <SolidColorBrush x:Key="RowDivider" Color="#26D8F6CA" />
+        <SolidColorBrush x:Key="PillBackground" Color="#24CFEAC4" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#45DB30" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#55E541" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#3BC228" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#45DB30" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#40C5E1BA" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#47E4FFD6" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#E8F0DE" />
+        <SolidColorBrush x:Key="ButtonBackground" Color="#17CFEAC4" />
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#29DEF9D1" />
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#10CFEAC4" />
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3BDFF7D4" />
+        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#4DDFF7D4" />
+        <SolidColorBrush x:Key="ButtonForeground" Color="#F2F8E6" />
+        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F2F8E6" />
+    </UserControl.Resources>
     <UserControl.Styles>
-        <Style Selector="Border.guidePanel">
-            <Setter Property="Background" Value="#14FFFFFF" />
-            <Setter Property="BorderBrush" Value="#26FFFFFF" />
+        <Style Selector="TextBlock.cardTitle">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.cardBody">
+            <Setter Property="FontSize" Value="14.5" />
+            <Setter Property="LineHeight" Value="22" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Border.switchPill">
+            <Setter Property="Background" Value="#1FCFEAC4" />
+            <Setter Property="BorderBrush" Value="#38D8F6CA" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="20" />
-            <Setter Property="Padding" Value="24" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="18,4,8,4" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
-        <Style Selector="TextBlock.guideTitle">
-            <Setter Property="FontSize" Value="22" />
+        <Style Selector="Border.screenTile">
+            <Setter Property="Width" Value="62" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="BorderBrush" Value="#DAF5B8" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#4F9D28" Offset="0" />
+                    <GradientStop Color="#25852A" Offset="0.5" />
+                    <GradientStop Color="#15632B" Offset="1" />
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+        <Style Selector="Border.screenTile > TextBlock">
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="#ECF8DB" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="TextBlock.guideBody">
-            <Setter Property="Foreground" Value="#BFFFFFFF" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="TextWrapping" Value="Wrap" />
+        <Style Selector="Button.link">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="MinHeight" Value="32" />
         </Style>
-        <Style Selector="TextBlock.guideStep">
-            <Setter Property="FontSize" Value="15" />
+        <Style Selector="TextBlock.stepNumber">
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="#9BE88A" />
         </Style>
     </UserControl.Styles>
-    <Border>
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0%,100%" EndPoint="100%,0%">
-                <GradientStop Color="#092327" Offset="0" />
-                <GradientStop Color="#174B43" Offset="1" />
-            </LinearGradientBrush>
-        </Border.Background>
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="GuideContent" Margin="32,30,32,44" Spacing="20" MaxWidth="1060">
-                <TextBlock Classes="guideBody" Text="{Binding DeskNames}" />
-                <TextBlock FontSize="32" FontWeight="SemiBold" TextWrapping="Wrap" Text="Drugi komputer. Dodatkowy ekran." />
-                <TextBlock Classes="guideBody" Text="Przeciągnij dowolne okno za krawędź ekranu. Pojawi się na drugim urządzeniu — tak jak na dodatkowym monitorze." />
-
-                <Border Classes="guidePanel">
-                    <StackPanel Spacing="16">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                            <StackPanel Spacing="5">
-                                <TextBlock Classes="guideStep" Text="Okna Maca na tym komputerze" />
-                                <TextBlock Classes="guideBody" Text="{Binding DisplayStatusText}" />
-                            </StackPanel>
-                            <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding DisplayEnabled}"
-                                          AutomationProperties.Name="Okna Maca na tym komputerze" />
-                        </Grid>
-                        <Rectangle Height="1" Fill="#20FFFFFF" />
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                            <StackPanel Spacing="5">
-                                <TextBlock Classes="guideStep" Text="Okna Windows na Macu" />
-                                <TextBlock Classes="guideBody" Text="{Binding WinViewStatusText}" />
-                            </StackPanel>
-                            <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding WinViewEnabled}"
-                                          AutomationProperties.Name="Okna Windows na Macu" />
-                        </Grid>
-                        <views:SettingRow IsVisible="{Binding WinViewDriverMissing}" Title="Sterownik monitora wirtualnego"
-                                          Subtitle="Jednorazowa instalacja darmowego, podpisanego sterownika Virtual Display Driver (wymaga zgody administratora).">
-                            <Button Classes="accent" Content="Zainstaluj" Command="{Binding InstallDisplayDriverCommand}" IsEnabled="{Binding !IsInstallingDriver}" />
-                        </views:SettingRow>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="GuideContent" Classes="page" MaxWidth="1040" Spacing="18">
+            <StackPanel Spacing="16" Margin="0,10,0,6">
+                <TextBlock FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                           Text="Twoje aplikacje na obu komputerach." />
+                <Border Classes="switchPill">
+                    <StackPanel Orientation="Horizontal" Spacing="18">
+                        <TextBlock x:Name="MasterLabel" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding WindowSharingEnabled}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Przenoszenie okien" />
                     </StackPanel>
                 </Border>
+            </StackPanel>
 
-                <Border Classes="guidePanel">
-                    <StackPanel Spacing="18">
-                        <TextBlock Classes="guideTitle" Text="Przeciągnij. I pracuj dalej." />
-                        <TextBlock Classes="guideBody" Text="Chwyć okno za górny pasek i przenieś przez wspólną krawędź." />
-                        <TextBlock Classes="guideBody" Text="Przykład przeniesienia okna z Maca na Windows. Układ odpowiada ustawieniu w zakładce Ekrany." />
-                        <views:WindowTransferDiagram Height="270" MacSide="{Binding SelectedMacSide.Value}" />
-                        <TextBlock Classes="guideBody" Text="Okno przechodzi na drugi ekran. Aplikacja nadal działa na komputerze, na którym została otwarta." />
-                    </StackPanel>
-                </Border>
-
-                <Border Classes="guidePanel">
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="22">
-                        <StackPanel Spacing="12">
-                            <TextBlock Text="01" Opacity="0.6" />
-                            <TextBlock Classes="guideStep" Text="Otwórz dowolne okno" />
-                            <TextBlock Classes="guideBody" MinHeight="60" Text="Przeglądarka, dokument, komunikator — to, z czym pracujesz." />
-                            <views:WindowTransferDiagram Height="90" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
+            <Grid ColumnDefinitions="5*,9*" RowDefinitions="*,*" ColumnSpacing="18" RowSpacing="18">
+                <!-- Przenieś dowolne okno -->
+                <Border Grid.RowSpan="2" Classes="card" Padding="26,24">
+                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="cardTitle" Text="Przenieś dowolne okno" />
+                            <TextBlock Classes="cardBody" Text="Przeciągnij aplikację do krawędzi ekranu. Pojawi się na drugim komputerze." />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="12">
-                            <TextBlock Text="02" Opacity="0.6" />
-                            <TextBlock Classes="guideStep" Text="Przeciągnij za krawędź" />
-                            <TextBlock Classes="guideBody" MinHeight="60" Text="Chwyć górny pasek i przesuń okno w stronę drugiego ekranu." />
-                            <views:WindowTransferDiagram Height="90" Progress="0.5" MacSide="{Binding SelectedMacSide.Value}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="12">
-                            <TextBlock Text="03" Opacity="0.6" />
-                            <TextBlock Classes="guideStep" Text="Pracuj na drugim ekranie" />
-                            <TextBlock Classes="guideBody" MinHeight="60" Text="Okno pojawi się na drugim urządzeniu. Możesz pracować dalej." />
-                            <views:WindowTransferDiagram Height="90" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
-                        </StackPanel>
+                        <Image Grid.Row="1" Source="avares://Seam/Assets/okna-mirroring.png" MaxWidth="270" MinHeight="150"
+                               Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Button Grid.Row="2" Classes="accent" HorizontalAlignment="Right" Click="ShowHow">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <TextBlock Text="Zobacz jak" VerticalAlignment="Center" />
+                                <Path Data="M0,0 L9,6 L0,12 Z" Fill="#143B1E" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </Grid>
                 </Border>
 
-                <Border Classes="guidePanel">
-                    <StackPanel Spacing="16">
-                        <TextBlock Classes="guideTitle" Text="Z której strony jest drugi ekran?" />
-                        <TextBlock Classes="guideBody" Text="Ustaw ekrany tak, jak stoją na biurku. To określa, przez którą krawędź przeciągniesz okno." />
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="28">
-                            <views:WindowTransferDiagram Height="150" ShowWindow="False" MacSide="{Binding SelectedMacSide.Value}" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="14">
-                                <TextBlock Classes="guideStep" x:Name="ArrangementLabel" />
-                                <Button Content="Zmień układ ekranów" Click="OpenDisplays" />
-                            </StackPanel>
+                <!-- Połączenie -->
+                <Border Grid.Column="1" Classes="card" Padding="26,24">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" RowSpacing="18">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="cardTitle" x:Name="ConnectionTitle" />
+                            <TextBlock Classes="cardBody" x:Name="ConnectionSubtitle" />
+                        </StackPanel>
+                        <Image Grid.Column="1" Source="avares://Seam/Assets/okna-connection.png" Width="92"
+                               VerticalAlignment="Top" Margin="12,-6,0,0" />
+                        <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <!-- Siatka zamiast StackPanel: przy wąskim oknie nazwy skracają się wielokropkiem zamiast nachodzić na przycisk -->
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+                                <Image Source="avares://Seam/Assets/device-laptop.png" Width="40" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" x:Name="MacName" FontSize="14" VerticalAlignment="Center" MaxWidth="140" TextTrimming="CharacterEllipsis" />
+                                <Ellipse Grid.Column="2" Width="9" Height="9" Fill="{Binding StatusBrush}" VerticalAlignment="Center" />
+                                <Rectangle Grid.Column="3" Width="18" Height="1" Fill="#80B9D3AB" VerticalAlignment="Center" />
+                                <Image Grid.Column="4" Source="avares://Seam/Assets/device-monitor.png" Width="34" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="5" x:Name="PcName" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                            <Button Grid.Column="1" Content="Ustawienia połączenia" Click="OpenConnection" />
                         </Grid>
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
-                    <Border Classes="guidePanel">
-                        <StackPanel Spacing="16">
-                            <TextBlock Classes="guideStep" Text="Dowolne okno" />
-                            <TextBlock Classes="guideBody" Text="Przenosisz okna bezpośrednio z pulpitu, tak jak między dwoma monitorami." />
-                            <views:WindowTransferDiagram Height="110" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
+                <!-- Układ ekranów -->
+                <Border Grid.Column="1" Grid.Row="1" Classes="card" Padding="26,24">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" RowSpacing="18">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="cardTitle" Text="Wybierz układ ekranów" />
+                            <TextBlock Classes="cardBody" Text="Dopasuj układ do urządzeń na biurku." />
                         </StackPanel>
-                    </Border>
-                    <Border Grid.Column="1" Classes="guidePanel">
-                        <StackPanel Spacing="16">
-                            <TextBlock Classes="guideStep" Text="Z powrotem na pierwszy ekran" />
-                            <TextBlock Classes="guideBody" Text="Przeciągnij okno przez wspólną krawędź w przeciwną stronę." />
-                            <views:WindowTransferDiagram Height="110" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <Border Classes="guidePanel">
-                    <Expander Header="Opcje wyświetlania" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                        <StackPanel Spacing="16" Margin="0,16,0,0">
-                            <views:SettingRow Title="Tylko okna Maca" Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
-                                <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
-                            </views:SettingRow>
-                            <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem" Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
-                                <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" IsEnabled="{Binding !DisplayWindowMode}" />
-                            </views:SettingRow>
-                            <TextBlock Classes="guideBody" Text="{Binding DisplayStatsText}" IsVisible="{Binding DisplayStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                            <TextBlock Classes="guideBody" Text="{Binding WinViewStatsText}" IsVisible="{Binding WinViewStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
-                            <Button Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
-                        </StackPanel>
-                    </Expander>
+                        <Image Grid.Column="1" Source="avares://Seam/Assets/okna-arrangement.png" Width="110"
+                               VerticalAlignment="Top" Margin="12,-4,0,0" />
+                        <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="18">
+                            <Grid x:Name="LayoutTiles" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" x:Name="ArrangementLabel" FontSize="14" Foreground="{DynamicResource MutedText}"
+                                       VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button Grid.Column="2" Content="Ustaw ekrany" Click="OpenDisplays" VerticalAlignment="Bottom" />
+                        </Grid>
+                    </Grid>
                 </Border>
-                <Button Content="Szczegóły połączenia" Click="OpenConnection" HorizontalAlignment="Right" />
-            </StackPanel>
-        </ScrollViewer>
-    </Border>
+            </Grid>
+
+            <Button Classes="link" HorizontalAlignment="Right" Click="OpenHelp" Margin="0,-8,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Pomoc z połączeniem" FontSize="13" VerticalAlignment="Center" />
+                    <TextBlock Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="10" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+            <!-- JAK TO DZIAŁA (cel przycisku „Zobacz jak”) -->
+            <Border x:Name="HowSection" Classes="card">
+                <StackPanel Spacing="14">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="JAK TO DZIAŁA" /></StackPanel>
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
+                        <StackPanel Spacing="8">
+                            <views:WindowTransferDiagram Height="86" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
+                            <TextBlock Classes="stepNumber" Text="01" />
+                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Otwórz dowolne okno" />
+                            <TextBlock Classes="subtitle" Text="Przeglądarka, dokument, komunikator — to, z czym pracujesz." />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="8">
+                            <views:WindowTransferDiagram Height="86" Progress="0.5" MacSide="{Binding SelectedMacSide.Value}" />
+                            <TextBlock Classes="stepNumber" Text="02" />
+                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Przeciągnij za krawędź" />
+                            <TextBlock Classes="subtitle" Text="Chwyć górny pasek i przesuń okno w stronę drugiego ekranu." />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="8">
+                            <views:WindowTransferDiagram Height="86" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
+                            <TextBlock Classes="stepNumber" Text="03" />
+                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Pracuj na drugim ekranie" />
+                            <TextBlock Classes="subtitle" Text="Okno pojawi się na drugim urządzeniu. Wróci tą samą krawędzią w przeciwną stronę." />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- KIERUNKI I OPCJE -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="OPCJE WYŚWIETLANIA" /></StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="44">
+                        <views:IconTile Icon="icon-windows" TileSize="34" IsActive="{Binding DisplayEnabled}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Classes="rowTitle" Text="Okna Maca na tym komputerze" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="7" Height="7" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="subtitle" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding DisplayEnabled}"
+                                      AutomationProperties.Name="Okna Maca na tym komputerze" />
+                    </Grid>
+                    <Rectangle Classes="divider" />
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="44">
+                        <views:IconTile Icon="icon-displays" TileSize="34" IsActive="{Binding WinViewEnabled}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Classes="rowTitle" Text="Okna Windows na Macu" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="7" Height="7" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="subtitle" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Button Classes="accent" Content="Zainstaluj sterownik"
+                                    IsVisible="{Binding WinViewDriverMissing}" Command="{Binding InstallDisplayDriverCommand}"
+                                    IsEnabled="{Binding !IsInstallingDriver}"
+                                    ToolTip.Tip="Jednorazowa instalacja darmowego, podpisanego sterownika Virtual Display Driver (wymaga zgody administratora)." />
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding WinViewEnabled}"
+                                          AutomationProperties.Name="Okna Windows na Macu" />
+                        </StackPanel>
+                    </Grid>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Tylko okna Maca" Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem" Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" IsEnabled="{Binding !DisplayWindowMode}" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Strumień obrazu" Subtitle="Uruchom ponownie, gdy obraz się zatrzyma albo nie nadąża.">
+                        <Button Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+            <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding DisplayStatsText}"
+                       IsVisible="{Binding DisplayStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding WinViewStatsText}"
+                       IsVisible="{Binding WinViewStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Seam.ViewModels;
 using Seam.Views.Pages;
 using Seam.Localization;
 using FluentAvalonia.UI.Controls;
@@ -13,10 +15,8 @@ public partial class MainWindow : AppWindow
     /// <summary>Kolejność stron w pasku bocznym – używana też przez tryb <c>--screenshot</c>.</summary>
     public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "displays", "control", "audio", "clipboard", "windows", "settings", "log" };
 
-    private ConnectionStatusWindow? _statusWindow;
-    private string _activeTag = "connection";
-
     private readonly Dictionary<string, Control> _pages = new();
+    private MainViewModel? _vm;
 
     public MainWindow()
     {
@@ -33,31 +33,18 @@ public partial class MainWindow : AppWindow
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
 
-        // Keep the native title bar; the attached status uses its own transparent surface.
         TransparencyLevelHint = new[] { WindowTransparencyLevel.Mica, WindowTransparencyLevel.None };
-        Opened += (_, _) =>
-        {
-            ApplyBackdrop();
-            if (_statusWindow is null)
-            {
-                _statusWindow = new ConnectionStatusWindow { DataContext = DataContext };
-                _statusWindow.DetailsRequested += () =>
-                {
-                    NavigateTo("connection");
-                    if (PageHost.Content is ConnectionPage page) page.ShowDetails();
-                    Activate();
-                };
-            }
-            SyncStatusWindow();
-        };
-        PositionChanged += (_, _) => SyncStatusWindow();
-        Closed += (_, _) => { _statusWindow?.Close(); _statusWindow = null; };
+        Opened += (_, _) => ApplyBackdrop();
         PropertyChanged += (_, e) =>
         {
             if (e.Property == ActualTransparencyLevelProperty) ApplyBackdrop();
-            if (e.Property == BoundsProperty || e.Property == WindowStateProperty || e.Property == IsVisibleProperty)
-                SyncStatusWindow();
-            if (e.Property == DataContextProperty && _statusWindow is not null) _statusWindow.DataContext = DataContext;
+        };
+        DataContextChanged += (_, _) =>
+        {
+            if (_vm is not null) _vm.PropertyChanged -= ViewModelChanged;
+            _vm = DataContext as MainViewModel;
+            if (_vm is not null) _vm.PropertyChanged += ViewModelChanged;
+            UpdateNavIcons();
         };
 
         Closing += (_, e) =>
@@ -86,13 +73,23 @@ public partial class MainWindow : AppWindow
     private IEnumerable<NavigationViewItem> NavItems =>
         Nav.MenuItems.OfType<NavigationViewItem>().Concat(Nav.FooterMenuItems.OfType<NavigationViewItem>());
 
-    /// <summary>Ikony paska bocznego na płytkach jak na macOS; wybrana sekcja ma płytkę w kolorze akcentu.</summary>
+    private void ViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MainViewModel.StatusBrush) or nameof(MainViewModel.StatusText)) UpdateNavIcons();
+    }
+
+    /// <summary>
+    /// Ikony paska bocznego bez płytek; wybraną sekcję wyróżnia zielony kafel NavigationView.
+    /// Połączenie niesie kropkę stanu: to cały status, zwinięty do paska bocznego.
+    /// </summary>
     private void UpdateNavIcons()
     {
+        var status = (_vm?.StatusBrush as ISolidColorBrush)?.Color;
         foreach (var item in NavItems)
         {
             if (item.Tag is string tag)
-                item.IconSource = new ImageIconSource { Source = IconTile.Render($"icon-{tag}", ReferenceEquals(item, Nav.SelectedItem)) };
+                item.IconSource = new ImageIconSource { Source = IconTile.RenderNav(tag, ReferenceEquals(item, Nav.SelectedItem), tag == "connection" ? status : null) };
+            if (item.Tag is "connection" && _vm is not null) ToolTip.SetTip(item, _vm.StatusText);
         }
     }
 
@@ -104,11 +101,6 @@ public partial class MainWindow : AppWindow
 
     private void ShowPage(string tag)
     {
-        _activeTag = tag;
-        Nav.PaneDisplayMode = tag == "windows" ? NavigationViewPaneDisplayMode.LeftCompact : NavigationViewPaneDisplayMode.Left;
-        Nav.IsPaneOpen = tag != "windows";
-        foreach (var header in Nav.MenuItems.OfType<NavigationViewItemHeader>()) header.IsVisible = tag != "windows";
-        if (Nav.PaneFooter is Control footer) footer.IsVisible = tag != "windows";
         if (!_pages.TryGetValue(tag, out var page))
         {
             page = tag switch
@@ -126,28 +118,11 @@ public partial class MainWindow : AppWindow
             L10n.Apply(page);
         }
         PageHost.Content = page;
-        SyncStatusWindow();
+        Backdrop.IsGreen = tag == "windows";
+        PageTitle.Text = NavItems.FirstOrDefault(i => (string?)i.Tag == tag)?.Content as string;
     }
 
-    internal ConnectionStatusWindow? StatusWindow => _statusWindow;
     internal Control? CurrentPage => PageHost.Content as Control;
-
-    private void SyncStatusWindow()
-    {
-        if (_statusWindow is null) return;
-        if (!IsVisible || WindowState == WindowState.Minimized || _activeTag == "windows")
-        {
-            _statusWindow.Hide();
-            return;
-        }
-        // Avalonia macOS previews use point-based screen coordinates; Windows uses pixels.
-        var scale = OperatingSystem.IsMacOS() ? 1 : RenderScaling;
-        var bottom = Screens.ScreenFromWindow(this)?.WorkingArea.Bottom ?? int.MaxValue;
-        var x = Position.X + (int)((Bounds.Width / 2 - 63) * scale);
-        var y = Math.Min(Position.Y + (int)((Bounds.Height - 78) * scale), bottom - (int)(126 * scale));
-        _statusWindow.Position = new PixelPoint(x, y);
-        if (!_statusWindow.IsVisible) _statusWindow.Show(this);
-    }
 
     private void ApplyBackdrop()
     {
