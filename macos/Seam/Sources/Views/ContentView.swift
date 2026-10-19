@@ -5,7 +5,6 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showConnectionStatus = false
     @State private var selection: SidebarSection?
-    @State private var canvasWidth: CGFloat = 1180
     @ObservedObject private var settingsNavigation = SettingsNavigation.shared
 
     init(initialSection: SidebarSection = .connection) {
@@ -18,7 +17,9 @@ struct ContentView: View {
     private var compactSidebar: Bool { selection == .windows && !settingsNavigation.isPresented }
 
     var body: some View {
-        NavigationSplitView {
+        // Własny układ kolumn zamiast NavigationSplitView: od macOS 26 system zamyka pasek boczny
+        // w jaśniejszym szkle z cieniem i linią podziału, a Seam ma mieć jedno tło na całe okno.
+        HStack(spacing: 0) {
             ZStack {
                 if settingsNavigation.isPresented {
                     SettingsSidebar(navigation: settingsNavigation)
@@ -31,16 +32,10 @@ struct ContentView: View {
                 }
             }
             .animation(slide, value: settingsNavigation.isPresented)
-            .navigationSplitViewColumnWidth(min: compactSidebar ? 76 : 215,
-                                            ideal: compactSidebar ? 76 : 230,
-                                            max: compactSidebar ? 76 : 270)
-            .background {
-                SeamBackdrop(canvasWidth: canvasWidth)
-                    .overlay(Color.black.opacity(0.24))
-                    .overlay(alignment: .trailing) { Color.white.opacity(0.06).frame(width: 0.5) }
-                    .ignoresSafeArea()
-            }
-        } detail: {
+            .frame(width: compactSidebar ? 76 : 230)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .overlay(alignment: .trailing) { SidebarSeparator().ignoresSafeArea() }
+
             ZStack {
                 if settingsNavigation.isPresented {
                     SettingsDetail(navigation: settingsNavigation)
@@ -53,11 +48,19 @@ struct ContentView: View {
                 }
             }
             .animation(slide, value: settingsNavigation.isPresented)
-            .toolbarBackground(.hidden, for: .windowToolbar)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(SoftToolbarEdge())
         }
-        .background { SeamBackdrop().ignoresSafeArea() }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { canvasWidth = $0 }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: compactSidebar)
+        .toolbarBackground(.hidden, for: .windowToolbar)
+        .modifier(HiddenToolbarTitle())
+        .background {
+            ZStack {
+                SeamBackdrop()
+                WindowsBackdrop().opacity(compactSidebar ? 1 : 0)
+            }
+            .ignoresSafeArea()
+        }
         .frame(minWidth: 980, idealWidth: 1180, minHeight: 680, idealHeight: 800)
         .background {
             if !compactSidebar {
@@ -74,6 +77,18 @@ struct ContentView: View {
             OnboardingView()
                 .environmentObject(state)
                 .interactiveDismissDisabled()
+        }
+    }
+}
+
+/// Bez kolumn split view tytuł strony stanąłby nad paskiem bocznym, obok świateł okna;
+/// strony mają własne nagłówki, a tytuł zostaje tylko jako nazwa okna (menu Okno, Mission Control).
+private struct HiddenToolbarTitle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *) {
+            content.toolbar(removing: .title)
+        } else {
+            content
         }
     }
 }

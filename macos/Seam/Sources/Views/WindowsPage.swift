@@ -16,16 +16,8 @@ struct WindowsPage: View {
                 scrollContent
             }
         }
-        .background {
-            LinearGradient(colors: [Color(red: 0.025, green: 0.16, blue: 0.17),
-                                    Color(red: 0.035, green: 0.12, blue: 0.14)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-                .overlay {
-                    EllipticalGradient(colors: [Color(red: 0.20, green: 0.45, blue: 0.36).opacity(0.6), .clear],
-                                       center: .topTrailing, endRadiusFraction: 0.9)
-                }
-                .ignoresSafeArea()
-        }
+        // W oknie aplikacji zielone tło leży pod całym oknem (ContentView), razem z szyną nawigacji.
+        .background { if fullPreview { WindowsBackdrop().ignoresSafeArea() } }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
@@ -94,5 +86,20 @@ struct WindowsPage: View {
             }
             .padding(.horizontal, 8).padding(.top, 6)
         }
+    }
+}
+
+/// Zielone tło zakładki Okna; ContentView kładzie je pod całe okno, tak jak SeamBackdrop pod pozostałe strony.
+struct WindowsBackdrop: View {
+    var body: some View {
+        LinearGradient(colors: [Color(red: 0.025, green: 0.16, blue: 0.17),
+                                Color(red: 0.035, green: 0.12, blue: 0.14)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay {
+                EllipticalGradient(colors: [Color(red: 0.20, green: 0.45, blue: 0.36).opacity(0.6), .clear],
+                                   center: .topTrailing, endRadiusFraction: 0.9)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }

@@ -10,8 +10,7 @@ struct WindowsSidebar: View {
                 Button { selection = section } label: {
                     SeamArtwork(name: section.iconName)
                         .frame(width: 24, height: 24).frame(width: 48, height: 48)
-                        .background(selection == section ? Color.white.opacity(0.13) : .clear,
-                                    in: RoundedRectangle(cornerRadius: 13))
+                        .background { SidebarRowBackground(selected: selection == section, hovering: false, cornerRadius: 13) }
                 }
                 .buttonStyle(.plain).help(section.title).accessibilityLabel(section.title)
                 .accessibilityAddTraits(selection == section ? .isSelected : [])

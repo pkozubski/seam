@@ -95,8 +95,7 @@ private struct SettingsSidebarItem<Label: View>: View {
                 .padding(.horizontal, 8)
                 .frame(minHeight: 40)
                 .contentShape(Rectangle())
-                .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.white.opacity(selected ? 0.10 : hovering ? 0.05 : 0)))
+                .background { SidebarRowBackground(selected: selected, hovering: hovering, cornerRadius: 12) }
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
