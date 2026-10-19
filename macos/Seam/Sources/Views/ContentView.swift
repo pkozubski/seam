@@ -14,7 +14,8 @@ struct ContentView: View {
     }
 
     private var slide: Animation { SettingsChrome.slide(reduceMotion: reduceMotion) }
-    private var compactSidebar: Bool { selection == .windows && !settingsNavigation.isPresented }
+    /// Zakładka Okna ma zielone tło na całe okno, jak na Windowsie.
+    private var greenWindow: Bool { selection == .windows && !settingsNavigation.isPresented }
 
     var body: some View {
         // Własny układ kolumn zamiast NavigationSplitView: od macOS 26 system zamyka pasek boczny
@@ -24,15 +25,13 @@ struct ContentView: View {
                 if settingsNavigation.isPresented {
                     SettingsSidebar(navigation: settingsNavigation)
                         .transition(.offset(x: -16).combined(with: .opacity))
-                } else if compactSidebar {
-                    WindowsSidebar(selection: $selection)
                 } else {
                     SidebarView(selection: $selection)
                         .transition(.offset(x: -16).combined(with: .opacity))
                 }
             }
             .animation(slide, value: settingsNavigation.isPresented)
-            .frame(width: compactSidebar ? 76 : 230)
+            .frame(width: 230)
             .frame(maxHeight: .infinity, alignment: .top)
             .overlay(alignment: .trailing) { SidebarSeparator().ignoresSafeArea() }
 
@@ -51,19 +50,19 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(SoftToolbarEdge())
         }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: compactSidebar)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: greenWindow)
         .toolbarBackground(.hidden, for: .windowToolbar)
         .modifier(HiddenToolbarTitle())
         .background {
             ZStack {
                 SeamBackdrop()
-                WindowsBackdrop().opacity(compactSidebar ? 1 : 0)
+                WindowsBackdrop().opacity(greenWindow ? 1 : 0)
             }
             .ignoresSafeArea()
         }
         .frame(minWidth: 980, idealWidth: 1180, minHeight: 680, idealHeight: 800)
         .background {
-            if !compactSidebar {
+            if !greenWindow {
                 ConnectionStatusAttachment(state: state) { showConnectionStatus = true }
             }
         }
