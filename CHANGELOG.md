@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.23 — test channel (2026-10-19)
+
+- BorderlessMouse is now **Seam**: app name, Windows executable (`Seam.exe`), macOS bundle (`Seam.app`), release files and the repository (github.com/pkozubski/seam).
+- Updates, settings, pairing and macOS permissions carry over: the bundle ID, Keychain entry, settings folders and pairing cryptography keep their previous identifiers. Releases also include the files under their old names so existing installs can update.
+- macOS: the updater renames an install still called `BorderlessMouse.app` to `Seam.app` and re-registers the login item.
+- Repository: `CLAUDE.md` working rules for both platforms, Windows preview scripts (`windows/scripts/preview.ps1`, `capture-window.ps1`), protocol docs moved to `docs/`.
+
 ## 2.1.22 — test channel (2026-10-18)
 
 - macOS and Windows: a new scrollable Windows tab explains the second-monitor model with a large window-crossing illustration, three visual steps, display arrangement and return direction.

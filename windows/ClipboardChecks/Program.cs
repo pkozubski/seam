@@ -12,9 +12,9 @@ using Avalonia.Input.Platform;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using BorderlessMouse.Net;
-using BorderlessMouse.Protocol;
-using BorderlessMouse.Security;
+using Seam.Net;
+using Seam.Protocol;
+using Seam.Security;
 
 internal static class Program
 {
@@ -398,10 +398,10 @@ internal static class Program
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void DecodeFixture(List<VideoStream.VideoFrame> frames, int[][] colors)
     {
-        BorderlessMouse.Display.H264Decoder decoder;
+        Seam.Display.H264Decoder decoder;
         try
         {
-            decoder = new BorderlessMouse.Display.H264Decoder(null, frames[0].Width, frames[0].Height);
+            decoder = new Seam.Display.H264Decoder(null, frames[0].Width, frames[0].Height);
         }
         catch (Exception ex)
         {
@@ -459,7 +459,7 @@ internal static class Program
             bgra[i * 4 + 3] = 255;
         }
         var nv12 = new byte[width * height * 3 / 2];
-        BorderlessMouse.Display.Nv12Converter.FromBgra(bgra, width * 4, width, height, nv12);
+        Seam.Display.Nv12Converter.FromBgra(bgra, width * 4, width, height, nv12);
         return nv12;
     }
 
@@ -467,10 +467,10 @@ internal static class Program
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void EncodeRoundTrip()
     {
-        BorderlessMouse.Display.H264Encoder encoder;
+        Seam.Display.H264Encoder encoder;
         try
         {
-            encoder = new BorderlessMouse.Display.H264Encoder(160, 96);
+            encoder = new Seam.Display.H264Encoder(160, 96);
         }
         catch (Exception ex)
         {
@@ -488,11 +488,11 @@ internal static class Program
                 encoded.Add(result!.Value);
             }
         }
-        Expect(encoded[0].key && BorderlessMouse.Display.H264Encoder.ContainsNal(encoded[0].data, 7)
-               && BorderlessMouse.Display.H264Encoder.ContainsNal(encoded[0].data, 8), "first frame is a keyframe with SPS/PPS");
-        Expect(encoded[2].key && BorderlessMouse.Display.H264Encoder.ContainsNal(encoded[2].data, 7), "forced keyframe carries SPS/PPS");
+        Expect(encoded[0].key && Seam.Display.H264Encoder.ContainsNal(encoded[0].data, 7)
+               && Seam.Display.H264Encoder.ContainsNal(encoded[0].data, 8), "first frame is a keyframe with SPS/PPS");
+        Expect(encoded[2].key && Seam.Display.H264Encoder.ContainsNal(encoded[2].data, 7), "forced keyframe carries SPS/PPS");
         Expect(!encoded[1].key, "middle frame is predicted");
-        using var decoder = new BorderlessMouse.Display.H264Decoder(null, 160, 96);
+        using var decoder = new Seam.Display.H264Decoder(null, 160, 96);
         var decoded = new List<int[]>();
         foreach (var (data, _) in encoded)
         {

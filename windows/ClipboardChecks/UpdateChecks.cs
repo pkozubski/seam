@@ -1,4 +1,4 @@
-using BorderlessMouse.Net;
+using Seam.Net;
 
 internal static class UpdateChecks
 {

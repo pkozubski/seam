@@ -1,0 +1,89 @@
+<wnd:AppWindow xmlns="https://github.com/avaloniaui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:wnd="using:FluentAvalonia.UI.Windowing"
+               xmlns:ui="using:FluentAvalonia.UI.Controls"
+               xmlns:vm="using:Seam.ViewModels"
+               xmlns:pages="using:Seam.Views.Pages"
+               xmlns:views="using:Seam.Views"
+               x:Class="Seam.Views.MainWindow"
+               x:DataType="vm:MainViewModel"
+               FontFamily="Segoe UI, Helvetica Neue, Arial"
+               Title="seam"
+               Icon="avares://Seam/Assets/icon.png"
+               Width="1180" Height="800"
+               MinWidth="980" MinHeight="680"
+               WindowStartupLocation="CenterScreen">
+
+    <Grid RowDefinitions="32,*">
+        <!-- Grafitowe tło jak na macOS – pod paskiem tytułu, panelem bocznym i treścią -->
+        <views:SeamBackdrop Grid.RowSpan="2" />
+
+        <!-- Pasek tytułu (obszar przeciągania okna): ikona + nazwa jak w aplikacjach Windows 11 -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="12,0,150,0">
+            <Image Source="avares://Seam/Assets/icon.png" Width="16" Height="16" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="seam" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Pasek boczny (WinUI 3 NavigationView) + zawartość strony -->
+        <ui:NavigationView x:Name="Nav" Grid.Row="1"
+                           PaneDisplayMode="Left"
+                           OpenPaneLength="230"
+                           CompactModeThresholdWidth="0"
+                           ExpandedModeThresholdWidth="700"
+                           IsBackButtonVisible="False"
+                           IsSettingsVisible="False"
+                           SelectionChanged="Nav_OnSelectionChanged">
+
+            <ui:NavigationView.PaneHeader>
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,8,0,10">
+                    <Image Source="avares://Seam/Assets/logo.png" Width="50" Height="50" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="seam" FontWeight="Medium" FontSize="26" Foreground="{DynamicResource MutedText}" />
+
+                    </StackPanel>
+                </StackPanel>
+            </ui:NavigationView.PaneHeader>
+
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="Połączenie" Tag="connection" />
+                <ui:NavigationViewItem Content="Ekrany" Tag="displays" />
+                <ui:NavigationViewItemHeader Content="Funkcje" />
+                <ui:NavigationViewItem Content="Klawiatura i mysz" Tag="control" />
+                <ui:NavigationViewItem Content="Dźwięk" Tag="audio" />
+                <ui:NavigationViewItem Content="Schowek" Tag="clipboard" />
+                <ui:NavigationViewItem Content="Okna" Tag="windows" />
+            </ui:NavigationView.MenuItems>
+
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="Ustawienia" Tag="settings" />
+                <ui:NavigationViewItem Content="Dziennik" Tag="log" />
+            </ui:NavigationView.FooterMenuItems>
+
+            <ui:NavigationView.PaneFooter>
+                <TextBlock Text="{Binding VersionLabel}" Classes="subtitle" Margin="16,0,0,12" />
+            </ui:NavigationView.PaneFooter>
+
+            <Grid RowDefinitions="Auto,Auto,*">
+                <!-- Komunikaty globalne – widoczne na każdej stronie -->
+                <ui:InfoBar Grid.Row="0" Margin="24,8,24,0"
+                            IsOpen="{Binding UpdateAvailable}"
+                            Severity="Informational"
+                            Title="Dostępna aktualizacja"
+                            Message="{Binding UpdateMessage}"
+                            IsClosable="True">
+                    <ui:InfoBar.ActionButton>
+                        <Button Content="Zainstaluj i uruchom ponownie" Command="{Binding InstallUpdateCommand}" />
+                    </ui:InfoBar.ActionButton>
+                </ui:InfoBar>
+                <ui:InfoBar Grid.Row="1" Margin="24,8,24,0"
+                            IsOpen="{Binding MacAccessibilityMissing}"
+                            Severity="Warning"
+                            Title="Mac nie ma uprawnienia Dostępność"
+                            Message="Sterowanie nie zadziała, dopóki na Macu nie nadasz Seam uprawnienia w Ustawieniach systemowych (Prywatność i ochrona, sekcja Dostępność)."
+                            IsClosable="False" />
+
+                <ContentControl Grid.Row="2" x:Name="PageHost" />
+            </Grid>
+        </ui:NavigationView>
+    </Grid>
+</wnd:AppWindow>

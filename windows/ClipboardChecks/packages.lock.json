@@ -377,7 +377,7 @@
           "Vortice.DirectX": "3.8.3"
         }
       },
-      "borderlessmouse": {
+      "seam": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[11.3.12, )",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Eksportuje wspólną ikonę BorderlessMouse dla macOS i Windows.
+"""Eksportuje wspólną ikonę Seam dla macOS i Windows.
 
 Źródło: assets/logo/app-icon.png (kwadrat z kanałem alfa, kafelek na środku).
 Podmień ten plik, a następnie uruchom:
@@ -83,14 +83,14 @@ def main():
     full.save(OUT / "logo-1024.png")
     render(full, 256).save(OUT / "logo-256.png")
 
-    win_assets = ROOT / "windows" / "BorderlessMouse" / "Assets"
+    win_assets = ROOT / "windows" / "Seam" / "Assets"
     render(full, 256).save(win_assets / "icon.png")
     render(full, 512).save(win_assets / "logo.png")
     write_ico(full, win_assets / "icon.ico")
 
     write_icns(
         add_shadow(fit_tile(source, MAC_TILE)),
-        ROOT / "macos" / "BorderlessMouse" / "Resources" / "AppIcon.icns",
+        ROOT / "macos" / "Seam" / "Resources" / "AppIcon.icns",
     )
     print("Ikony PNG, ICO i ICNS zostały wyeksportowane z app-icon.png.")
 

@@ -2,12 +2,12 @@
 
 Effective date: 3 September 2026
 
-BorderlessMouse is a local desktop utility. The application does not create an
+Seam is a local desktop utility. The application does not create an
 account, display advertising, include analytics SDKs or send usage telemetry.
 
 ## Data processed locally
 
-When enabled, BorderlessMouse processes keyboard and mouse events, clipboard
+When enabled, Seam processes keyboard and mouse events, clipboard
 text or images, device names, local IP addresses, system audio and the picture
 of the Mac virtual display (only the virtual display, never the built-in or
 other physical Mac screens). These data

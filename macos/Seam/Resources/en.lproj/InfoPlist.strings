@@ -1,0 +1,2 @@
+"NSAudioCaptureUsageDescription" = "Seam captures Mac system audio to stream it to your paired Windows PC.";
+"NSLocalNetworkUsageDescription" = "Seam connects to your paired Windows PC over the local network for input, clipboard and audio.";

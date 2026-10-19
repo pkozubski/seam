@@ -1,0 +1,151 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Seam.ViewModels" xmlns:views="using:Seam.Views"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="Seam.Views.Pages.WindowsPage" x:DataType="vm:MainViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.guidePanel">
+            <Setter Property="Background" Value="#14FFFFFF" />
+            <Setter Property="BorderBrush" Value="#26FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="24" />
+        </Style>
+        <Style Selector="TextBlock.guideTitle">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.guideBody">
+            <Setter Property="Foreground" Value="#BFFFFFFF" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.guideStep">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Styles>
+    <Border>
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0%,100%" EndPoint="100%,0%">
+                <GradientStop Color="#092327" Offset="0" />
+                <GradientStop Color="#174B43" Offset="1" />
+            </LinearGradientBrush>
+        </Border.Background>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="GuideContent" Margin="32,30,32,44" Spacing="20" MaxWidth="1060">
+                <TextBlock Classes="guideBody" Text="{Binding DeskNames}" />
+                <TextBlock FontSize="32" FontWeight="SemiBold" TextWrapping="Wrap" Text="Drugi komputer. Dodatkowy ekran." />
+                <TextBlock Classes="guideBody" Text="Przeciągnij dowolne okno za krawędź ekranu. Pojawi się na drugim urządzeniu — tak jak na dodatkowym monitorze." />
+
+                <Border Classes="guidePanel">
+                    <StackPanel Spacing="16">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                            <StackPanel Spacing="5">
+                                <TextBlock Classes="guideStep" Text="Okna Maca na tym komputerze" />
+                                <TextBlock Classes="guideBody" Text="{Binding DisplayStatusText}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding DisplayEnabled}"
+                                          AutomationProperties.Name="Okna Maca na tym komputerze" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="#20FFFFFF" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                            <StackPanel Spacing="5">
+                                <TextBlock Classes="guideStep" Text="Okna Windows na Macu" />
+                                <TextBlock Classes="guideBody" Text="{Binding WinViewStatusText}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding WinViewEnabled}"
+                                          AutomationProperties.Name="Okna Windows na Macu" />
+                        </Grid>
+                        <views:SettingRow IsVisible="{Binding WinViewDriverMissing}" Title="Sterownik monitora wirtualnego"
+                                          Subtitle="Jednorazowa instalacja darmowego, podpisanego sterownika Virtual Display Driver (wymaga zgody administratora).">
+                            <Button Classes="accent" Content="Zainstaluj" Command="{Binding InstallDisplayDriverCommand}" IsEnabled="{Binding !IsInstallingDriver}" />
+                        </views:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="guidePanel">
+                    <StackPanel Spacing="18">
+                        <TextBlock Classes="guideTitle" Text="Przeciągnij. I pracuj dalej." />
+                        <TextBlock Classes="guideBody" Text="Chwyć okno za górny pasek i przenieś przez wspólną krawędź." />
+                        <TextBlock Classes="guideBody" Text="Przykład przeniesienia okna z Maca na Windows. Układ odpowiada ustawieniu w zakładce Ekrany." />
+                        <views:WindowTransferDiagram Height="270" MacSide="{Binding SelectedMacSide.Value}" />
+                        <TextBlock Classes="guideBody" Text="Okno przechodzi na drugi ekran. Aplikacja nadal działa na komputerze, na którym została otwarta." />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="guidePanel">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="22">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="01" Opacity="0.6" />
+                            <TextBlock Classes="guideStep" Text="Otwórz dowolne okno" />
+                            <TextBlock Classes="guideBody" MinHeight="60" Text="Przeglądarka, dokument, komunikator — to, z czym pracujesz." />
+                            <views:WindowTransferDiagram Height="90" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="12">
+                            <TextBlock Text="02" Opacity="0.6" />
+                            <TextBlock Classes="guideStep" Text="Przeciągnij za krawędź" />
+                            <TextBlock Classes="guideBody" MinHeight="60" Text="Chwyć górny pasek i przesuń okno w stronę drugiego ekranu." />
+                            <views:WindowTransferDiagram Height="90" Progress="0.5" MacSide="{Binding SelectedMacSide.Value}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="12">
+                            <TextBlock Text="03" Opacity="0.6" />
+                            <TextBlock Classes="guideStep" Text="Pracuj na drugim ekranie" />
+                            <TextBlock Classes="guideBody" MinHeight="60" Text="Okno pojawi się na drugim urządzeniu. Możesz pracować dalej." />
+                            <views:WindowTransferDiagram Height="90" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Classes="guidePanel">
+                    <StackPanel Spacing="16">
+                        <TextBlock Classes="guideTitle" Text="Z której strony jest drugi ekran?" />
+                        <TextBlock Classes="guideBody" Text="Ustaw ekrany tak, jak stoją na biurku. To określa, przez którą krawędź przeciągniesz okno." />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="28">
+                            <views:WindowTransferDiagram Height="150" ShowWindow="False" MacSide="{Binding SelectedMacSide.Value}" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="14">
+                                <TextBlock Classes="guideStep" x:Name="ArrangementLabel" />
+                                <Button Content="Zmień układ ekranów" Click="OpenDisplays" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+                    <Border Classes="guidePanel">
+                        <StackPanel Spacing="16">
+                            <TextBlock Classes="guideStep" Text="Dowolne okno" />
+                            <TextBlock Classes="guideBody" Text="Przenosisz okna bezpośrednio z pulpitu, tak jak między dwoma monitorami." />
+                            <views:WindowTransferDiagram Height="110" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Classes="guidePanel">
+                        <StackPanel Spacing="16">
+                            <TextBlock Classes="guideStep" Text="Z powrotem na pierwszy ekran" />
+                            <TextBlock Classes="guideBody" Text="Przeciągnij okno przez wspólną krawędź w przeciwną stronę." />
+                            <views:WindowTransferDiagram Height="110" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Classes="guidePanel">
+                    <Expander Header="Opcje wyświetlania" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <StackPanel Spacing="16" Margin="0,16,0,0">
+                            <views:SettingRow Title="Tylko okna Maca" Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
+                                <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
+                            </views:SettingRow>
+                            <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem" Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
+                                <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" IsEnabled="{Binding !DisplayWindowMode}" />
+                            </views:SettingRow>
+                            <TextBlock Classes="guideBody" Text="{Binding DisplayStatsText}" IsVisible="{Binding DisplayStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            <TextBlock Classes="guideBody" Text="{Binding WinViewStatsText}" IsVisible="{Binding WinViewStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                            <Button Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
+                        </StackPanel>
+                    </Expander>
+                </Border>
+                <Button Content="Szczegóły połączenia" Click="OpenConnection" HorizontalAlignment="Right" />
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

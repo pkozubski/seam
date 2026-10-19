@@ -1,9 +1,9 @@
-# BorderlessMouse
+# Seam
 
-<p align="center"><img src="assets/logo/logo-256.png" width="128" alt="BorderlessMouse"></p>
+<p align="center"><img src="assets/logo/logo-256.png" width="128" alt="Seam"></p>
 
-[![CI](https://github.com/pkozubski/BorderlessMouse/actions/workflows/ci.yml/badge.svg)](https://github.com/pkozubski/BorderlessMouse/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/pkozubski/BorderlessMouse)](https://github.com/pkozubski/BorderlessMouse/releases/latest)
+[![CI](https://github.com/pkozubski/seam/actions/workflows/ci.yml/badge.svg)](https://github.com/pkozubski/seam/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/pkozubski/seam)](https://github.com/pkozubski/seam/releases/latest)
 
 Współdzielenie **klawiatury i myszy**, **schowka** oraz **dźwięku** między Windows a macOS
 po sieci lokalnej – bez sterowników, konta i chmury, z uwierzytelnionym szyfrowaniem.
@@ -38,7 +38,7 @@ Scenariusz, na który jest zbudowana ta wersja:
 
 Połączenie wymaga kodu z Maca. Wzajemne uwierzytelnienie HMAC-SHA-256 tworzy dla każdej
 sesji osobne klucze sterowania i audio; licznik pakietów blokuje ich ponowne odtworzenie.
-Szczegóły: [PROTOCOL.md](PROTOCOL.md), [polityka bezpieczeństwa](SECURITY.md) i
+Szczegóły: [docs/PROTOCOL.md](docs/PROTOCOL.md), [polityka bezpieczeństwa](SECURITY.md) i
 [informacja o prywatności](PRIVACY.md).
 
 ## Wymagania
@@ -46,16 +46,16 @@ Szczegóły: [PROTOCOL.md](PROTOCOL.md), [polityka bezpieczeństwa](SECURITY.md)
 | | |
 |---|---|
 | macOS | 14.2 lub nowszy (Core Audio taps). Uprawnienia: **Dostępność** i **Nagrywanie dźwięku systemowego**. |
-| Windows | Windows 10/11 x64. Plik `BorderlessMouse-Windows-x64.exe` z [Releases](https://github.com/pkozubski/BorderlessMouse/releases/latest) nie wymaga instalowania .NET. |
+| Windows | Windows 10/11 x64. Plik `Seam-Windows-x64.exe` z [Releases](https://github.com/pkozubski/seam/releases/latest) nie wymaga instalowania .NET. |
 | Sieć | Obie maszyny w tej samej sieci LAN (najlepiej kabel; Wi‑Fi też działa). |
 
 ## Pobieranie
 
-Gotowe pliki są w [GitHub Releases](https://github.com/pkozubski/BorderlessMouse/releases/latest):
+Gotowe pliki są w [GitHub Releases](https://github.com/pkozubski/seam/releases/latest):
 
-* `BorderlessMouse-macOS.zip` – uniwersalna aplikacja (Apple Silicon + Intel). Rozpakuj i przenieś
+* `Seam-macOS.zip` – uniwersalna aplikacja (Apple Silicon + Intel). Rozpakuj i przenieś
   do `~/Applications` (auto-updater potrzebuje prawa zapisu do katalogu aplikacji).
-* `BorderlessMouse-Windows-x64.exe` – pojedynczy plik, bez instalatora.
+* `Seam-Windows-x64.exe` – pojedynczy plik, bez instalatora.
 * `SHA256SUMS.txt` – sumy kontrolne używane też przez updater.
 * pliki `*.sig` – podpisy ECDSA weryfikowane przez obie aplikacje.
 
@@ -74,14 +74,14 @@ w ustawieniach systemowych, nawet po ręcznej zmianie.
 | | Mechanizm | Gdzie to widać |
 |---|---|---|
 | macOS | `SMAppService.mainApp` (element logowania). Gdy system go odrzuci, aplikacja instaluje LaunchAgent w `~/Library/LaunchAgents/com.borderlessmouse.mac.login.plist`. | Ustawienia systemowe → Ogólne → Elementy logowania |
-| Windows | Wpis `BorderlessMouse` w `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (bez uprawnień administratora). | Menedżer zadań → Aplikacje autostartu |
+| Windows | Wpis `Seam` w `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (bez uprawnień administratora). | Menedżer zadań → Aplikacje autostartu |
 
 Przy starcie z logowania aplikacja domyślnie nie otwiera okna: macOS pokazuje tylko ikonę
 w pasku menu, Windows tylko ikonę w zasobniku (można to wyłączyć obok przełącznika
 autostartu). Wpis autostartu jest automatycznie poprawiany, jeśli plik aplikacji zmieni
 ścieżkę, np. po przeniesieniu folderu.
 
-Diagnostyka: `BorderlessMouse.app/Contents/MacOS/BorderlessMouse --login-item-test` włącza
+Diagnostyka: `Seam.app/Contents/MacOS/Seam --login-item-test` włącza
 autostart, wypisuje użyty mechanizm i przywraca poprzedni stan.
 
 ## Interfejs
@@ -105,10 +105,10 @@ i Xcode, a CI buduje na `macos-26` z wymogiem `REQUIRE_SDK_MAJOR=26`.
 
 Podgląd wyglądu bez uruchamiania sieci i uprawnień:
 
-* macOS: `BorderlessMouse.app/Contents/MacOS/BorderlessMouse --ui-preview zrzut.png
+* macOS: `Seam.app/Contents/MacOS/Seam --ui-preview zrzut.png
   [--ui-section connection|permissions|control|audio|clipboard|windows|settings|log]` – okno pojawia się na
   ekranie na około sekundę (sidebar i toolbar renderuje dopiero kompozytor).
-* Windows: `BorderlessMouse.exe --screenshot zrzut.png` (zapisuje pierwszą stronę pod tą
+* Windows: `Seam.exe --screenshot zrzut.png` (zapisuje pierwszą stronę pod tą
   nazwą, a pozostałe jako `zrzut-control.png`, `zrzut-settings.png`, `zrzut-log.png`).
 
 W tym trybie aplikacja nie łączy się z niczym i pokazuje przykładowe dane. Podgląd macOS
@@ -159,7 +159,7 @@ Mac: `UPDATE_CHANNEL=dev VERSION=2.1.5 ./build.sh`. Windows: dodaj do `dotnet pu
 Nowe wydanie robi się jednym tagiem:
 
 ```bash
-git tag -a v2.0.0 -m "BorderlessMouse v2.0.0" && git push origin v2.0.0
+git tag -a v2.0.0 -m "Seam v2.0.0" && git push origin v2.0.0
 ```
 
 Workflow `.github/workflows/release.yml` buduje obie aplikacje, liczy sumy, podpisuje oba
@@ -176,11 +176,11 @@ publikacją ponownie weryfikuje podpisy rzeczywistych artefaktów.
 
 ### 1. Mac
 
-Zbudowana lokalnie aplikacja: `macos/build/BorderlessMouse.app` (po `./build.sh`).
+Zbudowana lokalnie aplikacja: `macos/build/Seam.app` (po `./build.sh`).
 
 1. Uruchom aplikację. Kreator pokaże kod parowania i stan gotowości Maca.
 2. W kreatorze lub karcie **Uprawnienia macOS** kliknij **Poproś** przy „Dostępność” i włącz
-   BorderlessMouse w *Ustawienia systemowe → Prywatność i ochrona → Dostępność*.
+   Seam w *Ustawienia systemowe → Prywatność i ochrona → Dostępność*.
 3. Na karcie **Uprawnienia** kliknij **Poproś** przy „Nagrywanie dźwięku systemowego” – macOS
    zapyta o zgodę (*Prywatność i ochrona → Nagrywanie ekranu i dźwięku systemowego*). To samo
    pytanie pojawia się przy pierwszym streamie audio.
@@ -195,7 +195,7 @@ Aplikacja ma też ikonę w pasku menu z szybkimi przełącznikami.
 
 ### 2. Windows
 
-1. Uruchom `BorderlessMouse.exe` (przy pierwszym starcie Zapora Windows zapyta o dostęp – zaznacz
+1. Uruchom `Seam.exe` (przy pierwszym starcie Zapora Windows zapyta o dostęp – zaznacz
    **Sieci prywatne**; bez tego nie dotrze dźwięk UDP).
 2. Przepisz kod parowania wyświetlony przez Maca. Jest chroniony przez DPAPI dla bieżącego
    konta Windows i nie trafia do zwykłego pliku ustawień.
@@ -215,7 +215,7 @@ Aplikacja ma też ikonę w pasku menu z szybkimi przełącznikami.
    Obie aplikacje muszą być zaktualizowane. Kopiowanie plików w Finderze/Eksploratorze
    i formatowanie tekstu nie są obsługiwane.
 
-Ustawienia są zapisywane w `%APPDATA%\BorderlessMouse\settings.json`; zamknięcie okna chowa
+Ustawienia są zapisywane w `%APPDATA%\Seam\settings.json`; zamknięcie okna chowa
 aplikację do zasobnika (wyjście przez menu ikony).
 
 ### Ekran wirtualny Maca na Windowsie
@@ -230,7 +230,7 @@ Jak z tego korzystać:
 1. Na Macu nadaj zgodę **Nagrywanie ekranu** (karta Uprawnienia → Poproś) i uruchom aplikację
    ponownie. Ekran wirtualny jest domyślnie włączony po obu stronach (karta Sterowanie).
 2. Połącz Windows z Makiem. Windows sam poprosi o ekran – na Macu pojawi się nowy monitor
-   „BorderlessMouse”, widoczny też w *Ustawienia systemowe → Wyświetlacze*.
+   „Seam”, widoczny też w *Ustawienia systemowe → Wyświetlacze*.
 3. Przejdź kursorem z Windowsa na Maca jak zwykle (kursor trafia na ekran MacBooka).
 4. **Przeciągnij okno** (z wciśniętym przyciskiem myszy) przez krawędź w stronę Windowsa:
    monitor Windowsa pokaże pulpit Maca z tym oknem. Zwykły ruch kursora bez przeciągania
@@ -289,7 +289,7 @@ Dobrze wiedzieć:
   programowy tryb.
 
 Samotest na Macu (tworzy na chwilę monitor, sprawdza koder i szyfrowany kanał):
-`BorderlessMouse.app/Contents/MacOS/BorderlessMouse --display-selftest`.
+`Seam.app/Contents/MacOS/Seam --display-selftest`.
 
 ### Okna Windows na Macu
 
@@ -342,15 +342,18 @@ klawisze multimedialne (głośność, play/pause, next/prev) działają.
 
 ## Budowanie
 
+Zasady pracy z Claude Code: [CLAUDE.md](CLAUDE.md), [macos/CLAUDE.md](macos/CLAUDE.md),
+[windows/CLAUDE.md](windows/CLAUDE.md).
+
 ### macOS
 
 ```bash
 cd macos
-./build.sh                # swiftc, wystarczą Command Line Tools → build/BorderlessMouse.app
+./build.sh                # swiftc, wystarczą Command Line Tools → build/Seam.app
 CONFIG=debug ./build.sh   # bez optymalizacji
 # Xcode:
 xcodegen generate         # brew install xcodegen
-open BorderlessMouse.xcodeproj
+open Seam.xcodeproj
 ```
 
 Uwaga: build ad-hoc (`build.sh` bez `SIGN_IDENTITY`) zmienia sygnaturę przy każdej
@@ -359,20 +362,24 @@ kompilacji. macOS pokazuje wtedy aplikację jako włączoną w liście Dostępno
 Objaw po stronie Windows: w dzienniku „Mac natychmiast oddał sterowanie”.
 Rozwiązania:
 
-* usuń BorderlessMouse z listy *Dostępność* (minus) i dodaj ponownie po każdym buildzie, albo
+* usuń Seam z listy *Dostępność* (minus) i dodaj ponownie po każdym buildzie, albo
 * podpisuj stałym certyfikatem, wtedy uprawnienia zostają:
   * Xcode: wybierz swój Team w ustawieniach targetu, lub
   * bez konta developerskiego: w *Dostęp do pęku kluczy → Asystent certyfikatów → Utwórz
-    certyfikat* (typ: *Podpisywanie kodu*, nazwa np. `BorderlessMouse Dev`), potem
-    `SIGN_IDENTITY="BorderlessMouse Dev" ./build.sh`.
+    certyfikat* (typ: *Podpisywanie kodu*, nazwa np. `Seam Dev`), potem
+    `SIGN_IDENTITY="Seam Dev" ./build.sh`.
 
 ### Windows
 
 ```powershell
-cd windows\BorderlessMouse
-dotnet build -c Release                                  # wymaga .NET 8 SDK
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ..\publish\win-x64
+# z katalogu repozytorium, wymaga .NET 8 SDK
+dotnet restore windows/ClipboardChecks/Seam.ClipboardChecks.csproj --locked-mode
+dotnet build windows/Seam/Seam.csproj -c Release --no-restore
+pwsh windows/scripts/preview.ps1          # zrzuty wszystkich stron → output/preview/
+pwsh windows/scripts/capture-window.ps1   # zrzut działającego okna → output/preview/live.png
 ```
+
+Pełne zasady pracy (także z Claude Code) są w [windows/CLAUDE.md](windows/CLAUDE.md).
 
 Projekt kompiluje się także na macOS/Linux (Avalonia); logika Windows (hooki, WASAPI)
 jest oznaczona `[SupportedOSPlatform("windows")]`.
@@ -391,11 +398,12 @@ maksymalizację, minimalizację i odzyskiwanie okna spoza monitorów.
 ## Struktura
 
 ```
-PROTOCOL.md                  – opis protokołu (TCP + UDP)
+CLAUDE.md                    – zasady pracy z Claude Code (+ macos/CLAUDE.md, windows/CLAUDE.md)
+docs/                        – PROTOCOL.md (protokół TCP + UDP), RELEASE.md, BETA-PLAN.md, EULA-DRAFT.md
 macos/
   build.sh                   – build bez Xcode
   project.yml                – XcodeGen
-  BorderlessMouse/Sources/
+  Seam/Sources/
     App/        Engine (logika), AppState (UI), Settings, ClipboardSync, Updater, LoginItem, UIPreview
     Security/   kod parowania, Keychain, HMAC/HKDF, bezpieczna sesja AES-GCM
     Localization/ polski i angielski interfejs
@@ -406,7 +414,7 @@ macos/
 assets/logo/                 – wspólne logo + skrypt generujący .icns/.ico/.png
 .github/workflows/           – CI (build obu aplikacji) i Release (tag v* → GitHub Release)
 windows/
-  BorderlessMouse/
+  Seam/
     Input/      NativeMethods, LowLevelHooks, NativeInputWindow (Raw Input + hider), InputCapture
     Models/     Settings, Autostart (klucz Run w rejestrze)
     Security/   kod parowania, DPAPI, HMAC/HKDF, AES-GCM, podpisy aktualizacji ECDSA

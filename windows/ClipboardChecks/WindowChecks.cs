@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using BorderlessMouse.Display;
-using BorderlessMouse.Protocol;
-using static BorderlessMouse.Input.NativeMethods;
+using Seam.Display;
+using Seam.Protocol;
+using static Seam.Input.NativeMethods;
 
 internal static class WindowChecks
 {
@@ -97,7 +97,7 @@ internal static class WindowChecks
         viewer.SetMenu(999999, new[] { new MacMenuItem(0, "File", "", true, false, false,
             new[] { new MacMenuItem(1, "Check", "", true, false, false, Array.Empty<MacMenuItem>()) }) });
         var main = new DisplayViewer.ProxyWindow(101, 999999, Rect(monitor.Left + 80, monitor.Top + 100, 640, 480),
-            Rect(0, 0, 160, 96), 1920, 1080, false, "BorderlessMouse native viewer check");
+            Rect(0, 0, 160, 96), 1920, 1080, false, "Seam native viewer check");
         var popup = new DisplayViewer.ProxyWindow(102, main.Pid, Rect(100, 50, 80, 48), Rect(20, 10, 80, 48),
             1920, 1080, true, "Transient check");
         viewer.UpdateWindows(new[] { main, popup });

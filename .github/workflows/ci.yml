@@ -28,8 +28,8 @@ jobs:
         run: bash macos/tests/security-check.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: BorderlessMouse-macOS-ci
-          path: macos/build/BorderlessMouse.app
+          name: Seam-macOS-ci
+          path: macos/build/Seam.app
           if-no-files-found: error
   windows:
     name: Windows app (dotnet)
@@ -40,18 +40,18 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Restore locked dependencies
-        run: dotnet restore windows/ClipboardChecks/BorderlessMouse.ClipboardChecks.csproj --locked-mode
+        run: dotnet restore windows/ClipboardChecks/Seam.ClipboardChecks.csproj --locked-mode
       - name: Build
-        run: dotnet build windows/BorderlessMouse/BorderlessMouse.csproj -c Release -warnaserror --no-restore
+        run: dotnet build windows/Seam/Seam.csproj -c Release -warnaserror --no-restore
       - name: Verify clipboard protocol, images and concurrent changes
-        run: dotnet run --project windows/ClipboardChecks/BorderlessMouse.ClipboardChecks.csproj -c Release --no-restore
+        run: dotnet run --project windows/ClipboardChecks/Seam.ClipboardChecks.csproj -c Release --no-restore
       - name: Publish (win-x64, single file)
         run: >
-          dotnet publish windows/BorderlessMouse/BorderlessMouse.csproj -c Release -r win-x64
+          dotnet publish windows/Seam/Seam.csproj -c Release -r win-x64
           --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           --no-restore -o publish
       - uses: actions/upload-artifact@v4
         with:
-          name: BorderlessMouse-Windows-ci
-          path: publish/BorderlessMouse.exe
+          name: Seam-Windows-ci
+          path: publish/Seam.exe
           if-no-files-found: error

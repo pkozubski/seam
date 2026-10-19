@@ -1,7 +1,7 @@
 # Third-party notices
 
-BorderlessMouse for Windows contains the following third-party components.
-Package versions are pinned in `windows/BorderlessMouse/packages.lock.json`.
+Seam for Windows contains the following third-party components.
+Package versions are pinned in `windows/Seam/packages.lock.json`.
 
 | Component | Copyright / author | License |
 |---|---|---|
@@ -19,7 +19,7 @@ Package versions are pinned in `windows/BorderlessMouse/packages.lock.json`.
 | Avalonia.Angle.Windows.Natives | Copyright 2018 The ANGLE Project Authors | BSD-style 3-Clause license reproduced below |
 
 Not bundled, downloaded on request by the Windows virtual monitor installer
-(checksums pinned in `windows/BorderlessMouse/Display/VirtualDisplayDriver.cs`):
+(checksums pinned in `windows/Seam/Display/VirtualDisplayDriver.cs`):
 
 | Component | Copyright / author | License |
 |---|---|---|

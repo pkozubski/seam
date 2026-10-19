@@ -8,11 +8,11 @@ struct UpdateChecks {
 
     @MainActor
     static func main() throws {
-        func fixture(tag: String = "dev-build", title: String = "BorderlessMouse dev 2.1.5",
+        func fixture(tag: String = "dev-build", title: String = "Seam dev 2.1.5",
                      omitted: String? = nil) throws -> Data {
             let names: [String] = [Updater.assetName, Updater.checksumsName, Updater.signatureName].filter { $0 != omitted }
             return try JSONSerialization.data(withJSONObject: [
-                "tag_name": tag, "name": title, "html_url": "https://github.com/pkozubski/BorderlessMouse/releases/tag/\(tag)",
+                "tag_name": tag, "name": title, "html_url": "https://github.com/pkozubski/seam/releases/tag/\(tag)",
                 "assets": names.map { ["name": $0, "browser_download_url": "https://example.com/\($0)"] }
             ])
         }
