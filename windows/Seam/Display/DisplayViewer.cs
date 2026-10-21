@@ -700,6 +700,9 @@ public sealed class DisplayViewer : IDisposable
             Math.Max(1, client.Width), Math.Max(1, client.Height), IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
         if (surface.Handle == IntPtr.Zero) return;
         Register(surface);
+        // Okna jednej aplikacji Maca mają wspólny przycisk na pasku zadań, z jej ikoną – jak okna
+        // aplikacji Windows, a nie kolejne miniatury pod przyciskiem Seam. Przed pokazaniem okna.
+        if (kind == SurfaceKind.Window) SetTaskbarGroup(surface.Handle, TaskbarGroupFor(window.Pid));
         // Zmiana ramki niżej zmienia obszar klienta (o ramkę i wiersz tytułu). To nie jest zmiana
         // rozmiaru przez użytkownika – wysłana na Maca zmniejszała okno, a obraz był potem rozciągany.
         surface.ApplyingPlacement = true;
@@ -980,8 +983,12 @@ public sealed class DisplayViewer : IDisposable
         DisposeGpu(surface);
         _surfaces.Remove(surface.Id);
         _byHandle.Remove(surface.Handle);
+        if (surface.Kind == SurfaceKind.Window) SetTaskbarGroup(surface.Handle, null);
         DestroyWindow(surface.Handle);
     }
+
+    /// <summary>AppUserModelID aplikacji Maca (proces po stronie Maca).</summary>
+    internal static string TaskbarGroupFor(int pid) => $"Seam.Mac.{pid}";
 
     private void PublishProxies()
     {

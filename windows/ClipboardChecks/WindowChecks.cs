@@ -107,7 +107,9 @@ internal static class WindowChecks
         Expect(((long)GetWindowLongPtrW(handle, -16) & 0x00CF0000) == 0x00CF0000,
             "proxy has a native caption, sizing frame and minimize/maximize buttons");
         Expect(GetWindow(transient, 4) == handle, "transient HWND is owned by the application HWND");
-        Expect(GetMenu(handle) != IntPtr.Zero, "application commands use a native Windows menu");
+        Expect(GetMenu(handle) == IntPtr.Zero, "the Mac menu lives in the title row next to the caption buttons, not in a Win32 menu bar");
+        Expect(DisplayNative.TaskbarGroup(handle) == DisplayViewer.TaskbarGroupFor(main.Pid),
+            "a Mac application gets its own taskbar button instead of joining the Seam button");
         Expect(((long)GetWindowLongPtrW(transient, -20) & 0x80) != 0, "transient is a tool window without a taskbar button");
         Expect(((long)GetWindowLongPtrW(transient, -16) & 0x00C00000) == 0 && GetMenu(transient) == IntPtr.Zero,
             "a Chrome bubble has neither a caption nor a duplicate application menu");

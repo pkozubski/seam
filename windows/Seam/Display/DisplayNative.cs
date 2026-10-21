@@ -280,6 +280,93 @@ internal static class DisplayNative
     [DllImport("shcore.dll")]
     public static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
 
+    // ---------------- pasek zadań (właściwości okna) ----------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROPERTYKEY
+    {
+        public Guid fmtid;
+        public uint pid;
+    }
+
+    /// <summary>PROPVARIANT tylko dla VT_EMPTY, VT_BOOL i VT_LPWSTR.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PROPVARIANT
+    {
+        public ushort vt;
+        private ushort _reserved1, _reserved2, _reserved3;
+        public IntPtr value;
+        private IntPtr _value2;
+    }
+
+    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IPropertyStore
+    {
+        void GetCount(out uint count);
+        void GetAt(uint index, out PROPERTYKEY key);
+        void GetValue(ref PROPERTYKEY key, out PROPVARIANT value);
+        void SetValue(ref PROPERTYKEY key, ref PROPVARIANT value);
+        void Commit();
+    }
+
+    private static readonly Guid AppUserModelProperties = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
+    public static readonly PROPERTYKEY PKEY_AppUserModel_ID = new() { fmtid = AppUserModelProperties, pid = 5 };
+    public static readonly PROPERTYKEY PKEY_AppUserModel_PreventPinning = new() { fmtid = AppUserModelProperties, pid = 9 };
+    private const ushort VT_EMPTY = 0, VT_BOOL = 11, VT_LPWSTR = 31;
+
+    [DllImport("shell32.dll")]
+    public static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid riid, [MarshalAs(UnmanagedType.Interface)] out IPropertyStore store);
+
+    [DllImport("ole32.dll")]
+    public static extern int PropVariantClear(ref PROPVARIANT value);
+
+    /// <summary>
+    /// Własny przycisk na pasku zadań (AppUserModelID) zamiast miejsca pod przyciskiem Seam.
+    /// null czyści właściwości – system wymaga tego przed DestroyWindow. Wątek okna.
+    /// </summary>
+    public static void SetTaskbarGroup(IntPtr hwnd, string? appId)
+    {
+        var iid = typeof(IPropertyStore).GUID;
+        if (SHGetPropertyStoreForWindow(hwnd, ref iid, out var store) != 0) return;
+        try
+        {
+            var id = appId is null
+                ? new PROPVARIANT { vt = VT_EMPTY }
+                : new PROPVARIANT { vt = VT_LPWSTR, value = Marshal.StringToCoTaskMemUni(appId) };
+            // Przypięty przycisk uruchamiałby Seam, nie aplikację z drugiego komputera.
+            // PreventPinning musi być ustawione przed identyfikatorem.
+            var pinning = appId is null ? new PROPVARIANT { vt = VT_EMPTY } : new PROPVARIANT { vt = VT_BOOL, value = 0xFFFF }; // VARIANT_TRUE
+            try
+            {
+                var idKey = PKEY_AppUserModel_ID;
+                var pinningKey = PKEY_AppUserModel_PreventPinning;
+                if (appId is null) store.SetValue(ref idKey, ref id);
+                store.SetValue(ref pinningKey, ref pinning);
+                if (appId is not null) store.SetValue(ref idKey, ref id);
+                store.Commit();
+            }
+            finally { PropVariantClear(ref id); }
+        }
+        catch (COMException) { } // bez własnej grupy okno zostaje pod przyciskiem Seam
+        finally { Marshal.ReleaseComObject(store); }
+    }
+
+    /// <summary>AppUserModelID okna (null = dziedziczy po procesie).</summary>
+    public static string? TaskbarGroup(IntPtr hwnd)
+    {
+        var iid = typeof(IPropertyStore).GUID;
+        if (SHGetPropertyStoreForWindow(hwnd, ref iid, out var store) != 0) return null;
+        try
+        {
+            var key = PKEY_AppUserModel_ID;
+            store.GetValue(ref key, out var value);
+            try { return value.vt == VT_LPWSTR ? Marshal.PtrToStringUni(value.value) : null; }
+            finally { PropVariantClear(ref value); }
+        }
+        catch (COMException) { return null; }
+        finally { Marshal.ReleaseComObject(store); }
+    }
+
     public readonly record struct MonitorArea(RECT Bounds, int Dpi, bool Primary)
     {
         public RECT WorkArea { get; init; }
