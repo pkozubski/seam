@@ -1,0 +1,335 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:Seam.Views"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:uip="using:FluentAvalonia.UI.Controls.Primitives">
+
+    <!-- Wspólny język wizualny z wersją macOS: karty, wiersze ustawień, pastylka stanu.
+         Kontrolki (przełączniki, listy, suwaki) pochodzą z FluentAvalonia (WinUI 3). -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="CardBackground" Color="#F2FFFFFF" />
+                    <SolidColorBrush x:Key="CardBorder" Color="#E3E3E8" />
+                    <SolidColorBrush x:Key="MutedText" Color="#6E6E73" />
+                    <SolidColorBrush x:Key="RowDivider" Color="#ECECF0" />
+                    <SolidColorBrush x:Key="PillBackground" Color="#E9EDF5" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Szklane karty: jaśniejsza góra, przez kartę prześwituje zielone tło okna -->
+                    <LinearGradientBrush x:Key="CardBackground" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#1CFFFFFF" Offset="0" />
+                        <GradientStop Color="#0DFFFFFF" Offset="1" />
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="CardBorder" Color="#21FFFFFF" />
+                    <SolidColorBrush x:Key="MutedText" Color="#A1A1A6" />
+                    <SolidColorBrush x:Key="RowDivider" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="PillBackground" Color="#1FFFFFFF" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <LinearGradientBrush x:Key="AccentGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#879D84" Offset="0" />
+                <GradientStop Color="#677C65" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="LevelGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Color="#34C759" Offset="0" />
+                <GradientStop Color="#FFD60A" Offset="0.6" />
+                <GradientStop Color="#FF453A" Offset="1" />
+            </LinearGradientBrush>
+            <!-- Tło okna (SeamBackdrop) przechodzi bez przerwy pod pasek tytułu, pasek boczny i treść -->
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="Transparent" />
+            <!-- Przełączniki: żywa zieleń z białą gałką zamiast bladego akcentu -->
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#34C759" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#45D168" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#2DB04E" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#34C759" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#33FFFFFF" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#40FFFFFF" />
+            <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#E8E8EA" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="White" />
+            <!-- Przyciski drugorzędne: neutralne szkło na grafitowym tle -->
+            <SolidColorBrush x:Key="ButtonBackground" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#0DFFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#38FFFFFF" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E6E6E8" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="White" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="White" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="White" />
+            <Thickness x:Key="NavigationViewContentGridBorderThickness">0</Thickness>
+            <CornerRadius x:Key="NavigationViewContentGridCornerRadius">0</CornerRadius>
+            <!-- Ikony paska bocznego (IconTile.RenderNav: 36 px w pikselach ekranu); 36 + 2 + 2 = szerokość kolumny ikony -->
+            <x:Double x:Key="NavigationViewIconBoxWidth">36</x:Double>
+            <x:Double x:Key="NavigationViewItemOnLeftIconBoxHeight">36</x:Double>
+            <Thickness x:Key="NavigationViewItemOnLeftIconBoxMargin">2,0,2,0</Thickness>
+            <x:Double x:Key="NavigationViewItemOnLeftMinHeight">44</x:Double>
+            <Thickness x:Key="NavigationViewItemButtonMargin">0,3,0,3</Thickness>
+            <!-- bez paska po lewej: zaznaczenie pokazuje sama pigułka -->
+            <x:Double x:Key="NavigationViewSelectionIndicatorWidth">0</x:Double>
+
+            <SolidColorBrush x:Key="StatusGreen" Color="#34C759" />
+            <SolidColorBrush x:Key="StatusOrange" Color="#FF9F0A" />
+            <SolidColorBrush x:Key="StatusRed" Color="#FF453A" />
+            <SolidColorBrush x:Key="StatusGray" Color="#8E8E93" />
+            <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+            <!-- Wiersz ustawienia: tytuł + opis po lewej, kontrolka po prawej -->
+            <ControlTheme x:Key="{x:Type views:SettingRow}" TargetType="views:SettingRow">
+                <Setter Property="HorizontalContentAlignment" Value="Right" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2" Margin="0,0,12,0">
+                                <TextBlock Classes="rowTitle" Text="{TemplateBinding Title}" />
+                                <TextBlock Classes="subtitle"
+                                           Text="{TemplateBinding Subtitle}"
+                                           IsVisible="{TemplateBinding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                            <ContentPresenter Grid.Column="1"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Right" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <Style Selector="TextBlock.seamIcon">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="Foreground" Value="#B5B8C0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- Układ stron paska bocznego: tytuł jak w Ustawieniach Windows 11, karty z odstępem -->
+    <Style Selector="TextBlock.pageTitle">
+        <Setter Property="FontSize" Value="26" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="StackPanel.page">
+        <Setter Property="Spacing" Value="14" />
+        <Setter Property="Margin" Value="24,20,24,20" />
+        <Setter Property="MaxWidth" Value="900" />
+    </Style>
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="18" />
+    </Style>
+
+    <Style Selector="Border.pill">
+        <Setter Property="Background" Value="{DynamicResource PillBackground}" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="StackPanel.sectionHeader">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Spacing" Value="8" />
+    </Style>
+    <Style Selector="StackPanel.sectionHeader > TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="0.8" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.sectionHeader > TextBlock.icon">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LetterSpacing" Value="0" />
+    </Style>
+
+    <Style Selector="TextBlock.subtitle">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.rowTitle">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.mono">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="Rectangle.divider">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Fill" Value="{DynamicResource RowDivider}" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+
+    <Style Selector="ToggleSwitch.compact">
+        <Setter Property="OnContent" Value="" />
+        <Setter Property="OffContent" Value="" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="Margin" Value="0,-2,0,-2" />
+    </Style>
+
+    <Style Selector="Button">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="CornerRadius" Value="10" />
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="MinHeight" Value="40" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="MinHeight" Value="40" />
+    </Style>
+
+    <!-- Główna akcja: jasny przycisk na zielonym tle, obok szklanych przycisków drugorzędnych -->
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="#F2F8E6" />
+        <Setter Property="BorderBrush" Value="#F2F8E6" />
+        <Setter Property="Foreground" Value="#143B1E" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="16,7" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="White" />
+        <Setter Property="Foreground" Value="#143B1E" />
+    </Style>
+    <Style Selector="Button.accent:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#DCE6D2" />
+        <Setter Property="Foreground" Value="#143B1E" />
+    </Style>
+
+
+    <!-- miernik poziomu jak na Macu: gradient zielony → czerwony -->
+    <Style Selector="ProgressBar.level">
+        <Setter Property="Foreground" Value="{StaticResource LevelGradient}" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <!-- Podtytuł strony i karta-włącznik na górze strony funkcji (jak FeatureHero na macOS) -->
+    <Style Selector="TextBlock.pageSubtitle">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.hero">
+        <Setter Property="Padding" Value="18" />
+    </Style>
+    <Style Selector="TextBlock.heroTitle">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.note">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="4,0,0,0" />
+    </Style>
+
+    <!-- Układ ekranów: kropkowane tło, monitor na środku, cztery miejsca na Maca -->
+    <Style Selector="Border.stage">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="#33000000" />
+        <Setter Property="BorderBrush" Value="#14FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.screen">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="BorderBrush" Value="#4A4D53" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#3A3D43" Offset="0" />
+                <GradientStop Color="#26282C" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Button.slot">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="#26FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.slot:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#14FFFFFF" />
+        <Setter Property="BorderBrush" Value="#5593AE8C" />
+    </Style>
+    <Style Selector="Button.slot.selected">
+        <Setter Property="BorderBrush" Value="#A9C2A2" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#3A4638" Offset="0" />
+                <GradientStop Color="#232A22" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+    <Style Selector="Button.slot.selected:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#3A4638" />
+        <Setter Property="BorderBrush" Value="#C6DABF" />
+    </Style>
+
+    <!-- Nagłówki sekcji paska bocznego (Funkcje, System): małe i przygaszone jak na macOS -->
+    <Style Selector="ui|NavigationViewItemHeader">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#6BFFFFFF" />
+    </Style>
+
+    <!-- Pasek boczny: zaznaczona pozycja w szklanej pigułce zamiast paska z lewej -->
+    <Style Selector="ui|NavigationViewItem">
+        <Setter Property="FontSize" Value="14.5" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter /template/ Border#LayoutRoot">
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter">
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="Margin" Value="8,0,8,0" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter:selected /template/ Border#LayoutRoot">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#2EFFFFFF" Offset="0" />
+                <GradientStop Color="#17FFFFFF" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="#33FFFFFF" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter:selected:pointerover /template/ Border#LayoutRoot">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#3BFFFFFF" Offset="0" />
+                <GradientStop Color="#21FFFFFF" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="#40FFFFFF" />
+    </Style>
+    <Style Selector="uip|NavigationViewItemPresenter:selected:pressed /template/ Border#LayoutRoot">
+        <Setter Property="BorderBrush" Value="#33FFFFFF" />
+    </Style>
+</Styles>

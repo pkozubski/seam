@@ -1,0 +1,128 @@
+name: Dev build
+
+# Wspólna wersja testowa macOS i Windows w wydaniu wstępnym „dev-build”.
+# Obie aplikacje zbudowane tym workflow same się do niego aktualizują;
+# stabilny kanał czyta tylko releases/latest, więc wydań wstępnych nie widzi.
+on:
+  push:
+    branches: ["feature/virtual-display"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dev-build
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS (universal, dev channel)
+    runs-on: macos-26
+    environment: production-release
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import stable release certificate
+        env:
+          MACOS_SIGNING_P12_BASE64: ${{ secrets.MACOS_SIGNING_P12_BASE64 }}
+          MACOS_SIGNING_P12_PASSWORD: ${{ secrets.MACOS_SIGNING_P12_PASSWORD }}
+        run: bash macos/ci/import-signing.sh
+      - name: Build
+        working-directory: macos
+        run: REQUIRE_SDK_MAJOR=26 UNIVERSAL=1 UPDATE_CHANNEL=dev VERSION="2.1.${{ github.run_number }}" BUILD_NUMBER="${{ github.run_number }}" ./build.sh
+      - name: Verify windows, update channel and signed updates
+        run: |
+          bash macos/tests/window-check.sh
+          bash macos/tests/update-check.sh
+          bash macos/tests/security-check.sh
+          bash macos/tests/signature-check.sh
+      - name: Package
+        run: ditto -c -k --keepParent macos/build/Seam.app macos/Seam-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dev
+          path: macos/Seam-macOS.zip
+          if-no-files-found: error
+      - name: Remove temporary signing identity
+        if: always()
+        timeout-minutes: 1
+        run: |
+          security delete-keychain "$RUNNER_TEMP/seam-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/seam-signing.p12"
+
+  windows:
+    name: Windows (x64, dev channel)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore locked dependencies
+        run: dotnet restore windows/ClipboardChecks/Seam.ClipboardChecks.csproj --locked-mode
+      - name: Verify windows and update versions
+        run: dotnet run --project windows/ClipboardChecks/Seam.ClipboardChecks.csproj -c Release --no-restore -- --window-checks
+      - name: Publish
+        shell: pwsh
+        run: |
+          $version = "2.1.${{ github.run_number }}"
+          dotnet publish windows/Seam/Seam.csproj -c Release -r win-x64 `
+            --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:Version=$version -p:InformationalVersion="$version-dev" -p:UpdateChannel=dev --no-restore -o publish
+          Move-Item publish/Seam.exe publish/Seam-Windows-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-dev
+          path: |
+            publish/Seam-Windows-x64.exe
+            publish/THIRD_PARTY_NOTICES.txt
+          if-no-files-found: error
+
+  release:
+    name: Dev release
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    environment: production-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-dev'
+          merge-multiple: true
+          path: dist
+      - name: Checksums and signature
+        env:
+          UPDATE_SIGNING_PRIVATE_KEY_PEM: ${{ secrets.UPDATE_SIGNING_PRIVATE_KEY_PEM }}
+        run: |
+          : "${UPDATE_SIGNING_PRIVATE_KEY_PEM:?Brak UPDATE_SIGNING_PRIVATE_KEY_PEM}"
+          cd dist
+          # Kopie pod dawnymi nazwami: wersje sprzed zmiany nazwy (BorderlessMouse ≤ 2.1.22) szukają tych plików.
+          cp Seam-macOS.zip BorderlessMouse-macOS.zip
+          cp Seam-Windows-x64.exe BorderlessMouse-Windows-x64.exe
+          sha256sum Seam-macOS.zip Seam-Windows-x64.exe BorderlessMouse-macOS.zip BorderlessMouse-Windows-x64.exe THIRD_PARTY_NOTICES.txt > SHA256SUMS.txt
+          umask 077
+          key="$RUNNER_TEMP/seam-update-signing.pem"
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$UPDATE_SIGNING_PRIVATE_KEY_PEM" > "$key"
+          cmp <(openssl pkey -in "$key" -pubout -outform DER) \
+            <(openssl pkey -pubin -in ../security/update-signing-public.pem -outform DER)
+          openssl dgst -sha256 -sign "$key" -out Seam-macOS.zip.sig Seam-macOS.zip
+          openssl dgst -sha256 -sign "$key" -out Seam-Windows-x64.exe.sig Seam-Windows-x64.exe
+          openssl dgst -sha256 -verify ../security/update-signing-public.pem \
+            -signature Seam-macOS.zip.sig Seam-macOS.zip
+          openssl dgst -sha256 -verify ../security/update-signing-public.pem \
+            -signature Seam-Windows-x64.exe.sig Seam-Windows-x64.exe
+          cp Seam-macOS.zip.sig BorderlessMouse-macOS.zip.sig
+          cp Seam-Windows-x64.exe.sig BorderlessMouse-Windows-x64.exe.sig
+      - name: Publish dev-build pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete dev-build --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create dev-build --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
+            --title "Seam dev 2.1.${{ github.run_number }}" \
+            --notes-file .github/dev-release-notes.md \
+            dist/Seam-macOS.zip dist/Seam-macOS.zip.sig \
+            dist/Seam-Windows-x64.exe dist/Seam-Windows-x64.exe.sig \
+            dist/BorderlessMouse-macOS.zip dist/BorderlessMouse-macOS.zip.sig \
+            dist/BorderlessMouse-Windows-x64.exe dist/BorderlessMouse-Windows-x64.exe.sig \
+            dist/THIRD_PARTY_NOTICES.txt dist/SHA256SUMS.txt

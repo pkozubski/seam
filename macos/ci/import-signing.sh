@@ -9,9 +9,9 @@ set -euo pipefail
 : "${GITHUB_ENV:?}"
 umask 077
 
-SIGNING_ARCHIVE="$RUNNER_TEMP/borderlessmouse-signing.p12"
-SIGNING_KEYCHAIN="$RUNNER_TEMP/borderlessmouse-signing.keychain-db"
-SIGNING_CERT="$GITHUB_WORKSPACE/macos/BorderlessMouse/Resources/ReleaseSigning.cer"
+SIGNING_ARCHIVE="$RUNNER_TEMP/seam-signing.p12"
+SIGNING_KEYCHAIN="$RUNNER_TEMP/seam-signing.keychain-db"
+SIGNING_CERT="$GITHUB_WORKSPACE/macos/Seam/Resources/ReleaseSigning.cer"
 SIGNING_KEYCHAIN_PASSWORD=$(/usr/bin/openssl rand -hex 32)
 echo "::add-mask::$SIGNING_KEYCHAIN_PASSWORD"
 trap 'rm -f "$SIGNING_ARCHIVE"' EXIT

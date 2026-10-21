@@ -1,5 +1,6 @@
 # Projekt Xcode generowany przez XcodeGen:  brew install xcodegen && xcodegen
-name: BorderlessMouse
+# Bundle ID zostaje com.borderlessmouse.mac: od niego zależą zgody TCC, ustawienia i Pęk kluczy.
+name: Seam
 options:
   bundleIdPrefix: com.borderlessmouse
   deploymentTarget:
@@ -13,19 +14,24 @@ settings:
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
-  BorderlessMouse:
+  Seam:
     type: application
     platform: macOS
     sources:
-      - path: BorderlessMouse/Sources
-      - path: BorderlessMouse/Resources
+      - path: Seam/Sources
+      - path: Seam/Resources
+        buildPhase: resources
+      - path: ../assets/seam
+        includes: ["*.png"]
         buildPhase: resources
     settings:
       base:
-        PRODUCT_NAME: BorderlessMouse
+        PRODUCT_NAME: Seam
         PRODUCT_BUNDLE_IDENTIFIER: com.borderlessmouse.mac
-        INFOPLIST_FILE: BorderlessMouse/Info.plist
-        CODE_SIGN_ENTITLEMENTS: BorderlessMouse/BorderlessMouse.entitlements
+        INFOPLIST_FILE: Seam/Info.plist
+        # Prywatne API wirtualnego monitora (słabo linkowane, patrz plik nagłówka).
+        SWIFT_OBJC_BRIDGING_HEADER: Seam/Sources/Display/CGVirtualDisplay.h
+        CODE_SIGN_ENTITLEMENTS: Seam/Seam.entitlements
         CODE_SIGN_STYLE: Automatic
         # Ad-hoc; w Xcode wybierz swój Team, żeby uprawnienia TCC nie znikały po każdym buildzie.
         CODE_SIGN_IDENTITY: "-"
