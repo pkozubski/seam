@@ -71,6 +71,9 @@ enum MessageType: UInt8 {
     case winViewCursor = 0x96
     case winViewPointerLeave = 0x97
     case winViewPointerRelease = 0x98
+    case winViewApp = 0x99
+    case winViewActivate = 0x9A
+    case winViewClose = 0x9B
 }
 
 /// Tryb ekranu wirtualnego po stronie Windows.
@@ -145,6 +148,13 @@ struct StatusFlags: OptionSet {
     static let winViewSupported = StatusFlags(rawValue: 1 << 7)
 }
 
+/// Drugi bajt STATUS (starsze wersje Windows czytają tylko pierwszy).
+struct ExtendedStatusFlags: OptionSet {
+    let rawValue: UInt8
+    /// Mac pokazuje aplikacje Windows jako osobne aplikacje w Docku (WINVIEW_APP, numer aplikacji przy oknie).
+    static let winViewApps = ExtendedStatusFlags(rawValue: 1 << 0)
+}
+
 /// Okno Windows leżące na wirtualnym monitorze Windows (sterownik Virtual Display Driver),
 /// w pikselach tego monitora. Mac pokazuje je jako własne okno w tym samym miejscu ekranu.
 struct WinWindowDescriptor: Equatable {
@@ -152,6 +162,8 @@ struct WinWindowDescriptor: Equatable {
     let x: Int32, y: Int32, width: UInt16, height: UInt16
     let flags: UInt8
     let title: String
+    /// Aplikacja Windows (pid procesu z WINVIEW_APP); nil, gdy Windows jej nie podaje.
+    var app: UInt32? = nil
 
     /// Aktywne okno Windows (ma klawiaturę).
     static let foreground: UInt8 = 1 << 0
@@ -167,11 +179,14 @@ struct WinWindowList: Equatable {
     let displayWidth: Int
     let displayHeight: Int
     let windows: [WinWindowDescriptor]
+    /// Lista przyszła z numerami aplikacji (Windows zna WINVIEW_APP, WINVIEW_ACTIVATE i WINVIEW_CLOSE).
+    let hasApps: Bool
 
     init(displayWidth: Int, displayHeight: Int, windows: [WinWindowDescriptor]) {
         self.displayWidth = displayWidth
         self.displayHeight = displayHeight
         self.windows = windows
+        hasApps = !windows.isEmpty && windows.allSatisfy { $0.app != nil }
     }
 
     init?(payload: [UInt8]) {
@@ -185,8 +200,17 @@ struct WinWindowList: Equatable {
                                                width: width, height: height, flags: flags,
                                                title: String(decoding: title, as: UTF8.self)))
         }
+        // Opcjonalny dopisek (Windows wysyła go, gdy Mac ma bit winViewApps): numer aplikacji każdego okna.
+        if r.remaining == windows.count * 4, !windows.isEmpty {
+            for i in windows.indices { windows[i].app = r.u32() }
+            hasApps = true
+        } else {
+            hasApps = false
+        }
         guard r.remaining == 0 else { return nil }
-        self.init(displayWidth: Int(w), displayHeight: Int(h), windows: windows)
+        self.displayWidth = Int(w)
+        self.displayHeight = Int(h)
+        self.windows = windows
     }
 
     var payload: [UInt8] {
@@ -204,6 +228,46 @@ struct WinWindowList: Equatable {
             w.u8(UInt8(title.count))
             w.raw(title)
         }
+        if !limited.isEmpty, limited.allSatisfy({ $0.app != nil }) {
+            for window in limited { w.u32(window.app ?? 0) }
+        }
+        return w.bytes
+    }
+}
+
+/// Aplikacja Windows, do której należą okna (WINVIEW_APP): nazwa i ikona do Docka.
+struct WinAppInfo: Equatable {
+    /// Numer z listy okien (pid procesu Windows).
+    let id: UInt32
+    /// Nazwa do Docka i paska menu (opis pliku exe).
+    let name: String
+    /// Nazwa pliku exe bez rozszerzenia – okna procesów jednej aplikacji mają wspólną ikonę w Docku.
+    let key: String
+    /// PNG (pusty = ikona ogólna).
+    let icon: [UInt8]
+
+    static let maxIconBytes = 1 << 20
+
+    init(id: UInt32, name: String, key: String, icon: [UInt8]) {
+        self.id = id; self.name = name; self.key = key; self.icon = icon
+    }
+
+    init?(payload: [UInt8]) {
+        var r = ByteReader(payload)
+        guard let id = r.u32(), let nameLength = r.u8(), let name = r.bytes(Int(nameLength)),
+              let keyLength = r.u8(), keyLength > 0, let key = r.bytes(Int(keyLength)),
+              r.remaining <= Self.maxIconBytes, let icon = r.bytes(r.remaining) else { return nil }
+        self.init(id: id, name: String(decoding: name, as: UTF8.self), key: String(decoding: key, as: UTF8.self), icon: icon)
+    }
+
+    var payload: [UInt8] {
+        var w = ByteWriter()
+        w.u32(id)
+        let name = Array(String(decoding: name.utf8.prefix(120), as: UTF8.self).utf8)
+        w.u8(UInt8(name.count)); w.raw(name)
+        let key = Array(String(decoding: key.utf8.prefix(120), as: UTF8.self).utf8)
+        w.u8(UInt8(key.count)); w.raw(key)
+        w.raw(icon)
         return w.bytes
     }
 }
@@ -441,8 +505,23 @@ enum Frame {
         return make(.audioFormat, w.bytes)
     }
 
-    static func status(_ flags: StatusFlags) -> Data {
-        make(.status, [flags.rawValue])
+    /// Drugi bajt jest opcjonalny – starsze wersje Windows czytają tylko pierwszy.
+    static func status(_ flags: StatusFlags, extended: ExtendedStatusFlags = []) -> Data {
+        make(.status, [flags.rawValue, extended.rawValue])
+    }
+
+    /// Użytkownik wybrał aplikację Windows w Docku albo Cmd+Tab – Windows aktywuje to okno.
+    static func winViewActivate(windowID: UInt32) -> Data {
+        var w = ByteWriter()
+        w.u32(windowID)
+        return make(.winViewActivate, w.bytes)
+    }
+
+    /// Zakończ w Docku / Cmd+Q aplikacji Windows – Windows zamyka okno jak przyciskiem ×.
+    static func winViewClose(windowID: UInt32) -> Data {
+        var w = ByteWriter()
+        w.u32(windowID)
+        return make(.winViewClose, w.bytes)
     }
 
     static func pong(_ payload: [UInt8]) -> Data { make(.pong, payload) }

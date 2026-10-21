@@ -48,6 +48,8 @@ public sealed class InputCapture : IDisposable
     private int _localButtons;
     /// <summary>Kursor na Macu, ale klawiatura zostaje w aktywnym oknie Windows pokazanym na Macu.</summary>
     private bool _vddKeyboard;
+    /// <summary>Klawiatura przejdzie do okna Windows, gdy zostaną zwolnione klawisze trzymane na Macu (Cmd z Cmd+Tab).</summary>
+    private bool _vddKeyboardPending;
     private DateTime _vddGraceUntil = DateTime.MinValue;
 
     /// <summary>Liczba ruchów myszy wysłanych do Maca w bieżącej sesji zdalnej.</summary>
@@ -199,7 +201,7 @@ public sealed class InputCapture : IDisposable
         }
 
         // Kliknięcie na Macu zabiera klawiaturę oknu Windows pokazanemu na Macu.
-        if (IsButtonDown(msg)) _vddKeyboard = false;
+        if (IsButtonDown(msg)) _vddKeyboard = _vddKeyboardPending = false;
         switch (msg)
         {
             case WM_MOUSEMOVE:
@@ -262,7 +264,7 @@ public sealed class InputCapture : IDisposable
         _winView = tracker;
         _physical = physicalBounds;
         _onVdd = false;
-        _vddKeyboard = false;
+        _vddKeyboard = _vddKeyboardPending = false;
     }
 
     /// <summary>Przeciągane jest okno Maca (tryb okien) – ono wraca na Maca przez krawędź, nie na wirtualny monitor.</summary>
@@ -282,10 +284,21 @@ public sealed class InputCapture : IDisposable
         }
         SetCursorPos(point.X, point.Y);
         _onVdd = true;
-        _vddKeyboard = false;
+        _vddKeyboard = _vddKeyboardPending = false;
         _localButtons = 0;
         // Lista okien mogła jeszcze nie dotrzeć – chwilę ufamy Macowi, że kursor jest nad oknem.
         _vddGraceUntil = DateTime.UtcNow.AddMilliseconds(300);
+    }
+
+    /// <summary>
+    /// Mac: użytkownik wybrał aplikację Windows w Docku albo Cmd+Tab. Kursor zostaje na Macu, a klawiatura
+    /// idzie do aktywnego okna Windows – jak po zjechaniu kursorem z tego okna.
+    /// </summary>
+    public void FocusWinView()
+    {
+        if (_winView is null || !IsRemote) return;
+        if (_keysDown.Count == 0) _vddKeyboard = true;
+        else _vddKeyboardPending = true;
     }
 
     /// <summary>
@@ -339,6 +352,7 @@ public sealed class InputCapture : IDisposable
         _onVdd = false;
         // Pisanie trwa w aktywnym oknie Windows, dopóki użytkownik nie kliknie czegoś na Macu.
         _vddKeyboard = ForegroundOnWinView(view);
+        _vddKeyboardPending = false;
         var edgePoint = new POINT
         {
             X = Math.Clamp(pt.X, _physical.Left, _physical.Right - 1),
@@ -596,7 +610,7 @@ public sealed class InputCapture : IDisposable
         if (announce is not null) announce();
         else
         {
-            _vddKeyboard = false;
+            _vddKeyboard = _vddKeyboardPending = false;
             _client.SendEnter(entryEdge, ratio);
         }
         // Rejestracja synchroniczna (z hooka myszy system czeka na nasz powrót): każdy następny
@@ -659,7 +673,7 @@ public sealed class InputCapture : IDisposable
         IsRemote = false;
         StopRawInput();
         _keysDown.Clear();
-        _vddKeyboard = false;
+        _vddKeyboard = _vddKeyboardPending = false;
         if (sendRelease && _client.IsConnected) _client.SendReleaseAll();
 
         // Natychmiastowy powrót (< 400 ms) = Mac odrzucił sterowanie. Odsuwamy kursor
@@ -721,6 +735,14 @@ public sealed class InputCapture : IDisposable
         var repeat = down && _keysDown.Contains(key);
         if (down) _keysDown.Add(key); else _keysDown.Remove(key);
 
+        if (IsRemote && _vddKeyboardPending && !down && _keysDown.Count == 0)
+        {
+            // Ostatni klawisz zwolniony na Macu – od teraz pisze się w wybranej aplikacji Windows.
+            _vddKeyboardPending = false;
+            _client.SendKey(scan, vk, ext, down, repeat);
+            _vddKeyboard = true;
+            return true;
+        }
         if (IsRemote && _vddKeyboard)
         {
             // Aktywne jest okno Windows pokazane na Macu – pisze się w nim, choć kursor jest na Macu.

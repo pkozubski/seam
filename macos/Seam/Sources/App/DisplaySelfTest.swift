@@ -147,6 +147,17 @@ enum DisplaySelfTest {
             check(false, "okna Windows na Macu: \(error.localizedDescription)")
         }
 
+        // 4. Aplikacja Windows jako osobna aplikacja Maca (pomocnik z własną ikoną w Docku)
+        if WinAppBundles.isAvailable {
+            do {
+                try winViewAppHost(check: check)
+            } catch {
+                check(false, "pomocnik aplikacji Windows: \(error.localizedDescription)")
+            }
+        } else {
+            print("– pominięto pomocnika aplikacji: brak Contents/Helpers/SeamHost")
+        }
+
         print(failures == 0 ? "WYNIK: OK" : "WYNIK: \(failures) błędów")
         exit(failures == 0 ? 0 : 1)
     }
@@ -437,6 +448,122 @@ enum DisplaySelfTest {
         client.cancel()
         session.stop()
         spin(0.2)
+    }
+
+    /// Okno aplikacji Windows z numerem aplikacji (WINVIEW_APP) musi pokazać osobny proces
+    /// z pakietu o nazwie tej aplikacji, a nie Seam; bez okien pomocnik kończy pracę.
+    private static func winViewAppHost(check: (Bool, String) -> Void) throws {
+        let width = 640, height = 400
+        let key = VideoStream.randomBytes(VideoStream.keyBytes)
+        let token = VideoStream.randomBytes(VideoStream.tokenBytes)
+        let screen = CGDisplayBounds(CGMainDisplayID())
+        let session = WinViewSession(screen: screen, key: key, token: token)
+        var keyframeRequests = 0
+        session.onKeyframeNeeded = { DispatchQueue.main.async { keyframeRequests += 1 } }
+        var port: UInt16?
+        session.start { result in if case let .success(value) = result { port = value } }
+        func spin(_ seconds: Double, until done: () -> Bool = { false }) {
+            let end = Date().addingTimeInterval(seconds)
+            while Date() < end, !done() { RunLoop.main.run(until: Date().addingTimeInterval(0.02)) }
+        }
+        spin(3) { port != nil }
+        guard let port else { throw SelfTestError("odbiornik nie wystartował") }
+        let client = NWConnection(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: port)!, using: .tcp)
+        client.start(queue: DispatchQueue(label: "selftest.winapp"))
+        client.send(content: token, completion: .contentProcessed { _ in })
+        spin(1) { keyframeRequests > 0 }
+
+        // Ikona: zielony kwadrat (PNG), jak ikona exe z Windowsa.
+        let iconImage = NSImage(size: NSSize(width: 64, height: 64), flipped: false) { rect in
+            NSColor(red: 0.1, green: 0.7, blue: 0.3, alpha: 1).setFill()
+            rect.fill()
+            return true
+        }
+        let png = iconImage.tiffRepresentation.flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }
+        let appName = "Seam Test App"
+        session.app(WinAppInfo(id: 77, name: appName, key: "seam-selftest", icon: [UInt8](png ?? Data())))
+        var window = WinWindowDescriptor(id: 0x5678, x: 160, y: 100, width: 320, height: 200, flags: WinWindowDescriptor.foreground,
+                                         title: "Dokument (test)")
+        window.app = 77
+        session.update(WinWindowList(displayWidth: width, displayHeight: height, windows: [window]))
+
+        let encoder = try VideoEncoder(width: Int(window.width), height: Int(window.height))
+        var sealer = VideoStream.Sealer(key: key)
+        encoder.onFrame = { encoded in
+            let frame = VideoStream.Frame(kind: .windowAccessUnit, flags: encoded.isKeyframe ? [.keyframe] : [],
+                                          width: Int(window.width), height: Int(window.height), captureMicros: 0,
+                                          payload: encoded.annexB, streamID: window.id, cornerRadius: 0)
+            if let record = sealer.seal(frame.encoded()) { client.send(content: record, completion: .contentProcessed { _ in }) }
+        }
+        let top = Color(r: 30, g: 200, b: 60), bottom = Color(r: 220, g: 30, b: 30)
+        let image = try makeFrame(width: Int(window.width), height: Int(window.height), color: top, bottomColor: bottom)
+        var handled = keyframeRequests
+        var index = 0
+        let started = Date()
+        while Date().timeIntervalSince(started) < 15, session.hostedWindow(window.id) == nil {
+            // Nowy pomocnik prosi o klatkę kluczową – jak Windows, koder ją wymusza.
+            if keyframeRequests != handled {
+                handled = keyframeRequests
+                encoder.requestKeyframe()
+            }
+            encoder.encode(image, presentationTime: CMTime(value: CMTimeValue(index), timescale: 30))
+            index += 1
+            spin(0.1)
+        }
+        let launchTime = Date().timeIntervalSince(started)
+        guard let hosted = session.hostedWindow(window.id) else {
+            check(false, "pomocnik aplikacji nie pokazał okna w \(Int(launchTime)) s")
+            encoder.invalidate()
+            client.cancel()
+            session.stop()
+            return
+        }
+        check(true, "pomocnik pokazał okno po \(String(format: "%.1f", launchTime)) s")
+        let app = NSRunningApplication(processIdentifier: hosted.pid)
+        check(hosted.pid != getpid() && app?.localizedName == appName,
+              "okno należy do osobnej aplikacji „\(app?.localizedName ?? "?")” (pid \(hosted.pid))")
+        check(app?.bundleIdentifier == "com.borderlessmouse.winapp.seam-selftest", "identyfikator pakietu \(app?.bundleIdentifier ?? "?")")
+        check(app?.activationPolicy == .regular, "pomocnik ma ikonę w Docku i wpis w Cmd+Tab")
+        let info = (CGWindowListCopyWindowInfo([.optionIncludingWindow], CGWindowID(hosted.number)) as? [[String: Any]])?.first
+        check((info?[kCGWindowOwnerPID as String] as? Int32) == hosted.pid, "WindowServer: właściciel okna to pomocnik")
+        spin(0.3)
+        check(session.proxyWindowNumber(window.id) == nil, "Seam nie pokazuje drugiej kopii okna")
+        let inside = CGPoint(x: screen.minX + screen.width / 2, y: screen.minY + screen.height / 2)
+        check(session.hitTest(inside) != nil, "okno pomocnika przyjmuje kursor Windows")
+
+        if DisplayCapture.hasPermission {
+            var shot: CGImage?
+            var done = false
+            Task {
+                defer { done = true }
+                guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true),
+                      let scWindow = content.windows.first(where: { $0.windowID == CGWindowID(hosted.number) }) else { return }
+                let config = SCStreamConfiguration()
+                config.width = 320
+                config.height = 200
+                config.showsCursor = false
+                config.ignoreShadowsSingleWindow = true
+                shot = try? await SCScreenshotManager.captureImage(contentFilter: SCContentFilter(desktopIndependentWindow: scWindow),
+                                                                   configuration: config)
+            }
+            spin(5) { done }
+            if let shot, let upper = pixel(shot, x: 160, y: 30), let lower = pixel(shot, x: 160, y: 170) {
+                check(upper.near(top, tolerance: 40) && lower.near(bottom, tolerance: 40),
+                      "obraz w oknie pomocnika: góra \(upper), dół \(lower)")
+            } else {
+                check(false, "zrzut okna pomocnika")
+            }
+        }
+
+        // Aplikacja zamknęła ostatnie okno – pomocnik znika z Docka.
+        session.update(WinWindowList(displayWidth: width, displayHeight: height, windows: []))
+        spin(5) { app?.isTerminated == true }
+        check(app?.isTerminated == true, "pomocnik kończy pracę, gdy aplikacja nie ma okien")
+        encoder.invalidate()
+        client.cancel()
+        session.stop()
+        spin(0.2)
+        try? FileManager.default.removeItem(at: WinAppBundles.directory.appendingPathComponent("seam-selftest"))
     }
 
     private static func pixel(_ image: CGImage, x: Int, y: Int) -> Color? {

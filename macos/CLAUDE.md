@@ -36,6 +36,13 @@ Pokazuje prawdziwe okno przez około 1,5 s i robi zrzut (`UIPreview.swift`). Obe
 - Prywatne `CGVirtualDisplay` jest słabo linkowane (`Sources/Display/CGVirtualDisplay.h`); aplikacja musi startować bez niego.
 - Strony: `Sources/Views/*Page.swift`, sekcje paska bocznego w `SidebarSection`; macOS nie ma strony Ekrany
   (położenie Maca ustawia Windows).
+- Okna Windows na Macu: każda aplikacja Windows to osobny proces `SeamHost` (źródło `SeamHost/SeamHost.swift`
+  + pliki wspólne wymienione w `HOST_SOURCES` w `build.sh`; binarka w `Contents/Helpers/SeamHost`, podpisywana
+  przed pakietem). `WinAppBundles` generuje dla niej pakiet z nazwą i ikoną z Windowsa w
+  `~/Library/Application Support/Seam/Windows Apps.noindex/` (podpis ad hoc, odświeżany po zmianie Seam),
+  `WinAppHosts` uruchamia go i przekazuje okna przez gniazdo Unix (`WinHostLink`). Kod używany przez oba programy
+  (`WinWindowProxies`, `WinHostLink`, `H264Decompressor`, `Protocol`) nie może sięgać do typów tylko z Seam.
+  Sprawdzenie: sekcja 4 samotestu `--display-selftest` (osobny proces, identyfikator pakietu, obraz, zakończenie).
 
 ## Energia
 

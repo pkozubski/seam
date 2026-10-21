@@ -89,17 +89,25 @@ musi rosnąć ściśle; powtórzenie, przestawienie lub modyfikacja kończy sesj
 | 0x91 | WINVIEW_READY | M → W | `u8 status`, `u16 port`, `32 B key`, `16 B token`, `u16 screenWidth`, `u16 screenHeight` (punkty ekranu Maca), `u16 scalePercent`, komunikat |
 | 0x92 | WINVIEW_STOP | W → M | – |
 | 0x93 | WINVIEW_KEYFRAME | M → W | – |
-| 0x94 | WINVIEW_WINDOWS | W → M | `u16 displayWidth`, `u16 displayHeight`, `u8 count`, `count ×` (`u32 id`, `i32 x`, `i32 y`, `u16 w`, `u16 h`, `u8 flags`, `u8 titleLength`, tytuł UTF-8); piksele monitora wirtualnego Windows, od najwyższego; flagi: bit 0 aktywne, bit 1 menu/podpowiedź |
+| 0x94 | WINVIEW_WINDOWS | W → M | `u16 displayWidth`, `u16 displayHeight`, `u8 count`, `count ×` (`u32 id`, `i32 x`, `i32 y`, `u16 w`, `u16 h`, `u8 flags`, `u8 titleLength`, tytuł UTF-8); piksele monitora wirtualnego Windows, od najwyższego; flagi: bit 0 aktywne, bit 1 menu/podpowiedź; gdy Mac ma bit `WinViewApps` i lista nie jest pusta, na końcu `count × u32 app` (numer aplikacji z `WINVIEW_APP`) |
 | 0x95 | WINVIEW_POINTER_ENTER | M → W | `u16 x`, `u16 y` – kursor sterowany z Windowsa wjechał na okno Windows pokazane na Macu (piksele monitora wirtualnego) |
 | 0x96 | WINVIEW_CURSOR | W → M | `u16 x`, `u16 y`, `u8 shape` (jak `CURSOR_SHAPE`), `u8 flags` (bit 0 widoczny, bit 1 wciśnięty przycisk) – kursor Windows na monitorze wirtualnym |
 | 0x97 | WINVIEW_POINTER_LEAVE | W → M | `u16 x`, `u16 y` – kursor zszedł z okien Windows; Mac przejmuje sterowanie w tym punkcie |
 | 0x98 | WINVIEW_POINTER_RELEASE | M → W | `u16 x`, `u16 y` – w tym miejscu okno Windows na Macu jest zasłonięte (albo go nie ma); Windows oddaje sterowanie jak przy `WINVIEW_POINTER_LEAVE` |
+| 0x99 | WINVIEW_APP | W → M | `u32 app` (pid), `u8 len` + nazwa UTF-8 (opis pliku exe), `u8 len` + klucz (nazwa exe bez rozszerzenia, niepusty), reszta: PNG ikony (najwyżej 1 MiB, może być pusty); wysyłane przed pierwszą listą z tym numerem; tylko gdy Mac ma bit `WinViewApps` |
+| 0x9A | WINVIEW_ACTIVATE | M → W | `u32 windowID` – aplikację Windows wybrano na Macu (Dock, Cmd+Tab, menu Docka): Windows aktywuje to okno, a klawiatura idzie do niego, choć kursor zostaje na Macu |
+| 0x9B | WINVIEW_CLOSE | M → W | `u32 windowID` – „Zakończ” aplikacji Windows na Macu: Windows zamyka okno jak przyciskiem × (`SC_CLOSE`) |
 | 0x88 | WINDOW_MENU | M → W | `i32 pid`, lista pozycji: `u16 count`, dla każdej `u8 flags` (bit 0 aktywna, 1 separator, 2 zaznaczona, 3 podmenu), `u8 len` + tytuł, `u8 len` + skrót, przy podmenu zagnieżdżona lista; pozycje numerowane w kolejności przeglądania od 0 |
 
 Flagi `STATUS`: bit 0 Dostępność, bit 1 przechwytywanie audio, bit 2 kursor na Macu,
 bit 3 Mac obsługuje ekran wirtualny, bit 4 ekran wirtualny włączony na Macu,
 bit 5 strumień ekranu działa, bit 6 Mac obsługuje tryb okien, bit 7 Mac pokazuje okna Windows (`WINVIEW_*`). Windows wysyła `DISPLAY_*` dopiero, gdy widzi bit 3 –
 starsza wersja Maca nie zna tych typów i zerwałaby sesję.
+
+Opcjonalny drugi bajt `STATUS` (starsze wersje Windows czytają tylko pierwszy): bit 0 `WinViewApps` – Mac
+pokazuje każdą aplikację Windows jako osobną aplikację (`WINVIEW_APP`, numery aplikacji w `WINVIEW_WINDOWS`).
+Mac wysyła `WINVIEW_ACTIVATE` i `WINVIEW_CLOSE` tylko po liście z numerami aplikacji, bo tylko nowa wersja
+Windows je zna. Nieznany typ ramki zrywa sesję po obu stronach, stąd te warunki.
 
 Schowek przyjmuje tekst do 1 MiB i PNG do 32 MiB / 64 megapikseli. Nieznane,
 niepoprawne i zbyt duże ramki są odrzucane przed przetwarzaniem.
@@ -250,6 +258,19 @@ Wejście:
   zasłonięte przez okno Maca, Mac wysyła `WINVIEW_POINTER_RELEASE`.
 * Dopóki na Macu są okna Windows, aplikacja ma ikonę w Docku i w Cmd+Tab; aktywacja wyciąga
   te okna na wierzch.
+
+Aplikacje (bit `WinViewApps`): okna jednej aplikacji Windows (ten sam klucz z `WINVIEW_APP`) pokazuje na
+Macu osobny proces z pakietu o jej nazwie i ikonie (`~/Library/Application Support/Seam/Windows Apps.noindex/`,
+identyfikator `com.borderlessmouse.winapp.<klucz>`, plik wykonywalny `SeamHost` z `Seam.app/Contents/Helpers`).
+Ma własną ikonę w Docku, wpis w Cmd+Tab i nazwę w pasku menu, jak okna aplikacji Maca na pasku zadań Windows.
+Seam przekazuje mu położenie i strumienie H.264 jego okien przez gniazdo Unix; dopóki pomocnik nie pokaże okna
+(albo gdy się nie uruchomi), okno pokazuje Seam. Same menu i podpowiedzi nie uruchamiają pomocnika.
+
+* Wybór aplikacji w Docku albo Cmd+Tab: `WINVIEW_ACTIVATE` z jej najwyższym oknem.
+* Okno aktywne na Windowsie zmienia aktywną aplikację Maca tylko wtedy, gdy aktywny jest Seam albo pomocnik
+  (użytkownik pracuje w oknach Windows); okna innych aplikacji Maca nie tracą fokusu.
+* „Zakończ”: `WINVIEW_CLOSE` dla każdego okna; pomocnik zostaje, dopóki aplikacja ma okna (np. pytanie o zapis),
+  i kończy pracę ok. 1,5 s po zniknięciu ostatniego. Wylogowanie nie zamyka aplikacji na Windowsie.
 
 ## Granice zaufania
 

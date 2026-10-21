@@ -2,6 +2,7 @@
 
 ## Unreleased — test channel
 
+- macOS: each Windows app shown on the Mac is now its own Mac app, as Mac apps already are on the Windows taskbar. It has its own Dock icon with the app's Windows icon, its own entry in Cmd+Tab and its name in the menu bar, instead of every Windows window sitting under the Seam icon. Choosing it in the Dock or Cmd+Tab brings its window forward on Windows and sends the keyboard there; the Dock menu lists its windows; Quit closes its windows on Windows the way the × button does (the app can still ask to save). Requires the matching Windows version; with an older one, windows stay under Seam as before.
 - Windows apps on the Mac: windows stay on whichever Mac desktop (Space) is open. Bringing a Windows window forward or moving the pointer onto one no longer switches to the desktop where it first appeared or where the Seam window is.
 - Windows apps on the Mac: dragging a Windows window is smoother. Position, picture and cursor reach the Mac's main thread together and only in their newest state, and the main thread is no longer busy redrawing the interface (see below).
 - Windows apps on the Mac: no more brief zoom while a window moves onto the virtual monitor. When its DPI changes, a frame captured mid-resize used to be cropped to the window's new bounds, which showed a magnified corner of the window; such frames are now sent whole.

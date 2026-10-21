@@ -327,6 +327,25 @@ internal static class Program
         Expect(Frame.ParseWinViewReady(winReadyPayload.AsSpan(0, 30)) is null, "truncated WINVIEW_READY rejected");
         Expect(Frame.ParseWinViewPointerEnter(Hex("3412ffff")) == (0x1234, 0xFFFF), "WINVIEW_POINTER_ENTER from the Mac layout");
         Expect((byte)StatusFlags.WinViewSupported == 0x80, "WINVIEW status bit");
+        // Aplikacje Windows jako osobne aplikacje Maca, wektory wspólne z macOS.
+        Expect((byte)ExtendedStatusFlags.WinViewApps == 0x01, "WINVIEW apps bit in the second STATUS byte");
+        Expect(Frame.WinViewWindows(1710, 1107, [new WinWindow(0x01020304, -10, 20, 800, 600, 3, "Ąb", 77)], includeApps: true)
+                   .SequenceEqual(Hex("941eae0653040104030201f6ffffff14000000200358020303c484624d000000")),
+            "WINVIEW_WINDOWS with app numbers matches the Mac layout");
+        Expect(Frame.WinViewWindows(1710, 1107, [new WinWindow(0x01020304, -10, 20, 800, 600, 3, "Ąb", 77)])
+                   .SequenceEqual(Hex("941aae0653040104030201f6ffffff14000000200358020303c48462")),
+            "WINVIEW_WINDOWS without app numbers for older Macs");
+        Expect(Frame.WinViewApp(77, "Notatnik", "notepad", [0x89, 0x50]).SequenceEqual(Hex("99174d000000084e6f7461746e696b076e6f74657061648950")),
+            "WINVIEW_APP matches the Mac layout");
+        Expect(Frame.ParseWinViewWindowId(Hex("04030201")) == 0x01020304u && Frame.ParseWinViewWindowId(Hex("0403")) is null, "WINVIEW_ACTIVATE / WINVIEW_CLOSE id");
+        Expect(Frame.TryParseSingle(Hex("9a0404030201"), out var activateType, out _) && activateType == MessageType.WinViewActivate
+               && Frame.TryParseSingle(Hex("9b0407000000"), out var closeType, out _) && closeType == MessageType.WinViewClose,
+            "WINVIEW_ACTIVATE and WINVIEW_CLOSE are known");
+        var png = Seam.Display.PngEncoder.EncodeBgra(2, 1, [0, 0, 255, 255, 255, 0, 0, 128]);
+        Expect(png.AsSpan(0, 8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })
+               && png.AsSpan(12, 4).SequenceEqual("IHDR"u8) && png[24] == 8 && png[25] == 6
+               && png.AsSpan(png.Length - 12).SequenceEqual(Hex("0000000049454e44ae426082")),
+            "app icon PNG: signature, RGBA header and IEND");
         Expect(VideoStream.EncodeFrame(true, 800, 600, 5, Hex("0000000165"), [1, 2, 3]).SequenceEqual(Hex("0301200358020500000000000000030000000102030000000165")),
             "WINVIEW frame with window list matches the Mac layout");
         Expect(Frame.WinViewCursor(300, 200, 1, true, buttons: true).SequenceEqual(Hex("96062c01c8000103")), "WINVIEW_CURSOR buttons flag");

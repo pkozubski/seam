@@ -60,7 +60,12 @@ public sealed class WinViewTracker : IDisposable
     private bool _cursorChanged; // wątek śledzenia (hak WinEvent)
     /// <summary>Prostokąty okien (współrzędne ekranu) z ostatnio wysłanej listy – do decyzji kursora.</summary>
     private volatile NativeMethods.RECT[] _rects = [];
-    private IReadOnlyList<WinWindow> _lastWindows = [];
+    private volatile IReadOnlyList<WinWindow> _lastWindows = [];
+    /// <summary>Aplikacje (pid), o których Mac już wie (WINVIEW_APP) – wątek śledzenia.</summary>
+    private readonly HashSet<uint> _sentApps = [];
+    private volatile bool _sendApps;
+    /// <summary>Mac zmienił bit WinViewApps – nazwy i ikony trzeba wysłać od nowa (nie przy każdej klatce kluczowej).</summary>
+    private volatile bool _appsReset;
     private IReadOnlyList<(IntPtr Handle, bool Popup)> _lastHandles = [];
     private HashSet<IntPtr> _lastHandleSet = [];
     private (int x, int y, byte shape, bool visible, bool buttons)? _lastCursor;
@@ -91,6 +96,25 @@ public sealed class WinViewTracker : IDisposable
     }
 
     public NativeMethods.RECT Monitor => _monitor;
+
+    /// <summary>
+    /// Mac pokazuje aplikacje Windows jako osobne aplikacje (bit WinViewApps): lista niesie numer aplikacji
+    /// każdego okna, a nowa aplikacja dostaje najpierw WINVIEW_APP z nazwą i ikoną.
+    /// </summary>
+    public bool SendApps
+    {
+        get => _sendApps;
+        set
+        {
+            if (_sendApps == value) return;
+            _sendApps = value;
+            _appsReset = true;
+            Resend();
+        }
+    }
+
+    /// <summary>Okno o tym numerze jest na ostatniej liście wysłanej do Maca (dowolny wątek).</summary>
+    public bool IsListed(uint id) => _lastWindows.Any(w => w.Id == id);
 
     /// <summary>Jakieś okno Windows jest teraz na Macu.</summary>
     public bool HasWindows => _rects.Length > 0;
@@ -247,6 +271,12 @@ public sealed class WinViewTracker : IDisposable
         var (windows, handles) = Snapshot();
         var resend = _resend;
         _resend = false;
+        var sendApps = _sendApps;
+        if (_appsReset)
+        {
+            _appsReset = false;
+            _sentApps.Clear();
+        }
         var orderChanged = !handles.SequenceEqual(_lastHandles);
         if (!resend && !orderChanged && windows.SequenceEqual(_lastWindows)) return false;
         _lastWindows = windows;
@@ -255,7 +285,19 @@ public sealed class WinViewTracker : IDisposable
             Left = _monitor.Left + w.X, Top = _monitor.Top + w.Y,
             Right = _monitor.Left + w.X + w.Width, Bottom = _monitor.Top + w.Y + w.Height,
         }).ToArray();
-        _send(Frame.WinViewWindows(_monitor.Width, _monitor.Height, windows));
+        if (sendApps)
+        {
+            // Nazwa i ikona przed pierwszą listą z numerem aplikacji (odczyt ikony raz na proces).
+            foreach (var app in windows.Select(w => w.App).Distinct())
+            {
+                if (app == 0 || !_sentApps.Add(app)) continue;
+                var info = WinApps.Describe((int)app);
+                _send(Frame.WinViewApp(app, info.Name, info.Key, info.Icon));
+            }
+            // Zakończony proces: jego numer może wrócić jako inny program.
+            _sentApps.IntersectWith(windows.Select(w => w.App));
+        }
+        _send(Frame.WinViewWindows(_monitor.Width, _monitor.Height, windows, sendApps));
         if (orderChanged || resend)
         {
             _lastHandles = handles;
@@ -306,6 +348,8 @@ public sealed class WinViewTracker : IDisposable
             GetClassNameW(hwnd, className, className.Capacity);
             var cls = className.ToString();
             if (IgnoredClasses.Contains(cls)) return true;
+            // Aplikacje UWP: ramka należy do ApplicationFrameHost, a ikona i nazwa do procesu w środku.
+            var app = cls == "ApplicationFrameWindow" ? WinApps.FramedProcess(hwnd, pid) : pid;
             if (DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, out NativeMethods.RECT bounds, Marshal.SizeOf<NativeMethods.RECT>()) != 0)
                 bounds = outer;
             if (bounds.Width < 4 || bounds.Height < 4) return true;
@@ -323,7 +367,7 @@ public sealed class WinViewTracker : IDisposable
             // InternalGetWindowText nie wysyła komunikatu do aplikacji (zajęta aplikacja nas nie zablokuje).
             InternalGetWindowText(hwnd, title, title.Capacity);
             list.Add(new WinWindow(unchecked((uint)(long)hwnd), bounds.Left - _monitor.Left, bounds.Top - _monitor.Top,
-                bounds.Width, bounds.Height, flags, title.ToString()));
+                bounds.Width, bounds.Height, flags, title.ToString(), (uint)app));
             handles.Add((hwnd, popup));
             return true;
         }

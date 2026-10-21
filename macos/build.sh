@@ -78,6 +78,17 @@ rm -rf "$OUT"
 mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources" build/obj
 
 SOURCES=$(find Seam/Sources -name '*.swift' | sort)
+# Pomocnik aplikacji Windows (osobna ikona w Docku dla każdej aplikacji Windows): mały program
+# kopiowany do wygenerowanych pakietów, więc tylko pliki, których potrzebuje.
+HOST_SOURCES="SeamHost/SeamHost.swift
+Seam/Sources/Display/WinHostLink.swift
+Seam/Sources/Display/WinWindowProxies.swift
+Seam/Sources/Display/H264Decompressor.swift
+Seam/Sources/Protocol/Protocol.swift
+Seam/Sources/Protocol/ClipboardContent.swift
+Seam/Sources/Protocol/VideoStream.swift
+Seam/Sources/Security/PairingSecurity.swift
+Seam/Sources/Localization/L10n.swift"
 
 compile() { # $1 = arch, $2 = output
   echo "→ swiftc ($CONFIG, $1)"
@@ -91,13 +102,28 @@ compile() { # $1 = arch, $2 = output
     -o "$2" $SOURCES
 }
 
+compile_host() { # $1 = arch, $2 = output
+  echo "→ swiftc SeamHost ($CONFIG, $1)"
+  swiftc $OPT -swift-version 5 -parse-as-library -module-name SeamHost \
+    -target "$1-apple-macos${DEPLOY}" -sdk "$SDK" \
+    -framework AppKit -framework CryptoKit -framework Security \
+    -framework VideoToolbox -framework CoreMedia -framework CoreVideo \
+    -o "$2" $HOST_SOURCES
+}
+
+mkdir -p "$OUT/Contents/Helpers"
 if [ "${UNIVERSAL:-0}" = "1" ]; then
   compile arm64 build/obj/Seam-arm64
   compile x86_64 build/obj/Seam-x86_64
   lipo -create build/obj/Seam-arm64 build/obj/Seam-x86_64 \
        -output "$OUT/Contents/MacOS/Seam"
+  compile_host arm64 build/obj/SeamHost-arm64
+  compile_host x86_64 build/obj/SeamHost-x86_64
+  lipo -create build/obj/SeamHost-arm64 build/obj/SeamHost-x86_64 \
+       -output "$OUT/Contents/Helpers/SeamHost"
 else
   compile "$ARCH" "$OUT/Contents/MacOS/Seam"
+  compile_host "$ARCH" "$OUT/Contents/Helpers/SeamHost"
 fi
 
 sed -e "s/\$(PRODUCT_BUNDLE_IDENTIFIER)/$BUNDLE_ID/g" \
@@ -127,6 +153,11 @@ if [ "${REQUIRE_STABLE_SIGNING:-0}" = "1" ]; then
   SIGN_ARGS+=(--requirements "=designated => identifier \"$BUNDLE_ID\" and anchor H\"$CERT_HASH\"")
   SIGN_ARGS+=(--timestamp)
 fi
+# Zagnieżdżony program najpierw (podpis pakietu obejmuje jego podpis); bez uprawnień Seam.
+HOST_SIGN_ARGS=(--force --sign "$SIGN_IDENTITY" --options runtime)
+if [ -n "${SIGN_KEYCHAIN:-}" ]; then HOST_SIGN_ARGS+=(--keychain "$SIGN_KEYCHAIN"); fi
+if [ "${REQUIRE_STABLE_SIGNING:-0}" = "1" ]; then HOST_SIGN_ARGS+=(--timestamp); fi
+codesign "${HOST_SIGN_ARGS[@]}" "$OUT/Contents/Helpers/SeamHost"
 codesign "${SIGN_ARGS[@]}" "$OUT"
 codesign --verify --strict --deep --all-architectures "$OUT"
 if [ "${REQUIRE_STABLE_SIGNING:-0}" = "1" ]; then

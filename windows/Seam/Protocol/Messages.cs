@@ -76,6 +76,9 @@ public enum MessageType : byte
     WinViewCursor = 0x96,
     WinViewPointerLeave = 0x97,
     WinViewPointerRelease = 0x98,
+    WinViewApp = 0x99,
+    WinViewActivate = 0x9A,
+    WinViewClose = 0x9B,
 }
 
 /// <summary>Pozycja menu aplikacji Maca (numer = kolejność przeglądania, od 0).</summary>
@@ -127,8 +130,18 @@ public enum StatusFlags : byte
     WinViewSupported = 1 << 7,
 }
 
+/// <summary>Drugi bajt STATUS (starsze wersje Maca go nie wysyłają).</summary>
+[Flags]
+public enum ExtendedStatusFlags : byte
+{
+    None = 0,
+    /// <summary>Mac pokazuje aplikacje Windows jako osobne aplikacje (WINVIEW_APP, numer aplikacji przy oknie).</summary>
+    WinViewApps = 1 << 0,
+}
+
 /// <summary>Okno Windows na wirtualnym monitorze (piksele tego monitora, może wystawać poza niego).</summary>
-public sealed record WinWindow(uint Id, int X, int Y, int Width, int Height, byte Flags, string Title)
+/// <param name="App">Proces aplikacji (pid) – Mac grupuje po nim okna w Docku; 0 = nie wysyłamy.</param>
+public sealed record WinWindow(uint Id, int X, int Y, int Width, int Height, byte Flags, string Title, uint App = 0)
 {
     public const byte Foreground = 0x01;
     public const byte Popup = 0x02;
@@ -390,11 +403,12 @@ public static class Frame
     public static byte[] WinViewStop() => Make(MessageType.WinViewStop, ReadOnlySpan<byte>.Empty);
 
     /// <summary>Okna Windows na wirtualnym monitorze, od najwyższego (najwyżej 64).</summary>
-    public static byte[] WinViewWindows(int displayWidth, int displayHeight, IReadOnlyList<WinWindow> windows)
-        => Make(MessageType.WinViewWindows, WinViewWindowsPayload(displayWidth, displayHeight, windows));
+    /// <param name="includeApps">Dopisek z numerem aplikacji każdego okna – tylko gdy Mac ma bit WinViewApps.</param>
+    public static byte[] WinViewWindows(int displayWidth, int displayHeight, IReadOnlyList<WinWindow> windows, bool includeApps = false)
+        => Make(MessageType.WinViewWindows, WinViewWindowsPayload(displayWidth, displayHeight, windows, includeApps));
 
     /// <summary>Treść WINVIEW_WINDOWS (także w klatce wideo kind 3).</summary>
-    public static byte[] WinViewWindowsPayload(int displayWidth, int displayHeight, IReadOnlyList<WinWindow> windows)
+    public static byte[] WinViewWindowsPayload(int displayWidth, int displayHeight, IReadOnlyList<WinWindow> windows, bool includeApps = false)
     {
         var buffer = new List<byte>(5 + windows.Count * 48);
         var scratch = new byte[4];
@@ -418,8 +432,39 @@ public static class Frame
             buffer.Add((byte)title.Length);
             buffer.AddRange(title);
         }
+        if (includeApps && count > 0)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(scratch, windows[i].App);
+                buffer.AddRange(scratch);
+            }
+        }
         return buffer.ToArray();
     }
+
+    /// <summary>Nazwa i ikona (PNG) aplikacji, której okna są na Macu – przed pierwszą listą z jej numerem.</summary>
+    public static byte[] WinViewApp(uint app, string name, string key, byte[] png)
+    {
+        var nameBytes = Utf8Prefix(name, 120);
+        var keyBytes = Utf8Prefix(key.Length > 0 ? key : "app", 120);
+        var icon = png.Length <= 1 << 20 ? png : [];
+        var p = new byte[4 + 1 + nameBytes.Length + 1 + keyBytes.Length + icon.Length];
+        BinaryPrimitives.WriteUInt32LittleEndian(p, app);
+        var offset = 4;
+        p[offset++] = (byte)nameBytes.Length;
+        nameBytes.CopyTo(p, offset);
+        offset += nameBytes.Length;
+        p[offset++] = (byte)keyBytes.Length;
+        keyBytes.CopyTo(p, offset);
+        offset += keyBytes.Length;
+        icon.CopyTo(p, offset);
+        return Make(MessageType.WinViewApp, p);
+    }
+
+    /// <summary>WINVIEW_ACTIVATE / WINVIEW_CLOSE: id okna z listy.</summary>
+    public static uint? ParseWinViewWindowId(ReadOnlySpan<byte> p)
+        => p.Length >= 4 ? BinaryPrimitives.ReadUInt32LittleEndian(p) : null;
 
     /// <summary>
     /// Kursor Windows na wirtualnym monitorze (piksele) i kształt (numeracja CURSOR_SHAPE);

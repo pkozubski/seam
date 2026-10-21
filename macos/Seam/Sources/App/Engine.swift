@@ -327,7 +327,9 @@ final class Engine {
         if displayRunning == true { flags.insert(.displayStreaming) }
         if VirtualDisplay.isSupported { flags.insert(.windowModeSupported) }
         flags.insert(.winViewSupported)
-        server.send(Frame.status(flags))
+        // Bez programu pomocnika w pakiecie okna Windows zostają w Seam (jedna ikona w Docku).
+        let extended: ExtendedStatusFlags = WinAppBundles.isAvailable ? [.winViewApps] : []
+        server.send(Frame.status(flags, extended: extended))
     }
 
     // MARK: - Obsługa wiadomości (eventsQueue)
@@ -446,6 +448,9 @@ final class Engine {
         case .winViewWindows:
             guard let list = WinWindowList(payload: payload) else { return }
             winView?.update(list)
+        case .winViewApp:
+            guard let info = WinAppInfo(payload: payload) else { return }
+            winView?.app(info)
         case .winViewCursor:
             guard let update = WinCursorUpdate(payload: payload), !injector.isActive else { return }
             winView?.cursor(update)
@@ -684,6 +689,10 @@ final class Engine {
         winView = session
         session.onKeyframeNeeded = { [weak self] in self?.server.send(Frame.winViewKeyframe()) }
         session.onPointerRelease = { [weak self] x, y in self?.server.send(Frame.winViewPointerRelease(x: x, y: y)) }
+        session.onActivateWindow = { [weak self] id in self?.server.send(Frame.winViewActivate(windowID: id)) }
+        session.onCloseWindows = { [weak self] ids in
+            for id in ids { self?.server.send(Frame.winViewClose(windowID: id)) }
+        }
         session.onClosed = { [weak self] reason in
             self?.eventsQueue.async {
                 guard let self, self.winViewGeneration == generation else { return }

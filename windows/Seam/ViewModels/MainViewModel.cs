@@ -79,6 +79,7 @@ public partial class MainViewModel : ObservableObject
     private readonly VideoReceiver _videoRx = new();
     private DisplayViewer? _viewer;
     private StatusFlags _macFlags;
+    private ExtendedStatusFlags _macExtendedFlags;
     /// <summary>Wysłano DISPLAY_START; po błędzie zostaje true, żeby nie ponawiać w pętli.</summary>
     private bool _displayRequested;
     private bool _displayRunning;
@@ -724,6 +725,7 @@ public partial class MainViewModel : ObservableObject
         StopDisplay(notifyMac: false);
         StopWinView(notifyMac: false);
         _macFlags = StatusFlags.None;
+        _macExtendedFlags = ExtendedStatusFlags.None;
         SetWinViewStatus(T("Nieaktywne – uruchamia się po połączeniu z Makiem.", "Inactive — starts after connecting to the Mac."), Gray);
         SetDisplayStatus(T("Nieaktywny – uruchamia się po połączeniu z Makiem.", "Inactive — starts after connecting to the Mac."), Gray);
         MacStatusText = "";
@@ -803,6 +805,20 @@ public partial class MainViewModel : ObservableObject
             case MessageType.WinViewPointerRelease:
                 if (_winViewRunning) _capture?.ReleaseWinView();
                 break;
+            case MessageType.WinViewActivate:
+                // Aplikacja Windows wybrana w Docku Maca / Cmd+Tab: jej okno staje się aktywne, a klawiatura idzie do niego.
+                if (OperatingSystem.IsWindows() && _winViewRunning && _winTracker is { } activeTracker
+                    && Frame.ParseWinViewWindowId(payload) is { } activateId && activeTracker.IsListed(activateId))
+                {
+                    WinApps.Activate(WinApps.Handle(activateId));
+                    _capture?.FocusWinView();
+                }
+                break;
+            case MessageType.WinViewClose:
+                if (OperatingSystem.IsWindows() && _winViewRunning && _winTracker is { } closeTracker
+                    && Frame.ParseWinViewWindowId(payload) is { } closeId && closeTracker.IsListed(closeId))
+                    WinApps.Close(WinApps.Handle(closeId));
+                break;
             case MessageType.WinViewPointerEnter:
                 if (_winViewRunning && _winTracker is { } tracker && Frame.ParseWinViewPointerEnter(payload) is { } enter)
                 {
@@ -820,6 +836,8 @@ public partial class MainViewModel : ObservableObject
                 if (payload.Length >= 1)
                 {
                     var flags = (StatusFlags)payload[0];
+                    _macExtendedFlags = payload.Length >= 2 ? (ExtendedStatusFlags)payload[1] : ExtendedStatusFlags.None;
+                    if (_winTracker is { } statusTracker) statusTracker.SendApps = _macExtendedFlags.HasFlag(ExtendedStatusFlags.WinViewApps);
                     var displayFlagsChanged = (flags & DisplayFlagsMask) != (_macFlags & DisplayFlagsMask);
                     var winViewChanged = (flags & StatusFlags.WinViewSupported) != (_macFlags & StatusFlags.WinViewSupported);
                     _macFlags = flags;
@@ -1281,6 +1299,7 @@ public partial class MainViewModel : ObservableObject
                 _winStreamer.Failed += message => Post(() => OnWinViewFailed(message));
             }
             var tracker = _winTracker;
+            tracker.SendApps = _macExtendedFlags.HasFlag(ExtendedStatusFlags.WinViewApps);
             var streamer = _winStreamer;
             tracker.WindowsChanged += streamer.UpdateWindows;
             tracker.Start();
