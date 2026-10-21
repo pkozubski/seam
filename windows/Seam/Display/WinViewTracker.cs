@@ -8,9 +8,10 @@ using Seam.Protocol;
 namespace Seam.Display;
 
 /// <summary>
-/// Śledzi okna leżące na wirtualnym monitorze (lista dla Maca – od razu po zdarzeniu okna,
-/// najwyżej co ~4 ms, plus zapasowy odczyt co ~100 ms) i kursor Windows na tym monitorze
-/// (pozycja i kształt, co ~8 ms). Działa na własnym wątku z pętlą komunikatów (haki WinEvent);
+/// Śledzi okna leżące na wirtualnym monitorze (lista dla Maca – od razu po zdarzeniu okna z tego
+/// monitora, najwyżej co ~4 ms, plus zapasowy odczyt co ~100 ms, a przy pustym monitorze co ~500 ms)
+/// i kursor Windows na tym monitorze (pozycja i kształt, co ~8 ms i od razu po zdarzeniu kursora;
+/// poza monitorem co ~50 ms). Działa na własnym wątku z pętlą komunikatów (haki WinEvent);
 /// funkcja wysyłająca musi być bezpieczna wątkowo.
 /// </summary>
 [SupportedOSPlatform("windows")]
@@ -29,13 +30,18 @@ public sealed class WinViewTracker : IDisposable
         "NotifyIconOverflowWindow", "Windows.Internal.Shell.TabProxyWindow", "PseudoConsoleWindow",
     };
 
-    private const int CursorIntervalMs = 8;
-    private const int FallbackIntervalMs = 100;
+    private const int CursorIntervalMs = 8;      // kursor na monitorze albo był tam przed chwilą
+    private const int CursorIdleIntervalMs = 50; // kursor gdzie indziej
+    private const int CursorLingerMs = 300;
+    private const int FallbackIntervalMs = 100;      // okna na monitorze albo niedawna zmiana listy
+    private const int FallbackIdleIntervalMs = 500;  // pusty monitor: nowe okna i tak zgłaszają haki
+    private const int RecentChangeMs = 1000;
     private const int CoalesceMs = 4;
 
     private static readonly uint[] HookedEvents =
     [
         EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_SHOW, EVENT_OBJECT_HIDE, EVENT_OBJECT_DESTROY, EVENT_OBJECT_NAMECHANGE,
+        EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED,
         EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MOVESIZESTART, EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MINIMIZESTART,
         EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MENUPOPUPSTART, EVENT_SYSTEM_MENUPOPUPEND,
     ];
@@ -45,10 +51,13 @@ public sealed class WinViewTracker : IDisposable
     private readonly int _ownProcess = Environment.ProcessId;
     // Delegat musi żyć tak długo jak haki – inaczej GC zwolni go pod natywnym wywołaniem.
     private readonly WinEventProc _hookProc;
+    // Budzi pętlę śledzenia (Resend, Stop). Bez Dispose: Resend może przyjść z sieci już po zatrzymaniu.
+    private readonly AutoResetEvent _wake = new(false);
     private Thread? _thread;
     private volatile bool _running;
     private volatile bool _resend;
     private volatile bool _dirty;
+    private bool _cursorChanged; // wątek śledzenia (hak WinEvent)
     /// <summary>Prostokąty okien (współrzędne ekranu) z ostatnio wysłanej listy – do decyzji kursora.</summary>
     private volatile NativeMethods.RECT[] _rects = [];
     private IReadOnlyList<WinWindow> _lastWindows = [];
@@ -103,7 +112,11 @@ public sealed class WinViewTracker : IDisposable
         point.X >= _monitor.Left && point.X < _monitor.Right && point.Y >= _monitor.Top && point.Y < _monitor.Bottom;
 
     /// <summary>Mac prosi o pełny stan (np. po klatce kluczowej); ponownie wysyła też <see cref="WindowsChanged"/>.</summary>
-    public void Resend() => _resend = true;
+    public void Resend()
+    {
+        _resend = true;
+        _wake.Set();
+    }
 
     public void Start()
     {
@@ -117,6 +130,7 @@ public sealed class WinViewTracker : IDisposable
     public void Stop()
     {
         _running = false;
+        _wake.Set();
         var thread = _thread;
         if (thread is not null && thread != Thread.CurrentThread) thread.Join(TimeSpan.FromSeconds(1));
         _thread = null;
@@ -132,10 +146,14 @@ public sealed class WinViewTracker : IDisposable
             var hook = SetWinEventHook(e, e, IntPtr.Zero, _hookProc, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
             if (hook != IntPtr.Zero) hooks.Add(hook);
         }
-        // Domyślny zegar systemu (~15,6 ms) nie pozwala czekać 4–8 ms.
-        var timerPeriod = timeBeginPeriod(1) == 0;
+        // Bez timeBeginPeriod limit czasu oczekiwania kończy się z taktem zegara (~15,6 ms), więc krótkie
+        // przerwy (kursor co 8 ms, scalanie zmian co 4 ms) odmierza timer wysokiej rozdzielczości jako drugi
+        // uchwyt oczekiwania; ruch kursora albo okna i tak budzi wątek od razu zdarzeniem WinEvent.
+        using var timer = new PreciseTimer();
+        var waitHandles = new[] { _wake.SafeWaitHandle.DangerousGetHandle(), IntPtr.Zero };
         var clock = Stopwatch.StartNew();
-        long nextCursor = 0, nextPoll = 0, lastWindows = -CoalesceMs;
+        long nextCursor = 0, nextPoll = 0, lastWindows = -CoalesceMs, lastCursor = -CursorIntervalMs;
+        long cursorInsideAt = -CursorLingerMs, changedAt = -RecentChangeMs;
         try
         {
             while (_running)
@@ -146,20 +164,29 @@ public sealed class WinViewTracker : IDisposable
                     if (_resend || now >= nextPoll || (_dirty && now - lastWindows >= CoalesceMs))
                     {
                         _dirty = false;
-                        PollWindows();
+                        if (PollWindows()) changedAt = now;
                         lastWindows = now;
-                        nextPoll = now + FallbackIntervalMs;
+                        var busy = _rects.Length > 0 || now - changedAt < RecentChangeMs;
+                        nextPoll = now + (busy ? FallbackIntervalMs : FallbackIdleIntervalMs);
                     }
-                    if (now >= nextCursor)
+                    // Kursor poza monitorem odczytujemy rzadko, ale po zdarzeniu kursora (wątek i tak obudzony) od razu.
+                    if (now >= nextCursor || (_cursorChanged && now - lastCursor >= CursorIntervalMs))
                     {
-                        PollCursor();
-                        nextCursor = now + CursorIntervalMs;
+                        _cursorChanged = false;
+                        if (PollCursor()) cursorInsideAt = now;
+                        lastCursor = now;
+                        nextCursor = now + (now - cursorInsideAt < CursorLingerMs ? CursorIntervalMs : CursorIdleIntervalMs);
                     }
                     now = clock.ElapsedMilliseconds;
-                    var wake = Math.Min(nextCursor, nextPoll);
-                    if (_dirty) wake = Math.Min(wake, lastWindows + CoalesceMs);
-                    var wait = (uint)Math.Clamp(wake - now, 0, FallbackIntervalMs);
-                    DisplayNative.MsgWaitForMultipleObjectsEx(0, [], wait, DisplayNative.QS_ALLINPUT, DisplayNative.MWMO_INPUTAVAILABLE);
+                    var due = Math.Min(nextCursor, nextPoll);
+                    if (_dirty) due = Math.Min(due, lastWindows + CoalesceMs);
+                    if (_cursorChanged) due = Math.Min(due, lastCursor + CursorIntervalMs);
+                    var wait = (uint)Math.Clamp(due - now, 0, FallbackIdleIntervalMs);
+                    // Budzą też Resend() i Stop() (zdarzenie _wake).
+                    if (wait > 0 && wait < 16 && timer.TryArm((int)wait * 1000, out waitHandles[1]))
+                        DisplayNative.MsgWaitForMultipleObjectsEx(2, waitHandles, INFINITE, DisplayNative.QS_ALLINPUT, DisplayNative.MWMO_INPUTAVAILABLE);
+                    else
+                        DisplayNative.MsgWaitForMultipleObjectsEx(1, waitHandles, wait, DisplayNative.QS_ALLINPUT, DisplayNative.MWMO_INPUTAVAILABLE);
                     // Zdarzenia WinEvent (poza kontekstem) docierają przez kolejkę komunikatów tego wątku.
                     while (DisplayNative.PeekMessageW(out var msg, IntPtr.Zero, 0, 0, DisplayNative.PM_REMOVE))
                     {
@@ -178,7 +205,6 @@ public sealed class WinViewTracker : IDisposable
         finally
         {
             foreach (var hook in hooks) UnhookWinEvent(hook);
-            if (timerPeriod) timeEndPeriod(1);
         }
     }
 
@@ -186,17 +212,26 @@ public sealed class WinViewTracker : IDisposable
     {
         try
         {
+            if (idObject == OBJID_CURSOR)
+            {
+                // Ruch, kształt albo widoczność kursora – pętla odczyta kursor bez czekania na zegar.
+                _cursorChanged = true;
+                return;
+            }
             if (hwnd == IntPtr.Zero || _dirty) return;
             if (eventType >= EVENT_OBJECT_DESTROY)
             {
-                // Zdarzenia obiektów: tylko same okna najwyższego poziomu (bez kursora, karetki, kontrolek).
+                // Zdarzenia obiektów: tylko same okna najwyższego poziomu (bez karetki, kontrolek).
                 if (idObject != OBJID_WINDOW || idChild != CHILDID_SELF) return;
-                if (eventType == EVENT_OBJECT_DESTROY || eventType == EVENT_OBJECT_HIDE)
+                // Liczą się okna z ostatniej listy i okna leżące teraz na monitorze – przesunięcie, pokazanie
+                // czy nowy tytuł okna gdzie indziej nie zmienia listy (przeciąganie okien nie odczytuje jej co 4 ms).
+                if (!_lastHandleSet.Contains(hwnd))
                 {
-                    // zniszczone okno nie ma już przodka – liczy się, czy było na liście
-                    if (!_lastHandleSet.Contains(hwnd)) return;
+                    // zniszczone lub ukryte okno nie ma już przodka ani położenia – liczy się, czy było na liście
+                    if (eventType is EVENT_OBJECT_DESTROY or EVENT_OBJECT_HIDE or EVENT_OBJECT_CLOAKED or EVENT_OBJECT_NAMECHANGE) return;
+                    if (DisplayNative.GetAncestor(hwnd, DisplayNative.GA_ROOT) != hwnd) return;
+                    if (!GetWindowRect(hwnd, out var rect) || !OnMonitor(rect)) return;
                 }
-                else if (DisplayNative.GetAncestor(hwnd, DisplayNative.GA_ROOT) != hwnd) return;
             }
             _dirty = true;
         }
@@ -206,13 +241,14 @@ public sealed class WinViewTracker : IDisposable
         }
     }
 
-    private void PollWindows()
+    /// <returns>true = lista poszła do Maca (zmiana albo <see cref="Resend"/>).</returns>
+    private bool PollWindows()
     {
         var (windows, handles) = Snapshot();
         var resend = _resend;
         _resend = false;
         var orderChanged = !handles.SequenceEqual(_lastHandles);
-        if (!resend && !orderChanged && windows.SequenceEqual(_lastWindows)) return;
+        if (!resend && !orderChanged && windows.SequenceEqual(_lastWindows)) return false;
         _lastWindows = windows;
         _rects = windows.Select(w => new NativeMethods.RECT
         {
@@ -226,7 +262,11 @@ public sealed class WinViewTracker : IDisposable
             _lastHandleSet = handles.Select(h => h.Handle).ToHashSet();
             WindowsChanged?.Invoke(handles);
         }
+        return true;
     }
+
+    private bool OnMonitor(NativeMethods.RECT r) =>
+        r.Right > _monitor.Left && r.Left < _monitor.Right && r.Bottom > _monitor.Top && r.Top < _monitor.Bottom;
 
     /// <summary>Lista okien do jednorazowego odczytu z innego wątku.</summary>
     public byte[] SnapshotPayload() => Frame.WinViewWindowsPayload(_monitor.Width, _monitor.Height, Snapshot().Windows);
@@ -256,20 +296,23 @@ public sealed class WinViewTracker : IDisposable
         {
             if (list.Count >= 64) return false;
             if (!IsWindowVisible(hwnd) || IsIconic(hwnd)) return true;
+            // Najpierw tani test położenia (prostokąt okna obejmuje ramkę DWM): okna z innych monitorów,
+            // czyli prawie wszystkie, odpadają bez dalszych wywołań.
+            if (!GetWindowRect(hwnd, out var outer) || !OnMonitor(outer)) return true;
             if (DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0) return true;
             GetWindowThreadProcessId(hwnd, out var pid);
             if (pid == _ownProcess) return true;
             className.Clear();
             GetClassNameW(hwnd, className, className.Capacity);
-            if (IgnoredClasses.Contains(className.ToString())) return true;
-            if (DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, out NativeMethods.RECT bounds, Marshal.SizeOf<NativeMethods.RECT>()) != 0
-                && !GetWindowRect(hwnd, out bounds)) return true;
+            var cls = className.ToString();
+            if (IgnoredClasses.Contains(cls)) return true;
+            if (DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, out NativeMethods.RECT bounds, Marshal.SizeOf<NativeMethods.RECT>()) != 0)
+                bounds = outer;
             if (bounds.Width < 4 || bounds.Height < 4) return true;
-            if (bounds.Right <= _monitor.Left || bounds.Left >= _monitor.Right || bounds.Bottom <= _monitor.Top || bounds.Top >= _monitor.Bottom) return true;
+            if (!OnMonitor(bounds)) return true;
             var style = (long)GetWindowLongPtrW(hwnd, GWL_STYLE);
             var exStyle = (long)GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
             // Menu, podpowiedzi, listy rozwijane: na Macu zawsze nad oknami, bez cienia.
-            var cls = className.ToString();
             var popup = cls == "#32768" || cls.Contains("tooltips", StringComparison.OrdinalIgnoreCase)
                         || ((exStyle & WS_EX_TOOLWINDOW) != 0 && (exStyle & WS_EX_APPWINDOW) == 0)
                         || ((style & WS_POPUP) != 0 && (style & (WS_CAPTION | WS_THICKFRAME)) == 0 && GetWindow(hwnd, GW_OWNER) != IntPtr.Zero);
@@ -286,22 +329,24 @@ public sealed class WinViewTracker : IDisposable
         }
     }
 
-    private void PollCursor()
+    /// <returns>true = kursor jest na monitorze wirtualnym.</returns>
+    private bool PollCursor()
     {
         var info = new CURSORINFO { cbSize = Marshal.SizeOf<CURSORINFO>() };
-        if (!GetCursorInfo(ref info)) return;
+        if (!GetCursorInfo(ref info)) return false;
         var point = info.ptScreenPos;
         if (!Contains(point))
         {
             _lastCursor = null;
-            return;
+            return false;
         }
         var shape = _cursorShapes.TryGetValue(info.hCursor, out var known) ? known : (byte)0;
         var buttons = GetAsyncKeyState(VK_LBUTTON) < 0 || GetAsyncKeyState(VK_RBUTTON) < 0 || GetAsyncKeyState(VK_MBUTTON) < 0;
         var current = (point.X - _monitor.Left, point.Y - _monitor.Top, shape, (info.flags & CURSOR_SHOWING) != 0, buttons);
-        if (_lastCursor == current) return;
+        if (_lastCursor == current) return true;
         _lastCursor = current;
         _send(Frame.WinViewCursor(current.Item1, current.Item2, current.shape, current.Item4, buttons));
+        return true;
     }
 
     // ---------------- Win32 ----------------
@@ -329,9 +374,13 @@ public sealed class WinViewTracker : IDisposable
     private const uint EVENT_OBJECT_HIDE = 0x8003;
     private const uint EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
     private const uint EVENT_OBJECT_NAMECHANGE = 0x800C;
+    private const uint EVENT_OBJECT_CLOAKED = 0x8017;
+    private const uint EVENT_OBJECT_UNCLOAKED = 0x8018;
     private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
     private const uint WINEVENT_SKIPOWNPROCESS = 0x0002;
     private const int OBJID_WINDOW = 0;
+    private const int OBJID_CURSOR = -9;
+    private const uint INFINITE = 0xFFFFFFFF;
     private const int CHILDID_SELF = 0;
     private const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02, VK_MBUTTON = 0x04;
 
@@ -347,12 +396,6 @@ public sealed class WinViewTracker : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool UnhookWinEvent(IntPtr hook);
-
-    [DllImport("winmm.dll")]
-    private static extern uint timeBeginPeriod(uint period);
-
-    [DllImport("winmm.dll")]
-    private static extern uint timeEndPeriod(uint period);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct CURSORINFO

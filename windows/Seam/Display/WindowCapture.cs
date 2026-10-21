@@ -128,6 +128,8 @@ public sealed unsafe class WindowCapture : IDisposable
     public int ContentWidth { get; private set; }
     public int ContentHeight { get; private set; }
     public bool Closed { get; private set; }
+    /// <summary>Ostatnie <see cref="TryGetFrame"/> dostało klatkę z puli (także pominiętą przy zmianie rozmiaru).</summary>
+    public bool FrameArrived { get; private set; }
 
     /// <param name="device">Wspólne urządzenie (BgraSupport|VideoSupport, multithread-protected); należy do wywołującego.</param>
     public WindowCapture(ID3D11Device device, IntPtr hwnd)
@@ -183,6 +185,7 @@ public sealed unsafe class WindowCapture : IDisposable
     /// <summary>Polls one frame. true = a new frame was converted into Nv12Texture.</summary>
     public bool TryGetFrame()
     {
+        FrameArrived = false;
         if (_disposed || Closed) return false;
         if (!IsWindow(Window))
         {
@@ -198,6 +201,7 @@ public sealed unsafe class WindowCapture : IDisposable
             return false;
         }
         if (frame == IntPtr.Zero) return false;
+        FrameArrived = true;
 
         try
         {
@@ -361,11 +365,29 @@ public sealed unsafe class WindowCapture : IDisposable
                 offsetX = extended.Left - windowRect.Left;
                 offsetY = extended.Top - windowRect.Top;
             }
+            else if (!matchesExtended && IsResizeFrame(contentSize, extended))
+            {
+                // Klatka z chwili zmiany rozmiaru (np. zmiana DPI przy przenoszeniu na monitor wirtualny):
+                // granice okna są już inne niż obraz. Wycinek z nich pokazałby na Macu powiększony róg okna,
+                // więc idzie cała klatka – następna ma już zgodny rozmiar.
+                visibleWidth = contentSize.Width;
+                visibleHeight = contentSize.Height;
+            }
         }
         offsetX = Math.Clamp(offsetX, 0, availableWidth);
         offsetY = Math.Clamp(offsetY, 0, availableHeight);
         cropWidth = Math.Max(0, Math.Min(visibleWidth, availableWidth - offsetX));
         cropHeight = Math.Max(0, Math.Min(visibleHeight, availableHeight - offsetY));
+    }
+
+    /// <summary>
+    /// Klatka wyraźnie większa od bieżących granic okna – nie o niewidzialne ramki do zmiany rozmiaru
+    /// (kilkanaście pikseli), tylko o zmianę rozmiaru, której te granice jeszcze nie pokazują.
+    /// </summary>
+    private static bool IsResizeFrame(SizeInt32 content, RECT extended)
+    {
+        static bool Larger(int frame, int bounds) => frame - bounds > Math.Max(48, bounds / 8);
+        return Larger(content.Width, extended.Width) || Larger(content.Height, extended.Height);
     }
 
     private static ID3D11Texture2D GetFrameTexture(IntPtr frame)

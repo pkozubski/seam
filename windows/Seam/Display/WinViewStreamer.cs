@@ -18,12 +18,20 @@ namespace Seam.Display;
 /// Strumień okien Windows z monitora wirtualnego do Maca: każde okno ma własne nagrywanie
 /// (Windows.Graphics.Capture) i własny strumień H.264 (kind 2, streamID = HWND), jak w kierunku
 /// Mac → Windows. Geometria okien idzie kanałem sterowania (WINVIEW_WINDOWS), nie w klatkach.
-/// Zaszyfrowane rekordy jak strumień ekranu Maca. Działa na własnym wątku.
+/// Zaszyfrowane rekordy jak strumień ekranu Maca. Działa na własnym wątku, który bez okien na
+/// monitorze wirtualnym śpi aż do nowej listy okien.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class WinViewStreamer : IDisposable
 {
     private const int FramesPerSecond = 60;
+    // Odpytywanie nagrywania: co ~2 ms, dopóki okna dają klatki (także w przerwach między klawiszami),
+    // potem co ~8 ms, a po dłuższym bezruchu co ~16 ms – pierwsza klatka po przerwie spóźnia się najwyżej o tyle.
+    private const int ActivePollMicroseconds = 2_000;
+    private const int CalmPollMicroseconds = 8_000;
+    private const int IdlePollMicroseconds = 16_000;
+    private static readonly TimeSpan ActiveFor = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan CalmFor = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan FailedRetry = TimeSpan.FromSeconds(2);
     private static readonly bool IsWindows11 = Environment.OSVersion.Version.Build >= 22000;
 
@@ -135,7 +143,6 @@ public sealed class WinViewStreamer : IDisposable
         TcpClient? tcp = null;
         NetworkStream? stream = null;
         VideoStream.Sealer? sealer = null;
-        var timerPeriod = false;
         try
         {
             tcp = new TcpClient(mac.AddressFamily) { NoDelay = true, SendBufferSize = 4 * 1024 * 1024 };
@@ -154,8 +161,6 @@ public sealed class WinViewStreamer : IDisposable
             }
             else
             {
-                // Bez tego Sleep/Wait(1) śpi ~15 ms i 60 kl./s jest nieosiągalne.
-                timerPeriod = timeBeginPeriod(1) == 0;
                 Loop(device, sessions, stream, sealer);
             }
         }
@@ -172,7 +177,6 @@ public sealed class WinViewStreamer : IDisposable
         }
         finally
         {
-            if (timerPeriod) timeEndPeriod(1);
             foreach (var session in sessions.Values) SafeDispose(session.DisposeEncoder);
             foreach (var session in sessions.Values) SafeDispose(session.Capture.Dispose);
             sessions.Clear();
@@ -197,6 +201,10 @@ public sealed class WinViewStreamer : IDisposable
         var clock = Stopwatch.StartNew();
         var seenVersion = -1;
         var lastSync = TimeSpan.Zero;
+        // Ostatnia klatka z puli któregokolwiek okna (albo nowe nagrywanie) – od niej zależy tempo odpytywania.
+        var lastFrame = TimeSpan.Zero;
+        // WaitOne(2) bez timeBeginPeriod śpi ~15,6 ms – dokładny timer daje 2 ms bez przyspieszania zegara systemu.
+        using var timer = new PreciseTimer();
         while (_running)
         {
             var now = clock.Elapsed;
@@ -212,7 +220,7 @@ public sealed class WinViewStreamer : IDisposable
             {
                 seenVersion = version;
                 lastSync = now;
-                SyncSessions(device, sessions, failed, windows, now);
+                if (SyncSessions(device, sessions, failed, windows, now)) lastFrame = now;
                 _encodersChanged = true;
             }
 
@@ -237,6 +245,7 @@ public sealed class WinViewStreamer : IDisposable
                         continue;
                     }
                     fresh = session.Capture.TryGetFrame();
+                    if (session.Capture.FrameArrived) lastFrame = now;
                 }
                 catch (Exception ex)
                 {
@@ -270,13 +279,29 @@ public sealed class WinViewStreamer : IDisposable
                 }
             }
             if (closed is not null || _encodersChanged) RefreshUsesGpu(sessions);
-            if (!sent && _running) _wake.WaitOne(2);
+            if (sent || !_running) continue;
+
+            // Do ponownej próby okien odrzuconych przez WGC (µs); bez nich bez limitu.
+            var retryIn = failed.Count > 0 ? Math.Max(0, (lastSync + FailedRetry - clock.Elapsed).Ticks / 10) : long.MaxValue;
+            if (sessions.Count == 0)
+            {
+                // Nie ma czego odpytywać – budzi nowa lista okien, prośba o klatkę kluczową albo Stop.
+                if (retryIn == long.MaxValue) _wake.WaitOne();
+                else timer.Wait((int)retryIn, _wake);
+                continue;
+            }
+            // Okna dają klatki (ruch, przewijanie, pisanie) – co ~2 ms jak dotąd; potem coraz rzadziej.
+            var quiet = clock.Elapsed - lastFrame;
+            long interval = quiet < ActiveFor ? ActivePollMicroseconds : quiet < CalmFor ? CalmPollMicroseconds : IdlePollMicroseconds;
+            timer.Wait((int)Math.Min(interval, retryIn), _wake);
         }
     }
 
-    private static void SyncSessions(ID3D11Device device, Dictionary<IntPtr, Session> sessions, Dictionary<IntPtr, TimeSpan> failed,
+    /// <returns>true = powstało nowe nagrywanie (jego pierwsza klatka zaraz nadejdzie).</returns>
+    private static bool SyncSessions(ID3D11Device device, Dictionary<IntPtr, Session> sessions, Dictionary<IntPtr, TimeSpan> failed,
         IReadOnlyList<(IntPtr Handle, bool Popup)> windows, TimeSpan now)
     {
+        var created = false;
         var wanted = new Dictionary<IntPtr, bool>(windows.Count);
         foreach (var (handle, popup) in windows) wanted[handle] = popup;
 
@@ -299,6 +324,7 @@ public sealed class WinViewStreamer : IDisposable
             {
                 sessions[handle] = new Session(handle, new WindowCapture(device, handle)) { Popup = popup };
                 failed.Remove(handle);
+                created = true;
             }
             catch (Exception)
             {
@@ -306,6 +332,7 @@ public sealed class WinViewStreamer : IDisposable
                 failed[handle] = now;
             }
         }
+        return created;
     }
 
     /// <summary>Koduje i wysyła klatkę okna; true = coś wysłano.</summary>
@@ -432,12 +459,6 @@ public sealed class WinViewStreamer : IDisposable
         }
         throw new InvalidOperationException(T("Nie znaleziono monitora wirtualnego w DXGI.", "The virtual monitor was not found in DXGI."));
     }
-
-    [DllImport("winmm.dll")]
-    private static extern uint timeBeginPeriod(uint period);
-
-    [DllImport("winmm.dll")]
-    private static extern uint timeEndPeriod(uint period);
 }
 
 /// <summary>BGRA (pełny zakres) → NV12 BT.709, zakres wideo 16–235, na CPU.</summary>

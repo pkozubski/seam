@@ -57,11 +57,12 @@ public sealed class LowLevelHooks : IDisposable
         if (_keyboardHook != IntPtr.Zero) { UnhookWindowsHookEx(_keyboardHook); _keyboardHook = IntPtr.Zero; }
     }
 
-    private IntPtr MouseCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    // Struktury hooków są blittable: kopia wprost spod wskaźnika, bez marshalingu przy każdym zdarzeniu.
+    private unsafe IntPtr MouseCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0)
         {
-            var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+            var data = *(MSLLHOOKSTRUCT*)lParam;
             try
             {
                 if (OnMouse?.Invoke((int)wParam, in data) == true) return 1;
@@ -74,11 +75,11 @@ public sealed class LowLevelHooks : IDisposable
         return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
     }
 
-    private IntPtr KeyboardCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    private unsafe IntPtr KeyboardCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0)
         {
-            var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            var data = *(KBDLLHOOKSTRUCT*)lParam;
             try
             {
                 if (OnKeyboard?.Invoke((int)wParam, in data) == true) return 1;

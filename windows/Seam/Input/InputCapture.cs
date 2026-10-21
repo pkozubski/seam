@@ -69,7 +69,15 @@ public sealed class InputCapture : IDisposable
     /// <summary>Mnożnik surowych delt myszy (Raw Input nie ma akceleracji Windows).</summary>
     public double RemoteMouseSpeed { get; set; } = 1.0;
     public bool IsRemote { get; private set; }
-    /// <summary>true = delty z Raw Input (kursor zostaje przy krawędzi); false = tryb awaryjny z parkowaniem na środku.</summary>
+    /// <summary>
+    /// Raw Input działa (sprawdzane raz przy instalacji hooków). true = na Macu delty z Raw Input
+    /// (kursor zostaje przy krawędzi); false = tryb awaryjny z parkowaniem na środku.
+    /// </summary>
+    public bool RawInputSupported { get; private set; }
+    /// <summary>
+    /// Raw Input jest teraz zarejestrowany – tylko gdy kursor jest na Macu; lokalnie WM_INPUT
+    /// budziłby wątek UI przy każdym raporcie myszy (125–8000/s). Wtedy delty idą z WM_INPUT.
+    /// </summary>
     public bool UsingRawInput => _native?.IsRawInputActive == true;
 
     /// <summary>true = kursor przeszedł na Maca, false = wrócił. Wątek UI.</summary>
@@ -90,7 +98,10 @@ public sealed class InputCapture : IDisposable
         if (_hooks.IsInstalled) return;
         _hooks.Install();
         EnsureNativeWindow();
-        var raw = _native?.RegisterRawMouse() == true;
+        // Tylko sprawdzamy – rejestracja na czas sterowania Makiem (StartRawInput).
+        RawInputSupported = _native?.ProbeRawMouse() == true;
+        var raw = RawInputSupported;
+        if (IsRemote) StartRawInput();
         Dispatcher.UIThread.Post(() => Log?.Invoke(raw
             ? T("Hooki aktywne, ruch myszy z Raw Input (kursor zostaje przy krawędzi)", "Hooks active with Raw Input; the pointer remains at the edge")
             : T("Hooki aktywne, Raw Input niedostępny – tryb awaryjny z parkowaniem kursora", "Hooks active; Raw Input unavailable, using pointer parking fallback")));
@@ -102,7 +113,9 @@ public sealed class InputCapture : IDisposable
         if (IsRemote) ReturnToLocal(0.5f, sendRelease: true);
         if (!_hooks.IsInstalled) return;
         _hooks.Uninstall();
-        _native?.UnregisterRawMouse();
+        // Bez hooków nie ma Raw Input (jak dawniej) – przy następnej instalacji sprawdzamy go od nowa.
+        RawInputSupported = false;
+        StopRawInput();
         _keysDown.Clear();
         RestoreCursor();
         Dispatcher.UIThread.Post(() => Log?.Invoke(T("Hooki klawiatury i myszy wyłączone", "Keyboard and pointer hooks disabled")));
@@ -122,9 +135,22 @@ public sealed class InputCapture : IDisposable
         }
     }
 
+    /// <summary>
+    /// Raw Input na czas sterowania Makiem (gdy działa). Rejestracja jest synchroniczna na wątku UI
+    /// (także wewnątrz hooka): każdy następny raport myszy daje już WM_INPUT. Idempotentne.
+    /// </summary>
+    private void StartRawInput()
+    {
+        if (RawInputSupported) _native?.RegisterRawMouse();
+    }
+
+    /// <summary>Kursor znowu lokalnie – bez Raw Input wątek UI nie budzi się przy każdym ruchu myszy. Idempotentne.</summary>
+    private void StopRawInput() => _native?.UnregisterRawMouse();
+
     /// <summary>Surowa delta z WM_INPUT (wątek UI). W trybie zdalnym idzie do Maca.</summary>
     private void OnRawMouseMove(int dx, int dy)
     {
+        // WM_INPUT mogły zostać w kolejce po wyrejestrowaniu – lokalnie je pomijamy.
         if (!IsRemote) return;
         var speed = RemoteMouseSpeed <= 0 ? 1.0 : RemoteMouseSpeed;
         _speedRemainderX += dx * speed;
@@ -249,6 +275,7 @@ public sealed class InputCapture : IDisposable
         if (IsRemote)
         {
             IsRemote = false;
+            StopRawInput();
             _keysDown.Clear();
             RestoreCursor();
             RemoteChanged?.Invoke(false);
@@ -367,6 +394,7 @@ public sealed class InputCapture : IDisposable
         if (IsRemote)
         {
             IsRemote = false;
+            StopRawInput();
             _keysDown.Clear();
             RestoreCursor();
             RemoteChanged?.Invoke(false);
@@ -452,10 +480,24 @@ public sealed class InputCapture : IDisposable
     /// <summary>Skróty systemu Windows (Alt+Tab, Win, Alt+F4…) zawsze zostają w Windowsie.</summary>
     private bool IsWindowsShortcut(ushort vk)
     {
-        bool Held(params ushort[] codes) => _keysDown.Any(k => codes.Contains(k.vk));
         if (vk is 0x5B or 0x5C || Held(0x5B, 0x5C)) return true;
         return vk is 0x09 or 0x1B or 0x73 && Held(0xA4, 0xA5, 0x12);
     }
+
+    /// <summary>
+    /// Wciśnięty jest któryś z klawiszy o tych kodach (stan śledzony przez hook).
+    /// Bez alokacji (strukturalny enumerator HashSet) – wołane przy każdym klawiszu.
+    /// </summary>
+    private bool Held(ushort a, ushort b, ushort c)
+    {
+        foreach (var key in _keysDown)
+        {
+            if (key.vk == a || key.vk == b || key.vk == c) return true;
+        }
+        return false;
+    }
+
+    private bool Held(ushort a, ushort b) => Held(a, b, b);
 
     /// <summary>Punkt ekranu → 0…65535 na ekranie wirtualnym (wyświetlanym na całym monitorze).</summary>
     private (ushort x, ushort y) ToMac(POINT pt)
@@ -557,7 +599,11 @@ public sealed class InputCapture : IDisposable
             _vddKeyboard = false;
             _client.SendEnter(entryEdge, ratio);
         }
-        if (UsingRawInput)
+        // Rejestracja synchroniczna (z hooka myszy system czeka na nasz powrót): każdy następny
+        // raport myszy daje już WM_INPUT. Gdyby się nie udała, ta sesja idzie trybem awaryjnym.
+        StartRawInput();
+        var raw = UsingRawInput;
+        if (raw)
         {
             // kursor zostaje tam, gdzie jest (przy krawędzi) – hook blokuje dalsze ruchy
             GetCursorPos(out _parked);
@@ -578,8 +624,8 @@ public sealed class InputCapture : IDisposable
             RemoteChanged?.Invoke(true);
             if (HideCursorWhileRemote) HideCursor();
             Log?.Invoke(T(
-                $"Kursor przeszedł na Maca (krawędź {Side}, pozycja {ratio:0.00}, {(UsingRawInput ? "Raw Input" : "tryb awaryjny")})",
-                $"Pointer moved to Mac (edge {Side}, position {ratio:0.00}, {(UsingRawInput ? "Raw Input" : "fallback")})"));
+                $"Kursor przeszedł na Maca (krawędź {Side}, pozycja {ratio:0.00}, {(raw ? "Raw Input" : "tryb awaryjny")})",
+                $"Pointer moved to Mac (edge {Side}, position {ratio:0.00}, {(raw ? "Raw Input" : "fallback")})"));
         });
     }
 
@@ -611,6 +657,7 @@ public sealed class InputCapture : IDisposable
     {
         if (!IsRemote) return;
         IsRemote = false;
+        StopRawInput();
         _keysDown.Clear();
         _vddKeyboard = false;
         if (sendRelease && _client.IsConnected) _client.SendReleaseAll();
@@ -693,10 +740,7 @@ public sealed class InputCapture : IDisposable
 
     /// <summary>Ctrl, Alt i Shift wciśnięte (lewe lub prawe) – według stanu śledzonego przez hook.</summary>
     private bool EmergencyModifiersHeld()
-    {
-        bool Held(params ushort[] codes) => _keysDown.Any(k => codes.Contains(k.vk));
-        return Held(0xA2, 0xA3, 0x11) && Held(0xA4, 0xA5, 0x12) && Held(0xA0, 0xA1, 0x10);
-    }
+        => Held(0xA2, 0xA3, 0x11) && Held(0xA4, 0xA5, 0x12) && Held(0xA0, 0xA1, 0x10);
 
     /// <summary>
     /// Klawisze trzymane w chwili przejścia na Maca dostałyby "key up" tylko

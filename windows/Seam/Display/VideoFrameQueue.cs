@@ -22,13 +22,21 @@ internal sealed class VideoFrameQueue(int capacity)
 
     public List<VideoStream.VideoFrame> Drain(out bool discontinuous)
     {
+        var batch = new List<VideoStream.VideoFrame>();
+        discontinuous = Drain(batch);
+        return batch;
+    }
+
+    /// <summary>Dopisuje kolejkę do listy wywołującego (bez nowej listy przy każdym wybudzeniu). Zwraca, czy coś odrzucono.</summary>
+    public bool Drain(List<VideoStream.VideoFrame> batch)
+    {
         lock (_gate)
         {
-            var batch = new List<VideoStream.VideoFrame>(_frames);
-            discontinuous = _discontinuous;
+            batch.AddRange(_frames);
+            var discontinuous = _discontinuous;
             _frames.Clear();
             _discontinuous = false;
-            return batch;
+            return discontinuous;
         }
     }
 

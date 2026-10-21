@@ -17,6 +17,9 @@ public partial class MainWindow : AppWindow
     public static readonly IReadOnlyList<string> PageTags = new[] { "connection", "displays", "control", "audio", "clipboard", "windows", "settings", "log" };
 
     private readonly Dictionary<string, Control> _pages = new();
+    // Stan, z którego zbudowano ikonę każdej pozycji – przebudowujemy tylko pozycje, które się zmieniły.
+    private readonly Dictionary<NavigationViewItem, (double Scaling, Color? Badge)> _navIconState = new();
+    private string _currentTag = PageTags[0];
     private MainViewModel? _vm;
 
     public MainWindow()
@@ -42,12 +45,15 @@ public partial class MainWindow : AppWindow
         PropertyChanged += (_, e) =>
         {
             if (e.Property == ActualTransparencyLevelProperty) ApplyBackdrop();
+            else if (e.Property == IsVisibleProperty || e.Property == WindowStateProperty) ReportVisibility();
         };
         DataContextChanged += (_, _) =>
         {
             if (_vm is not null) _vm.PropertyChanged -= ViewModelChanged;
             _vm = DataContext as MainViewModel;
             if (_vm is not null) _vm.PropertyChanged += ViewModelChanged;
+            _vm?.SetVisiblePage(_currentTag);
+            ReportVisibility();
             UpdateNavIcons();
         };
 
@@ -82,9 +88,14 @@ public partial class MainWindow : AppWindow
         if (e.PropertyName is nameof(MainViewModel.StatusBrush) or nameof(MainViewModel.StatusText)) UpdateNavIcons();
     }
 
+    /// <summary>Statystyki odświeżamy tylko, gdy okno jest na ekranie (nie w zasobniku i nie zminimalizowane).</summary>
+    private void ReportVisibility() => _vm?.SetWindowVisible(IsVisible && WindowState != WindowState.Minimized);
+
     /// <summary>
     /// Ikony paska bocznego bez płytek; wybraną sekcję wyróżnia szklana pigułka NavigationView.
     /// Połączenie niesie kropkę stanu: to cały status, zwinięty do paska bocznego.
+    /// Nowe źródło ikony dostaje tylko pozycja, której wygląd się zmienił (skala, kolor kropki),
+    /// bo każde przypisanie IconSource przebudowuje szablon pozycji.
     /// </summary>
     private void UpdateNavIcons()
     {
@@ -92,8 +103,16 @@ public partial class MainWindow : AppWindow
         foreach (var item in NavItems)
         {
             if (item.Tag is string tag)
-                item.IconSource = new ImageIconSource { Source = IconTile.RenderNav(tag, RenderScaling, tag == "connection" ? status : null) };
-            if (item.Tag is "connection" && _vm is not null) ToolTip.SetTip(item, _vm.StatusText);
+            {
+                var state = (Scaling: RenderScaling, Badge: tag == "connection" ? status : null);
+                if (!_navIconState.TryGetValue(item, out var applied) || applied != state)
+                {
+                    _navIconState[item] = state;
+                    item.IconSource = new ImageIconSource { Source = IconTile.RenderNav(tag, state.Scaling, state.Badge) };
+                }
+            }
+            if (item.Tag is "connection" && _vm is not null && !Equals(ToolTip.GetTip(item), _vm.StatusText))
+                ToolTip.SetTip(item, _vm.StatusText);
         }
     }
 
@@ -121,6 +140,8 @@ public partial class MainWindow : AppWindow
             L10n.Apply(page);
         }
         PageHost.Content = page;
+        _currentTag = tag;
+        _vm?.SetVisiblePage(tag);
         Backdrop.IsGreen = tag == "windows";
         PageTitle.Text = NavItems.FirstOrDefault(i => (string?)i.Tag == tag)?.Content as string;
     }

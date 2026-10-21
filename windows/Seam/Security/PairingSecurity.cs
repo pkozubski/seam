@@ -159,6 +159,10 @@ public sealed class SecureSession : IDisposable
     private readonly byte[] _receiveKey;
     private readonly object _sendGate = new();
     private readonly object _receiveGate = new();
+    // Jeden AesGcm na kierunek przez całą sesję; używany tylko pod blokadą swojego kierunku.
+    // Tworzony przy pierwszej ramce – w tym samym miejscu co dawniej, więc i wyjątki są te same.
+    private AesGcm? _sendAes;
+    private AesGcm? _receiveAes;
     private ulong _sendCounter;
     private ulong? _receiveCounter;
     private bool _disposed;
@@ -189,12 +193,13 @@ public sealed class SecureSession : IDisposable
             var counter = _sendCounter++;
             var output = new byte[ControlCrypto.CounterBytes + plaintext.Length + ControlCrypto.TagBytes];
             BinaryPrimitives.WriteUInt64LittleEndian(output, counter);
-            var nonce = Nonce(counter);
-            var aad = Aad(output.AsSpan(0, ControlCrypto.CounterBytes));
-            using var aes = new AesGcm(_sendKey, ControlCrypto.TagBytes);
-            aes.Encrypt(nonce, plaintext,
+            // Nonce i AAD to te same bajty: "BLM2" + licznik LE (= output[0..8]).
+            Span<byte> nonceAad = stackalloc byte[NonceAadBytes];
+            WriteNonceAad(nonceAad, counter);
+            var aes = _sendAes ??= new AesGcm(_sendKey, ControlCrypto.TagBytes);
+            aes.Encrypt(nonceAad, plaintext,
                 output.AsSpan(ControlCrypto.CounterBytes, plaintext.Length),
-                output.AsSpan(ControlCrypto.CounterBytes + plaintext.Length, ControlCrypto.TagBytes), aad);
+                output.AsSpan(ControlCrypto.CounterBytes + plaintext.Length, ControlCrypto.TagBytes), nonceAad);
             return output;
         }
     }
@@ -209,13 +214,16 @@ public sealed class SecureSession : IDisposable
             if (_receiveCounter is { } previous && counter <= previous) return null;
             var clearLength = envelope.Length - ControlCrypto.CounterBytes - ControlCrypto.TagBytes;
             var plaintext = new byte[clearLength];
+            // Nonce i AAD to te same bajty: "BLM2" + licznik LE (= envelope[0..8]).
+            Span<byte> nonceAad = stackalloc byte[NonceAadBytes];
+            WriteNonceAad(nonceAad, counter);
             try
             {
-                using var aes = new AesGcm(_receiveKey, ControlCrypto.TagBytes);
-                aes.Decrypt(Nonce(counter),
+                var aes = _receiveAes ??= new AesGcm(_receiveKey, ControlCrypto.TagBytes);
+                aes.Decrypt(nonceAad,
                     envelope.Slice(ControlCrypto.CounterBytes, clearLength),
                     envelope.Slice(ControlCrypto.CounterBytes + clearLength, ControlCrypto.TagBytes),
-                    plaintext, Aad(envelope[..ControlCrypto.CounterBytes]));
+                    plaintext, nonceAad);
                 _receiveCounter = counter;
                 return plaintext;
             }
@@ -227,19 +235,13 @@ public sealed class SecureSession : IDisposable
         }
     }
 
-    private static byte[] Nonce(ulong counter)
-    {
-        var nonce = new byte[12] { 0x42, 0x4C, 0x4D, 0x32, 0, 0, 0, 0, 0, 0, 0, 0 };
-        BinaryPrimitives.WriteUInt64LittleEndian(nonce.AsSpan(4), counter);
-        return nonce;
-    }
+    /// <summary>Nonce AES-GCM (12 bajtów) i AAD są identyczne: "BLM2" (0x42 0x4C 0x4D 0x32) + licznik u64 LE.</summary>
+    private const int NonceAadBytes = 4 + ControlCrypto.CounterBytes;
 
-    private static byte[] Aad(ReadOnlySpan<byte> counter)
+    private static void WriteNonceAad(Span<byte> destination, ulong counter)
     {
-        var aad = new byte[4 + ControlCrypto.CounterBytes];
-        "BLM2"u8.CopyTo(aad);
-        counter.CopyTo(aad.AsSpan(4));
-        return aad;
+        "BLM2"u8.CopyTo(destination);
+        BinaryPrimitives.WriteUInt64LittleEndian(destination[4..], counter);
     }
 
     public void Dispose()
@@ -249,6 +251,11 @@ public sealed class SecureSession : IDisposable
         {
             if (_disposed) return;
             _disposed = true;
+            // Seal/Open sprawdzają _disposed pod tymi samymi blokadami – po tym miejscu nikt nie użyje instancji.
+            _sendAes?.Dispose();
+            _sendAes = null;
+            _receiveAes?.Dispose();
+            _receiveAes = null;
             CryptographicOperations.ZeroMemory(_sendKey);
             CryptographicOperations.ZeroMemory(_receiveKey);
             CryptographicOperations.ZeroMemory(AudioKey);

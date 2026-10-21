@@ -19,6 +19,8 @@ public sealed class ClipboardSync
     private readonly Func<uint>? _getSequence;
     private uint _lastSequence;
     private string? _lastFingerprint;
+    // Zmiana sprzed Start(skipPending): najbliższy odczyt tylko zapamiętuje odcisk, bez wysyłania.
+    private bool _skipNextChange;
     // OLE może poprosić o bitmapę dopiero przy wklejaniu. Musi żyć do zmiany schowka.
     private Bitmap? _ownedBitmap;
     private IAsyncDataTransfer? _ownedData;
@@ -32,10 +34,24 @@ public sealed class ClipboardSync
         _clipboard = clipboard;
         _getSequence = getSequence ?? (OperatingSystem.IsWindows() ? NativeMethods.GetClipboardSequenceNumber : null);
         _lastSequence = _getSequence?.Invoke() ?? 0;
-        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) => _ = PollAsync());
+        // Konstruktor DispatcherTimer z callbackiem od razu go uruchamia – odpytujemy dopiero po Start.
+        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
+        _timer.Tick += (_, _) => _ = PollAsync();
     }
 
-    public void Start() => _timer.Start();
+    /// <summary>
+    /// Odpytuje schowek co 500 ms (MainViewModel: tylko podczas połączenia z włączoną synchronizacją).
+    /// <paramref name="skipPending"/>: to, co skopiowano przed startem (bez połączenia), nie trafia na Maca,
+    /// ale jego odcisk zostaje zapamiętany – tak jak przy dawnym ciągłym odpytywaniu. Odczyt jest jeden
+    /// i tylko wtedy, gdy schowek się w międzyczasie zmienił.
+    /// </summary>
+    public void Start(bool skipPending)
+    {
+        if (_timer.IsEnabled) return;
+        if (skipPending) _skipNextChange = _getSequence is not { } sequence || sequence() != _lastSequence;
+        _timer.Start();
+    }
+
     public void Stop() => _timer.Stop();
 
     internal async Task PollAsync()
@@ -50,6 +66,7 @@ public sealed class ClipboardSync
             if (_ownedData is not null && ReferenceEquals(await _clipboard.TryGetInProcessDataAsync(), _ownedData))
             {
                 _lastSequence = _getSequence?.Invoke() ?? 0;
+                _skipNextChange = false; // odcisk naszej zawartości jest już znany (ApplyAsync)
                 return;
             }
             var content = await ReadContentAsync();
@@ -62,7 +79,9 @@ public sealed class ClipboardSync
             var fingerprint = content is null ? null : Fingerprint(content);
             var previous = _lastFingerprint;
             _lastFingerprint = fingerprint;
-            if (content is not null && fingerprint != previous) LocalChanged?.Invoke(content);
+            var skip = _skipNextChange;
+            _skipNextChange = false;
+            if (content is not null && fingerprint != previous && !skip) LocalChanged?.Invoke(content);
         }
         catch (Exception)
         {
@@ -145,6 +164,7 @@ public sealed class ClipboardSync
             bitmap = null;
             _lastFingerprint = Fingerprint(content);
             _lastSequence = _getSequence?.Invoke() ?? 0;
+            _skipNextChange = false; // stan schowka znany – zaległej zmiany już nie ma
             return true;
         }
         catch (Exception)

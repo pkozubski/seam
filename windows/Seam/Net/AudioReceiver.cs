@@ -11,6 +11,18 @@ namespace Seam.Net;
 /// <summary>Odbiera wyłącznie uwierzytelnione pakiety audio z aktywnej sesji Maca.</summary>
 public sealed class AudioReceiver : IDisposable
 {
+    // Wybudzenie odbioru bez pakietów: gdy gramy, wykrywa ciszę (Mac przestaje nadawać);
+    // w uśpieniu tylko sprawdza świeży bufor po AUDIO_FORMAT (musi być < IdleTimeoutMs).
+    private const int ActiveWakeMs = 500;
+    private const int IdleWakeMs = JitterBufferProvider.IdleTimeoutMs * 2 / 3; // 2 s
+    private const int ErrorBackoffMs = 50;
+    // Jak UdpClient.Receive: każdy datagram mieści się w całości, więc długość pakietu się nie zmienia.
+    private const int MaxDatagramBytes = 65536;
+    // frames ≤ 1024 × channels ≤ 8 × float32 (walidacja w Authenticate).
+    private const int MaxClearBytes = 1024 * 8 * 4;
+    private const int NonceBytes = 12;
+    private static readonly IPEndPoint AnyEndPoint = new(IPAddress.Any, 0);
+
     private UdpClient? _udp;
     private Thread? _thread;
     private volatile bool _running;
@@ -18,7 +30,6 @@ public sealed class AudioReceiver : IDisposable
     private bool _haveSeq;
     private float _level;
     private IPAddress? _expectedAddress;
-    private byte[]? _key;
     private ulong _sessionId;
     private ulong _highestCounter;
     private ulong _counterWindow;
@@ -50,13 +61,24 @@ public sealed class AudioReceiver : IDisposable
         if (key.Length != 32) throw new ArgumentException(T("Nieprawidłowy klucz sesji audio.", "Invalid audio-session key."), nameof(key));
 
         var udp = new UdpClient(AddressFamily.InterNetwork);
-        udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
-        udp.Client.ReceiveBufferSize = 1 << 20;
-        udp.Client.Bind(new IPEndPoint(IPAddress.Any, port));
-        SocketHelpers.DisableUdpConnReset(udp.Client);
-        Port = ((IPEndPoint)udp.Client.LocalEndPoint!).Port;
+        AesGcm aes;
+        try
+        {
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
+            udp.Client.ReceiveBufferSize = 1 << 20;
+            udp.Client.Bind(new IPEndPoint(IPAddress.Any, port));
+            SocketHelpers.DisableUdpConnReset(udp.Client);
+            Port = ((IPEndPoint)udp.Client.LocalEndPoint!).Port;
+            // Jeden AesGcm na sesję; klucz trzyma tylko on (bez kopii w zarządzanej tablicy).
+            // Zwalnia go wątek odbioru po ostatnim użyciu, na co czeka Join w Stop().
+            aes = new AesGcm(key, ProtocolConstants.AudioTagBytes);
+        }
+        catch
+        {
+            udp.Dispose();
+            throw;
+        }
         _expectedAddress = address;
-        _key = key.ToArray();
         _sessionId = sessionId;
         _udp = udp;
         _running = true;
@@ -64,7 +86,7 @@ public sealed class AudioReceiver : IDisposable
         _haveCounter = false;
         _counterWindow = 0;
         PacketsReceived = PacketsLost = PacketsRejected = BytesReceived = 0;
-        _thread = new Thread(() => Loop(udp))
+        _thread = new Thread(() => Loop(udp, aes))
         {
             IsBackground = true,
             Name = "blm-audio-rx",
@@ -80,137 +102,210 @@ public sealed class AudioReceiver : IDisposable
         var udp = _udp;
         var thread = _thread;
         try { udp?.Close(); } catch { /* ignore */ }
+        // Po wyjściu z pętli wątek sam zwalnia AesGcm (z kluczem) i zeruje bufory jawnego tekstu.
         if (thread is not null && thread != Thread.CurrentThread) thread.Join(TimeSpan.FromSeconds(1));
         _udp = null;
         _thread = null;
         _level = 0;
-        if (_key is { } key) CryptographicOperations.ZeroMemory(key);
-        _key = null;
         _expectedAddress = null;
         _haveCounter = false;
     }
 
-    private void Loop(UdpClient udp)
+    private void Loop(UdpClient udp, AesGcm aes)
     {
-        var remote = new IPEndPoint(IPAddress.Any, 0);
-        while (_running)
+        var socket = udp.Client;
+        // Bufory wielokrotnego użytku: bez alokacji na pakiet. Provider.Write kopiuje dane od razu.
+        var packet = new byte[MaxDatagramBytes];
+        var clear = new byte[MaxClearBytes];
+        var pcm = new byte[MaxClearBytes / 2];
+        var addressSize = SocketAddress.GetMaximumAddressSize(AddressFamily.InterNetwork);
+        var remote = new SocketAddress(AddressFamily.InterNetwork, addressSize);
+        SocketAddress? trusted = null; // ostatni nadawca, który przeszedł pełne sprawdzenie adresu
+        var wakeMs = -1;
+        try
         {
-            byte[] packet;
-            try { packet = udp.Receive(ref remote); }
-            catch (SocketException) { if (!_running) break; continue; }
-            catch (ObjectDisposedException) { break; }
-
-            var source = remote.Address.IsIPv4MappedToIPv6 ? remote.Address.MapToIPv4() : remote.Address;
-            if (_expectedAddress is null || !source.Equals(_expectedAddress))
+            while (_running)
             {
-                Interlocked.Increment(ref PacketsRejected);
-                continue;
-            }
-            var clear = Authenticate(packet, out var sequence, out var frames, out var channels, out var format);
-            if (clear is null)
-            {
-                Interlocked.Increment(ref PacketsRejected);
-                continue;
-            }
-            var provider = Provider;
-            if (provider is null) continue;
-
-            if (_haveSeq)
-            {
-                // Bufor odtwarzania jest FIFO, więc stare/przestawione pakiety
-                // muszą zostać odrzucone zamiast zanieczyszczać kolejność próbek.
-                var distance = (ushort)(sequence - _lastSeq);
-                if (distance == 0 || distance >= 0x8000)
+                int length;
+                try
                 {
-                    Interlocked.Increment(ref PacketsRejected);
-                    CryptographicOperations.ZeroMemory(clear);
+                    var wanted = Provider is { IsIdle: false } ? ActiveWakeMs : IdleWakeMs;
+                    if (wanted != wakeMs)
+                    {
+                        socket.ReceiveTimeout = wanted;
+                        wakeMs = wanted;
+                    }
+                    remote.Size = addressSize;
+                    length = socket.ReceiveFrom(packet.AsSpan(), SocketFlags.None, remote);
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode is SocketError.TimedOut or SocketError.WouldBlock)
+                {
+                    // Brak pakietów to nie błąd: Mac nie nadaje w ciszy. Poziom gaśnie, bufor może zasnąć.
+                    _level = 0;
+                    Provider?.CheckIdle();
                     continue;
                 }
-                var gap = distance - 1;
-                if (gap is > 0 and < 100)
+                catch (SocketException)
                 {
-                    Interlocked.Add(ref PacketsLost, gap);
-                    var silenceBytes = checked(gap * frames * channels * 2);
-                    if (silenceBytes <= 2 * 1024 * 1024) provider.WriteSilence(silenceBytes);
+                    if (!_running) break;
+                    Thread.Sleep(ErrorBackoffMs); // trwały błąd gniazda nie może kręcić rdzeniem
+                    continue;
                 }
-            }
-            _lastSeq = sequence;
-            _haveSeq = true;
+                catch (ObjectDisposedException) { break; }
 
-            Interlocked.Increment(ref PacketsReceived);
-            Interlocked.Add(ref BytesReceived, clear.Length);
-            if (format == 0)
-            {
-                var peak = 0;
-                for (var index = 0; index + 1 < clear.Length; index += 2)
+                if (trusted is null || !remote.Equals(trusted))
                 {
-                    var value = Math.Abs((int)BinaryPrimitives.ReadInt16LittleEndian(clear.AsSpan(index)));
-                    if (value > peak) peak = value;
+                    if (!IsExpectedSource(remote))
+                    {
+                        Interlocked.Increment(ref PacketsRejected);
+                        continue;
+                    }
+                    trusted = Copy(remote);
                 }
-                var level = peak / 32768f;
-                _level = level > _level ? level : _level * 0.85f;
-                provider.Write(clear);
-            }
-            else
-            {
-                var count = clear.Length / 4;
-                var converted = new byte[count * 2];
-                var peak = 0f;
-                for (var index = 0; index < count; index++)
+                var clearLength = Authenticate(aes, packet.AsSpan(0, length), clear, out var sequence, out var frames, out var channels, out var format);
+                if (clearLength < 0)
                 {
-                    var sample = Math.Clamp(BinaryPrimitives.ReadSingleLittleEndian(clear.AsSpan(index * 4)), -1f, 1f);
-                    if (Math.Abs(sample) > peak) peak = Math.Abs(sample);
-                    BinaryPrimitives.WriteInt16LittleEndian(converted.AsSpan(index * 2), (short)(sample * 32767));
+                    Interlocked.Increment(ref PacketsRejected);
+                    continue;
                 }
-                _level = peak > _level ? peak : _level * 0.85f;
-                provider.Write(converted);
+                var audio = clear.AsSpan(0, clearLength);
+                var provider = Provider;
+                if (provider is null) continue;
+
+                if (_haveSeq)
+                {
+                    // Bufor odtwarzania jest FIFO, więc stare/przestawione pakiety
+                    // muszą zostać odrzucone zamiast zanieczyszczać kolejność próbek.
+                    var distance = (ushort)(sequence - _lastSeq);
+                    if (distance == 0 || distance >= 0x8000)
+                    {
+                        Interlocked.Increment(ref PacketsRejected);
+                        CryptographicOperations.ZeroMemory(audio);
+                        continue;
+                    }
+                    var gap = distance - 1;
+                    if (gap is > 0 and < 100)
+                    {
+                        Interlocked.Add(ref PacketsLost, gap);
+                        var silenceBytes = checked(gap * frames * channels * 2);
+                        if (silenceBytes <= 2 * 1024 * 1024) provider.WriteSilence(silenceBytes);
+                    }
+                }
+                _lastSeq = sequence;
+                _haveSeq = true;
+
+                Interlocked.Increment(ref PacketsReceived);
+                Interlocked.Add(ref BytesReceived, clearLength);
+                if (format == 0)
+                {
+                    var peak = 0;
+                    for (var index = 0; index + 1 < audio.Length; index += 2)
+                    {
+                        var value = Math.Abs((int)BinaryPrimitives.ReadInt16LittleEndian(audio[index..]));
+                        if (value > peak) peak = value;
+                    }
+                    var level = peak / 32768f;
+                    _level = level > _level ? level : _level * 0.85f;
+                    provider.WritePacket(audio, silent: peak == 0);
+                }
+                else
+                {
+                    var count = clearLength / 4;
+                    var converted = pcm.AsSpan(0, count * 2);
+                    var peak = 0f;
+                    var silent = true;
+                    for (var index = 0; index < count; index++)
+                    {
+                        var sample = Math.Clamp(BinaryPrimitives.ReadSingleLittleEndian(audio[(index * 4)..]), -1f, 1f);
+                        if (Math.Abs(sample) > peak) peak = Math.Abs(sample);
+                        var value = (short)(sample * 32767);
+                        if (value != 0) silent = false;
+                        BinaryPrimitives.WriteInt16LittleEndian(converted[(index * 2)..], value);
+                    }
+                    _level = peak > _level ? peak : _level * 0.85f;
+                    provider.WritePacket(converted, silent);
+                }
+                // Starsze Maki nadają ciszę bez przerwy: tu bufor zaśnie mimo płynących pakietów.
+                provider.CheckIdle();
+                if (provider.IsIdle) _level = 0;
             }
+        }
+        finally
+        {
+            aes.Dispose();
+            CryptographicOperations.ZeroMemory(clear);
+            CryptographicOperations.ZeroMemory(pcm);
         }
     }
 
-    private byte[]? Authenticate(byte[] packet, out ushort sequence, out int frames, out int channels, out byte format)
+    /// <summary>Pełne sprawdzenie nadawcy, jak przy UdpClient.Receive; Loop zapamiętuje adres, który je przeszedł.</summary>
+    private bool IsExpectedSource(SocketAddress address)
+    {
+        IPEndPoint endpoint;
+        try
+        {
+            if (AnyEndPoint.Create(address) is not IPEndPoint created) return false;
+            endpoint = created;
+        }
+        catch (ArgumentException)
+        {
+            return false; // nie-IP albo ucięty adres
+        }
+        var source = endpoint.Address.IsIPv4MappedToIPv6 ? endpoint.Address.MapToIPv4() : endpoint.Address;
+        return _expectedAddress is { } expected && source.Equals(expected);
+    }
+
+    private static SocketAddress Copy(SocketAddress address)
+    {
+        var copy = new SocketAddress(address.Family, address.Size);
+        address.Buffer.Span[..address.Size].CopyTo(copy.Buffer.Span);
+        return copy;
+    }
+
+    /// <summary>Sprawdza nagłówek i odszyfrowuje PCM do <paramref name="clear"/>. Zwraca długość PCM albo -1.</summary>
+    private int Authenticate(AesGcm aes, ReadOnlySpan<byte> packet, Span<byte> clear, out ushort sequence, out int frames, out int channels, out byte format)
     {
         sequence = 0;
         frames = channels = 0;
         format = 0;
-        if (packet.Length < ProtocolConstants.AudioHeaderBytes + ProtocolConstants.AudioTagBytes || _key is null) return null;
-        var span = packet.AsSpan();
-        if (BinaryPrimitives.ReadUInt16LittleEndian(span) != ProtocolConstants.AudioMagic ||
-            span[2] != ProtocolConstants.AudioVersion || span[3] != 0 ||
-            BinaryPrimitives.ReadUInt64LittleEndian(span[4..]) != _sessionId ||
-            BinaryPrimitives.ReadUInt16LittleEndian(span[26..]) != 0) return null;
+        if (packet.Length < ProtocolConstants.AudioHeaderBytes + ProtocolConstants.AudioTagBytes) return -1;
+        if (BinaryPrimitives.ReadUInt16LittleEndian(packet) != ProtocolConstants.AudioMagic ||
+            packet[2] != ProtocolConstants.AudioVersion || packet[3] != 0 ||
+            BinaryPrimitives.ReadUInt64LittleEndian(packet[4..]) != _sessionId ||
+            BinaryPrimitives.ReadUInt16LittleEndian(packet[26..]) != 0) return -1;
 
-        var counter = BinaryPrimitives.ReadUInt64LittleEndian(span[12..]);
-        sequence = BinaryPrimitives.ReadUInt16LittleEndian(span[20..]);
-        frames = BinaryPrimitives.ReadUInt16LittleEndian(span[22..]);
-        channels = span[24];
-        format = span[25];
-        if (frames is <= 0 or > 1024 || channels is <= 0 or > 8 || format > 1) return null;
+        var counter = BinaryPrimitives.ReadUInt64LittleEndian(packet[12..]);
+        sequence = BinaryPrimitives.ReadUInt16LittleEndian(packet[20..]);
+        frames = BinaryPrimitives.ReadUInt16LittleEndian(packet[22..]);
+        channels = packet[24];
+        format = packet[25];
+        if (frames is <= 0 or > 1024 || channels is <= 0 or > 8 || format > 1) return -1;
         var bytesPerSample = format == 0 ? 2 : 4;
         var expectedBytes = checked(frames * channels * bytesPerSample);
         var cipherBytes = packet.Length - ProtocolConstants.AudioHeaderBytes - ProtocolConstants.AudioTagBytes;
-        if (cipherBytes != expectedBytes) return null;
+        if (cipherBytes != expectedBytes) return -1;
 
-        var clear = new byte[cipherBytes];
+        var output = clear[..cipherBytes];
+        Span<byte> nonce = stackalloc byte[NonceBytes];
+        WriteNonce(nonce, counter);
         try
         {
-            using var aes = new AesGcm(_key, ProtocolConstants.AudioTagBytes);
-            aes.Decrypt(Nonce(counter),
-                span.Slice(ProtocolConstants.AudioHeaderBytes, cipherBytes),
-                span.Slice(ProtocolConstants.AudioHeaderBytes + cipherBytes, ProtocolConstants.AudioTagBytes),
-                clear, span[..ProtocolConstants.AudioHeaderBytes]);
+            aes.Decrypt(nonce,
+                packet.Slice(ProtocolConstants.AudioHeaderBytes, cipherBytes),
+                packet.Slice(ProtocolConstants.AudioHeaderBytes + cipherBytes, ProtocolConstants.AudioTagBytes),
+                output, packet[..ProtocolConstants.AudioHeaderBytes]);
         }
         catch (CryptographicException)
         {
-            CryptographicOperations.ZeroMemory(clear);
-            return null;
+            CryptographicOperations.ZeroMemory(output);
+            return -1;
         }
         if (!AcceptCounter(counter))
         {
-            CryptographicOperations.ZeroMemory(clear);
-            return null;
+            CryptographicOperations.ZeroMemory(output);
+            return -1;
         }
-        return clear;
+        return cipherBytes;
     }
 
     /// <summary>64-pakietowe okno anty-replay tolerujące niewielką zmianę kolejności UDP.</summary>
@@ -238,12 +333,11 @@ public sealed class AudioReceiver : IDisposable
         return true;
     }
 
-    private byte[] Nonce(ulong counter)
+    // Układ bez zmian: sessionId (LE), od bajtu 4 nadpisany licznikiem (LE).
+    private void WriteNonce(Span<byte> nonce, ulong counter)
     {
-        var nonce = new byte[12];
         BinaryPrimitives.WriteUInt64LittleEndian(nonce, _sessionId);
-        BinaryPrimitives.WriteUInt64LittleEndian(nonce.AsSpan(4), counter);
-        return nonce;
+        BinaryPrimitives.WriteUInt64LittleEndian(nonce[4..], counter);
     }
 
     public void Dispose() => Stop();

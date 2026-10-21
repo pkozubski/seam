@@ -19,9 +19,12 @@ public sealed class HardwareH264Encoder : IDisposable
     private const uint InterlaceProgressive = 2;
     private const uint ProfileHigh = 100;
     private const uint MatrixBt709 = 1, PrimariesBt709 = 2, TransferBt709 = 5, NominalRange16To235 = 2;
-    private const int EventNoWait = 1; // MF_EVENT_FLAG_NO_WAIT
+    private const uint EventNoWait = 1; // MF_EVENT_FLAG_NO_WAIT
+    private const int GetEventSlot = 3; // IMFMediaEventGenerator::GetEvent w vtable (po IUnknown)
+    private const int FastPollMicroseconds = 250, SlowPollMicroseconds = 1000;
     private const int TexturePoolSize = 3;
     private static readonly long EncodeTimeout = Stopwatch.Frequency / 10;
+    private static readonly long FastPollPhase = Stopwatch.Frequency / 250; // 4 ms
 
     // ICodecAPI (codecapi.h)
     private static readonly Guid LowLatencyMode = new("9c27891a-ed7a-40e1-88e8-b22727a024ee");
@@ -41,6 +44,8 @@ public sealed class HardwareH264Encoder : IDisposable
     private readonly int _frameBytes;
     private readonly ID3D11Texture2D?[] _textures = new ID3D11Texture2D?[TexturePoolSize];
     private readonly List<(byte[] Data, bool Keyframe)> _pending = new();
+    // Sleep(1) bez timeBeginPeriod śpi ~15 ms – krótkie przerwy między pytaniami o zdarzenia daje timer wysokiej rozdzielczości.
+    private readonly PreciseTimer _timer = new();
     private IMFActivate? _activate;
     private IMFTransform? _transform;
     private IMFMediaEventGenerator? _events;
@@ -298,23 +303,37 @@ public sealed class HardwareH264Encoder : IDisposable
         var started = Stopwatch.GetTimestamp();
         while (waitForOutput ? _pending.Count == 0 : _needInput <= 0)
         {
-            IMFMediaEvent mediaEvent;
-            try
+            var mediaEvent = TryGetEvent();
+            if (mediaEvent is not null)
             {
-                mediaEvent = _events!.GetEvent(EventNoWait);
-            }
-            catch (SharpGenException ex) when (ex.ResultCode == ResultCode.NoEventsAvailable)
-            {
-                var now = Stopwatch.GetTimestamp();
-                if (now >= deadline) return false;
-                // Sleep(1) to do 15 ms przy domyślnej rozdzielczości zegara – najpierw tylko oddajemy kwant.
-                if (now - started < Stopwatch.Frequency / 250) Thread.Yield();
-                else Thread.Sleep(1);
+                using (mediaEvent) HandleEvent(mediaEvent);
                 continue;
             }
-            using (mediaEvent) HandleEvent(mediaEvent);
+            var now = Stopwatch.GetTimestamp();
+            if (now >= deadline) return false;
+            // Koder oddaje klatkę po ~2–8 ms: przez pierwsze 4 ms pytamy co 250 µs, potem co 1 ms; nie dłużej niż do terminu.
+            var interval = now - started < FastPollPhase ? FastPollMicroseconds : SlowPollMicroseconds;
+            var remaining = (deadline - now) * 1_000_000 / Stopwatch.Frequency;
+            _timer.Wait((int)Math.Min(interval, remaining));
         }
         return true;
+    }
+
+    /// <summary>
+    /// IMFMediaEventGenerator::GetEvent bez czekania, wprost z vtable: wrapper Vortice rzuca wyjątek
+    /// przy każdym MF_E_NO_EVENTS_AVAILABLE, a pytamy kilkadziesiąt razy na klatkę. null = brak zdarzenia,
+    /// inny błąd – SharpGenException jak z wrappera.
+    /// </summary>
+    private unsafe IMFMediaEvent? TryGetEvent()
+    {
+        var generator = _events!.NativePointer;
+        var getEvent = (delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, int>)(*(void***)generator)[GetEventSlot];
+        var pointer = IntPtr.Zero;
+        var hr = getEvent(generator, EventNoWait, &pointer);
+        if (hr == ResultCode.NoEventsAvailable.Code) return null;
+        new Result(hr).CheckError();
+        // Wrapper przejmuje referencję z GetEvent (bez AddRef) – zwalnia ją jedno Dispose u wywołującego.
+        return pointer != IntPtr.Zero ? new IMFMediaEvent(pointer) : null;
     }
 
     private void HandleEvent(IMFMediaEvent mediaEvent)
@@ -494,6 +513,7 @@ public sealed class HardwareH264Encoder : IDisposable
         _manager?.Dispose();
         foreach (var texture in _textures) texture?.Dispose();
         _pending.Clear();
+        _timer.Dispose();
         MediaFactory.MFShutdown();
     }
 

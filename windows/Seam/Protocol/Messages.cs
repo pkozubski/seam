@@ -589,11 +589,21 @@ public static class Frame
     public static ulong? ParsePong(ReadOnlySpan<byte> p)
         => p.Length >= 8 ? BinaryPrimitives.ReadUInt64LittleEndian(p) : null;
 
+    /// <summary>Znane typy komunikatów (indeks = bajt typu) – zamiast Enum.IsDefined przy każdej ramce.</summary>
+    private static readonly bool[] KnownTypes = BuildKnownTypes();
+
+    private static bool[] BuildKnownTypes()
+    {
+        var known = new bool[256];
+        foreach (var value in Enum.GetValues<MessageType>()) known[(byte)value] = true;
+        return known;
+    }
+
     public static bool TryParseSingle(ReadOnlySpan<byte> data, out MessageType type, out byte[] payload)
     {
         type = default;
         payload = Array.Empty<byte>();
-        if (data.Length < 2 || !Enum.IsDefined(typeof(MessageType), data[0])) return false;
+        if (data.Length < 2 || !KnownTypes[data[0]]) return false;
         type = (MessageType)data[0];
         var length = (int)data[1];
         var header = 2;

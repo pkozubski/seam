@@ -12,13 +12,30 @@ public sealed record DiscoveredPeer(string Name, string Address, int Port)
     public string Display => $"{Name}  ·  {Address}";
 }
 
-/// <summary>Wysyła broadcast "BLM2?" i zbiera odpowiedzi Maców.</summary>
+/// <summary>
+/// Wysyła broadcast "BLM2?" i zbiera odpowiedzi Maców. Bez połączenia: co 2 s przez pierwsze
+/// próby po starcie, wznowieniu i zmianie sieci, potem co 15 s. Podczas połączenia wstrzymany (<see cref="Pause"/>).
+/// </summary>
 public sealed class DiscoveryClient : IDisposable
 {
+    private const int FastAttempts = 10;
+    private static readonly TimeSpan FastInterval = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan SlowInterval = TimeSpan.FromSeconds(15);
+    /// <summary>Lista adresów broadcast odświeżana przy zmianie sieci; to tylko zabezpieczenie na przeoczone zdarzenie.</summary>
+    private const long AddressRefreshMs = 5 * 60 * 1000;
+
     public event Action<DiscoveredPeer>? PeerFound;
+    /// <summary>Zmienił się adres sieciowy (NetworkChange). Wywoływane z wątku puli.</summary>
+    public event Action? NetworkChanged;
 
     private UdpClient? _udp;
     private CancellationTokenSource? _cts;
+    // Budzi pętlę wysyłki przed końcem przerwy (wznowienie, zmiana sieci).
+    private readonly SemaphoreSlim _wake = new(0, 1);
+    private volatile bool _paused;
+    private int _fastLeft = FastAttempts;
+    private int _networkVersion;
+    private bool _watchingNetwork;
 
     public void Start()
     {
@@ -28,6 +45,17 @@ public sealed class DiscoveryClient : IDisposable
         udp.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
         SocketHelpers.DisableUdpConnReset(udp.Client);
         _udp = udp;
+        _paused = false;
+        Volatile.Write(ref _fastLeft, FastAttempts);
+        try
+        {
+            NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
+            _watchingNetwork = true;
+        }
+        catch (Exception)
+        {
+            // bez powiadomień lista adresów odświeża się co kilka minut
+        }
         var cts = new CancellationTokenSource();
         _cts = cts;
         _ = Task.Run(() => ReceiveLoop(udp, cts.Token));
@@ -36,6 +64,11 @@ public sealed class DiscoveryClient : IDisposable
 
     public void Stop()
     {
+        if (_watchingNetwork)
+        {
+            NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
+            _watchingNetwork = false;
+        }
         _cts?.Cancel();
         _cts = null;
         try { _udp?.Close(); } catch { /* ignore */ }
@@ -43,6 +76,32 @@ public sealed class DiscoveryClient : IDisposable
     }
 
     public void Dispose() => Stop();
+
+    /// <summary>Wstrzymuje broadcast (np. podczas połączenia z Makiem); odbiór działa dalej.</summary>
+    public void Pause() => _paused = true;
+
+    /// <summary>Wznawia broadcast od razu, z szybkimi próbami. Bez skutku, gdy nie był wstrzymany.</summary>
+    public void Resume()
+    {
+        if (!_paused) return;
+        _paused = false;
+        Volatile.Write(ref _fastLeft, FastAttempts);
+        Wake();
+    }
+
+    private void Wake()
+    {
+        try { _wake.Release(); }
+        catch (SemaphoreFullException) { /* pętla i tak się obudzi */ }
+    }
+
+    private void OnNetworkAddressChanged(object? sender, EventArgs e)
+    {
+        Interlocked.Increment(ref _networkVersion);
+        Volatile.Write(ref _fastLeft, FastAttempts);
+        if (!_paused) Wake();
+        NetworkChanged?.Invoke();
+    }
 
     private static IEnumerable<IPAddress> BroadcastAddresses()
     {
@@ -63,19 +122,42 @@ public sealed class DiscoveryClient : IDisposable
         }
     }
 
-    private static async Task BroadcastLoop(UdpClient udp, CancellationToken ct)
+    private async Task BroadcastLoop(UdpClient udp, CancellationToken ct)
     {
         var payload = Encoding.ASCII.GetBytes(ProtocolConstants.DiscoveryRequest);
+        var targets = Array.Empty<IPAddress>();
+        var targetsVersion = -1;
+        var targetsTime = 0L;
         try
         {
             while (!ct.IsCancellationRequested)
             {
-                foreach (var addr in BroadcastAddresses().Distinct())
+                if (!_paused)
                 {
-                    try { await udp.SendAsync(payload, payload.Length, new IPEndPoint(addr, ProtocolConstants.DiscoveryPort)).ConfigureAwait(false); }
-                    catch { /* interfejs bez broadcastu */ }
+                    // Wyliczanie interfejsów jest kosztowne: robimy to po zmianie sieci, nie przy każdym broadcaście.
+                    var version = Volatile.Read(ref _networkVersion);
+                    if (version != targetsVersion || Environment.TickCount64 - targetsTime > AddressRefreshMs)
+                    {
+                        targetsVersion = version;
+                        targetsTime = Environment.TickCount64;
+                        try { targets = BroadcastAddresses().Distinct().ToArray(); }
+                        catch (Exception) { targets = new[] { IPAddress.Broadcast }; }
+                    }
+                    foreach (var addr in targets)
+                    {
+                        try { await udp.SendAsync(payload, payload.Length, new IPEndPoint(addr, ProtocolConstants.DiscoveryPort)).ConfigureAwait(false); }
+                        catch { /* interfejs bez broadcastu */ }
+                    }
                 }
-                await Task.Delay(2000, ct).ConfigureAwait(false);
+                TimeSpan delay;
+                if (_paused) delay = Timeout.InfiniteTimeSpan;
+                else if (Volatile.Read(ref _fastLeft) > 0)
+                {
+                    Interlocked.Decrement(ref _fastLeft);
+                    delay = FastInterval;
+                }
+                else delay = SlowInterval;
+                await _wake.WaitAsync(delay, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) { }
@@ -85,13 +167,23 @@ public sealed class DiscoveryClient : IDisposable
     private async Task ReceiveLoop(UdpClient udp, CancellationToken ct)
     {
         var reply = Encoding.ASCII.GetBytes(ProtocolConstants.DiscoveryReply);
+        var errors = 0;
         try
         {
             while (!ct.IsCancellationRequested)
             {
                 UdpReceiveResult result;
-                try { result = await udp.ReceiveAsync(ct).ConfigureAwait(false); }
-                catch (SocketException) { continue; }
+                try
+                {
+                    result = await udp.ReceiveAsync(ct).ConfigureAwait(false);
+                    errors = 0;
+                }
+                catch (SocketException)
+                {
+                    // Seria błędów (np. znikający interfejs) nie może kręcić pętli bez przerwy.
+                    if (++errors >= 3) await Task.Delay(errors >= 20 ? 1000 : 100, ct).ConfigureAwait(false);
+                    continue;
+                }
                 var data = result.Buffer;
                 if (data.Length < reply.Length + 2 || !data.AsSpan(0, reply.Length).SequenceEqual(reply)) continue;
                 var port = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(reply.Length));

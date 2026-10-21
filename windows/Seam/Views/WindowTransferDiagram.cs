@@ -108,9 +108,16 @@ public sealed class WindowTransferDiagram : Control
         context.DrawText(new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
                                           new Typeface(FontFamily.Default), size, brush), position);
 
+    /// <summary>
+    /// Tapety mają 1536×1024, a pulpit na diagramie ma w domyślnym oknie ~140–180 DIP szerokości.
+    /// 768 px pokrywa pulpit do 384 DIP przy 200 % (np. zmaksymalizowane okno na 4K 200 %) i zrzuty
+    /// --screenshot (2×), a zajmuje 1,5 MB zamiast 6,3 MB na tapetę.
+    /// </summary>
+    private const int WallpaperDecodeWidth = 768;
+
     private static Bitmap Load(string name)
     {
         using var stream = AssetLoader.Open(new Uri($"avares://Seam/Assets/{name}.png"));
-        return new Bitmap(stream);
+        return Bitmap.DecodeToWidth(stream, WallpaperDecodeWidth, BitmapInterpolationMode.HighQuality);
     }
 }

@@ -92,3 +92,10 @@ windows/Seam/
   monitor jest podłączany i odłączany przez `ChangeDisplaySettingsEx` bez admina.
 - Skrót sterowania: Ctrl+Alt+Shift+B (użytkownik ma klawiaturę 68%, bez Scroll Lock/Pause).
 - Updater wersji dev nadpisuje exe w miejscu (`swap.cmd`); nazwa pliku na dysku może dalej brzmieć `BorderlessMouse.exe`.
+- Energia: nie używaj `timeBeginPeriod` (przyspiesza zegar całego systemu; Windows 11 i tak go ignoruje dla aplikacji
+  w zasobniku). Krótkie, dokładne przerwy daje `Display/PreciseTimer` (`Wait`, a w pętli z komunikatami `TryArm` +
+  uchwyt w `MsgWaitForMultipleObjectsEx`). Pętle śpią bez limitu czasu, gdy nie ma pracy (zdarzenie budzące),
+  odpytywanie zwalnia, gdy nic się nie zmienia. Statystyki UI liczymy tylko przy widocznym oknie i stronie, która je pokazuje.
+- `DispatcherTimer(interval, priority, callback)` w Avalonii startuje od razu; timer na żądanie twórz bez callbacku i `Tick +=`.
+- Mac od 2026-10 nie wysyła audio w ciszy (`docs/PROTOCOL.md`): brak pakietów to nie błąd; `JitterBufferProvider`
+  zasypia po 3 s i `AudioPlayer` zatrzymuje wtedy WASAPI (`Stop`/`Play`, bo `Pause` w NAudio nie zatrzymuje klienta).

@@ -84,12 +84,19 @@ public sealed class Settings
         return new Settings();
     }
 
+    // Ostatnio zapisana treść: przełączniki często ustawiają tę samą wartość, a wtedy nie dotykamy dysku.
+    private string? _lastSavedJson;
+
+    /// <summary>Zapis synchroniczny; MainViewModel łączy częste zmiany (suwaki, pola tekstowe) w jeden zapis.</summary>
     public void Save()
     {
         try
         {
+            var json = JsonSerializer.Serialize(this, Options);
+            if (json == _lastSavedJson) return;
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Options));
+            File.WriteAllText(FilePath, json);
+            _lastSavedJson = json;
         }
         catch
         {

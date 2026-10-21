@@ -19,7 +19,8 @@
                             </RadialGradientBrush>
                         </Border.Background>
                     </Border>
-                    <Image Source="avares://Seam/Assets/seam-windows.png" Stretch="Uniform" Margin="26" VerticalAlignment="Center" />
+                    <!-- seam-windows.png ustawia kod (ConnectionPage.axaml.cs) w rozdzielczości dopasowanej do okna -->
+                    <Image x:Name="HeroImage" Stretch="Uniform" Margin="26" VerticalAlignment="Center" />
                 </Panel>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="20">
                     <TextBlock Text="Dwa komputery.&#10;Jedna przestrzeń." FontSize="36" LetterSpacing="-1" LineHeight="43" />

@@ -6,9 +6,14 @@ namespace Seam.Audio;
 /// Bufor pierścieniowy między odbiorem UDP a WASAPI. Utrzymuje docelowe
 /// opóźnienie: przy niedoborze gra ciszę i czeka aż uzbiera się TargetMs,
 /// przy nadmiarze (narastające opóźnienie) tnie do wartości docelowej.
+/// Po <see cref="IdleTimeoutMs"/> bez dźwięku zasypia (<see cref="IsIdle"/>), żeby
+/// AudioPlayer mógł zatrzymać strumień WASAPI; pierwszy niecichy pakiet go budzi.
 /// </summary>
 public sealed class JitterBufferProvider : IWaveProvider
 {
+    /// <summary>Czas bez dźwięku (same zera albo brak pakietów), po którym bufor zasypia.</summary>
+    public const int IdleTimeoutMs = 3000;
+
     private readonly byte[] _ring;
     private readonly object _gate = new();
     private int _readPos;
@@ -16,10 +21,20 @@ public sealed class JitterBufferProvider : IWaveProvider
     private bool _prebuffering = true;
     private int _targetBytes;
     private int _maxBytes;
+    // Stan uśpienia zmienia tylko wątek odbioru (WritePacket/CheckIdle).
+    private long _lastSoundTicks = Environment.TickCount64;
+    private volatile bool _idle;
+    private volatile bool _silentTail;
 
     public WaveFormat WaveFormat { get; }
     public long Underruns { get; private set; }
     public long Overruns { get; private set; }
+
+    /// <summary>Uśpiony: brak dźwięku od IdleTimeoutMs, bufor pusty i niekarmiony.</summary>
+    public bool IsIdle => _idle;
+
+    /// <summary>Zmiana uśpienia (true = dźwięk wrócił). Wywoływane z wątku odbioru.</summary>
+    public event Action<bool>? ActivityChanged;
 
     public JitterBufferProvider(WaveFormat format, int targetMs)
     {
@@ -44,6 +59,40 @@ public sealed class JitterBufferProvider : IWaveProvider
     }
 
     private int Align(int bytes) => bytes - bytes % WaveFormat.BlockAlign;
+
+    /// <summary>
+    /// Pakiet z odbiornika (dane są kopiowane od razu). Dźwięk budzi uśpiony bufor;
+    /// cisza w uśpieniu jest pomijana. <paramref name="silent"/> = same zerowe próbki.
+    /// </summary>
+    public void WritePacket(ReadOnlySpan<byte> data, bool silent)
+    {
+        if (!silent)
+        {
+            _lastSoundTicks = Environment.TickCount64;
+            if (_idle)
+            {
+                // wznowienie od pustego bufora: prebuffering zaczyna się czysto
+                Clear();
+                _idle = false;
+                ActivityChanged?.Invoke(true);
+            }
+        }
+        else if (_idle)
+        {
+            return;
+        }
+        _silentTail = silent;
+        Write(data);
+    }
+
+    /// <summary>Usypia bufor po IdleTimeoutMs bez dźwięku. Woła go odbiornik po pakiecie i po przekroczeniu czasu odbioru.</summary>
+    public void CheckIdle()
+    {
+        if (_idle || Environment.TickCount64 - _lastSoundTicks < IdleTimeoutMs) return;
+        _idle = true;
+        Clear();
+        ActivityChanged?.Invoke(false);
+    }
 
     public void Write(ReadOnlySpan<byte> data)
     {
@@ -75,9 +124,10 @@ public sealed class JitterBufferProvider : IWaveProvider
         }
     }
 
+    /// <summary>Wypełnia lukę po zgubionych pakietach; w uśpieniu nic nie robi.</summary>
     public void WriteSilence(int bytes)
     {
-        if (bytes <= 0) return;
+        if (bytes <= 0 || _idle) return;
         Span<byte> zeros = stackalloc byte[Math.Min(bytes, 4096)];
         zeros.Clear();
         while (bytes > 0)
@@ -126,7 +176,8 @@ public sealed class JitterBufferProvider : IWaveProvider
             if (take < count)
             {
                 Array.Clear(buffer, offset + take, count - take);
-                Underruns++;
+                // koniec strumienia po ciszy (Mac przestał nadawać) nie jest słyszalnym niedopełnieniem
+                if (!_silentTail) Underruns++;
                 _prebuffering = true;
             }
             return count;

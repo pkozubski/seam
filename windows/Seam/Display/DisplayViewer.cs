@@ -57,6 +57,9 @@ public sealed class DisplayViewer : IDisposable
     private const uint FullscreenId = 0;
     /// <summary>Tyle klatek w kolejce oznacza, że dekoder nie nadąża – odrzucamy i prosimy o klatki kluczowe.</summary>
     private const int MaxQueuedFrames = 48;
+    private const uint INFINITE = 0xFFFFFFFF;
+    /// <summary>Ponowienie <see cref="FollowSource"/>, dopóki rozmiar czeka na koniec lokalnej zmiany.</summary>
+    private const uint PendingRetryMs = 100;
     private const uint WM_MOVE = 0x0003, WM_SIZE = 0x0005, WM_ACTIVATE = 0x0006;
     private const uint WM_ERASEBKGND = 0x0014, WM_SETICON = 0x0080, WM_TIMER = 0x0113;
     private const uint WM_CANCELMODE = 0x001F, WM_ENTERSIZEMOVE = 0x0231, WM_EXITSIZEMOVE = 0x0232;
@@ -117,6 +120,10 @@ public sealed class DisplayViewer : IDisposable
     private readonly Dictionary<IntPtr, Surface> _byHandle = new();
     private readonly Dictionary<int, IntPtr> _icons = new();
     private readonly Dictionary<int, IReadOnlyList<MacMenuItem>> _menus = new();
+    // Bufory DecodePending używane w każdym obiegu; czyszczone po nim.
+    private readonly List<VideoStream.VideoFrame> _batch = new();
+    private readonly Dictionary<uint, int> _lastIndex = new();
+    private bool _decoding;
 
     /// <summary>Błąd, po którym podgląd nie działa (wątek wyświetlania).</summary>
     public event Action<string>? Failed;
@@ -272,7 +279,7 @@ public sealed class DisplayViewer : IDisposable
             var handles = new[] { _wake.SafeWaitHandle.DangerousGetHandle() };
             while (_running)
             {
-                MsgWaitForMultipleObjectsEx(1, handles, 100, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                MsgWaitForMultipleObjectsEx(1, handles, WaitTimeout(), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                 while (PeekMessageW(out var msg, IntPtr.Zero, 0, 0, PM_REMOVE))
                 {
                     TranslateMessage(ref msg);
@@ -291,60 +298,97 @@ public sealed class DisplayViewer : IDisposable
         }
     }
 
+    /// <summary>
+    /// Klatki, polecenia i Stop budzą pętlę zdarzeniem <see cref="_wake"/>, a zmiany okien – komunikatem, po którym
+    /// zawsze działa <see cref="Pump"/>. Odliczanie zostaje tylko dla rozmiaru czekającego na koniec lokalnej zmiany
+    /// (<see cref="Surface.LocalResizeUntil"/>): ten koniec nie przychodzi żadnym komunikatem.
+    /// Maksymalizacja i minimalizacja kończą się WM_SIZE, więc dla nich wątek może spać.
+    /// </summary>
+    private uint WaitTimeout()
+    {
+        foreach (var surface in _surfaces.Values)
+            if (surface.SourceSizePending && !IsZoomed(surface.Handle) && !IsIconic(surface.Handle)) return PendingRetryMs;
+        return INFINITE;
+    }
+
     /// <summary>Polecenia i dekodowanie – także z pętli modalnej (przeciąganie, menu), inaczej obraz by stał.</summary>
     private void Pump()
     {
         while (_commands.TryDequeue(out var command)) command();
         // Lista okien przychodzi tylko przy zmianie – rozmiar z okresu zmiany lokalnej dogania się tutaj.
-        foreach (var surface in _surfaces.Values.Where(s => s.SourceSizePending).ToList()) FollowSource(surface, surface.MacScreen);
+        if (AnySourceSizePending())
+            foreach (var surface in _surfaces.Values.Where(s => s.SourceSizePending).ToList()) FollowSource(surface, surface.MacScreen);
         DecodePending();
+    }
+
+    private bool AnySourceSizePending()
+    {
+        foreach (var surface in _surfaces.Values)
+            if (surface.SourceSizePending) return true;
+        return false;
     }
 
     private void DecodePending()
     {
-        var batch = _frames.Drain(out var discontinuous);
-        if (discontinuous)
+        // Zagnieżdżone wywołanie (pętla modalna w trakcie dekodowania) dostaje własne bufory,
+        // żeby nie wyczyścić ich zewnętrznemu obiegowi.
+        var nested = _decoding;
+        var batch = nested ? new List<VideoStream.VideoFrame>() : _batch;
+        var lastIndex = nested ? new Dictionary<uint, int>() : _lastIndex;
+        var discontinuous = _frames.Drain(batch);
+        if (batch.Count == 0 && !discontinuous) return;
+        _decoding = true;
+        try
         {
-            foreach (var surface in _surfaces.Values)
+            if (discontinuous)
             {
-                DisposeDecoder(surface);
-                surface.AwaitingKeyframe = true;
-                // A throttled request before overflow may itself have been discarded.
-                RequestKeyframe(surface.Id);
-            }
-        }
-        // Przy zaległościach każda powierzchnia pokazuje tylko swoją najnowszą klatkę.
-        var lastIndex = new Dictionary<uint, int>();
-        for (var i = 0; i < batch.Count; i++) lastIndex[batch[i].StreamId] = i;
-
-        for (var i = 0; i < batch.Count; i++)
-        {
-            var frame = batch[i];
-            if (!_surfaces.TryGetValue(frame.StreamId, out var surface)) continue; // okno jeszcze bez listy
-            if (surface.AwaitingKeyframe && !frame.IsKeyframe) continue;
-            var present = lastIndex[frame.StreamId] == i;
-            try
-            {
-                if (!EnsureDecoder(surface, frame)) continue;
-                surface.AwaitingKeyframe = false;
-                var decoder = surface.Decoder!;
-                decoder.Decode(frame.Payload, sample =>
+                foreach (var surface in _surfaces.Values)
                 {
-                    if (present) Present(surface, decoder, sample, frame.Width, frame.Height);
-                });
-            }
-            catch (SharpGenException ex)
-            {
-                // Uszkodzony strumień albo reset sterownika: nowy dekoder od następnej klatki kluczowej.
-                DisposeDecoder(surface);
-                surface.AwaitingKeyframe = true;
-                RequestKeyframe(surface.Id);
-                if (ex.ResultCode == Vortice.DXGI.ResultCode.DeviceRemoved || ex.ResultCode == Vortice.DXGI.ResultCode.DeviceReset)
-                {
-                    RecreateDevice();
-                    return;
+                    DisposeDecoder(surface);
+                    surface.AwaitingKeyframe = true;
+                    // A throttled request before overflow may itself have been discarded.
+                    RequestKeyframe(surface.Id);
                 }
             }
+            // Przy zaległościach każda powierzchnia pokazuje tylko swoją najnowszą klatkę.
+            for (var i = 0; i < batch.Count; i++) lastIndex[batch[i].StreamId] = i;
+
+            for (var i = 0; i < batch.Count; i++)
+            {
+                var frame = batch[i];
+                if (!_surfaces.TryGetValue(frame.StreamId, out var surface)) continue; // okno jeszcze bez listy
+                if (surface.AwaitingKeyframe && !frame.IsKeyframe) continue;
+                var present = lastIndex[frame.StreamId] == i;
+                try
+                {
+                    if (!EnsureDecoder(surface, frame)) continue;
+                    surface.AwaitingKeyframe = false;
+                    var decoder = surface.Decoder!;
+                    decoder.Decode(frame.Payload, sample =>
+                    {
+                        if (present) Present(surface, decoder, sample, frame.Width, frame.Height);
+                    });
+                }
+                catch (SharpGenException ex)
+                {
+                    // Uszkodzony strumień albo reset sterownika: nowy dekoder od następnej klatki kluczowej.
+                    DisposeDecoder(surface);
+                    surface.AwaitingKeyframe = true;
+                    RequestKeyframe(surface.Id);
+                    if (ex.ResultCode == Vortice.DXGI.ResultCode.DeviceRemoved || ex.ResultCode == Vortice.DXGI.ResultCode.DeviceReset)
+                    {
+                        RecreateDevice();
+                        return;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            // Bufory klatek nie mogą żyć dłużej niż ten obieg.
+            batch.Clear();
+            lastIndex.Clear();
+            _decoding = nested;
         }
     }
 
@@ -385,6 +429,7 @@ public sealed class DisplayViewer : IDisposable
             texture = Upload(surface, decoder, sample);
             slice = 0;
         }
+        var pictureChanged = false;
         using (texture)
         {
             var description = texture.Description;
@@ -409,6 +454,7 @@ public sealed class DisplayViewer : IDisposable
                 ? WindowGeometry.Fit(visibleWidth, visibleHeight, area)
                 : WindowGeometry.FitWithin(visibleWidth, visibleHeight, area);
             var destination = new RawRect(fitted.Left, fitted.Top, fitted.Right, fitted.Bottom);
+            pictureChanged = surface.PictureWidth != visibleWidth || surface.PictureHeight != visibleHeight;
             surface.PictureWidth = visibleWidth;
             surface.PictureHeight = visibleHeight;
             _videoContext.VideoProcessorSetStreamSourceRect(surface.Processor!, 0, true, new RawRect(0, 0, visibleWidth, visibleHeight));
@@ -418,7 +464,9 @@ public sealed class DisplayViewer : IDisposable
             _videoContext.VideoProcessorBlt(surface.Processor!, surface.OutputView!, 0, 1, streams).CheckError();
         }
         surface.HasVideo = true;
-        PublishProxies();
+        // Z klatki do Proxies trafia tylko rozmiar obrazu (ImageClient; pierwsza klatka też go zmienia).
+        // Położenie, widoczność i minimalizację publikują SyncClient, ApplyVisibility i WM_SIZE, listę okien UpdateWindows.
+        if (pictureChanged) PublishProxies();
         if (surface.Kind == SurfaceKind.Fullscreen) surface.SwapChain.Present(0, PresentFlags.None).CheckError();
         else Compose(surface);
         Interlocked.Increment(ref _framesPresented);

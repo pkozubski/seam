@@ -41,6 +41,12 @@ public partial class MainViewModel : ObservableObject
     private readonly DiscoveryClient _discovery = new();
     private readonly AudioReceiver _audioRx = new();
     private readonly DispatcherTimer _statsTimer;
+    /// <summary>Jednorazowy zapis ustawień po chwili ciszy (suwaki i pola tekstowe zmieniają się co krok).</summary>
+    private readonly DispatcherTimer _settingsSaveTimer;
+    // Liczniki statystyk chodzą tylko, gdy okno jest na ekranie, a pokazana strona ma wartości na żywo.
+    private bool _windowVisible;
+    private string _visiblePage = "connection";
+    private bool _connectionDetailsVisible = true;
     private AudioPlayer? _player;
     private InputCapture? _capture;
     private JitterBufferProvider? _jitter;
@@ -51,6 +57,18 @@ public partial class MainViewModel : ObservableObject
     private CancellationTokenSource? _connectLoopCts;
     private TaskCompletionSource? _disconnectedTcs;
     private bool _desiredConnection;
+    /// <summary>Przerwy między próbami, gdy Maca nie ma; po udanej sesji seria zaczyna się od początku.</summary>
+    private static readonly TimeSpan[] ReconnectDelays =
+        { TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(6), TimeSpan.FromSeconds(12), TimeSpan.FromSeconds(30) };
+    /// <summary>Przerwa po której odpowiedź Maca w wykrywaniu oznacza jego powrót do sieci.</summary>
+    private const long HostAbsentMs = 40_000;
+    private CancellationTokenSource? _reconnectDelayCts;
+    private bool _reconnectWoken;
+    private bool _sessionEstablished;
+    private string? _lastConnectFailure;
+    /// <summary>Rośnie przy zapisie i usunięciu kodu – pętla połączenia czyta wtedy klucz z DPAPI ponownie.</summary>
+    private int _pairingKeyVersion;
+    private long _hostLastSeen = -1;
     private bool _loading = true;
     // Podgląd (--screenshot) wypełnia UI danymi demo – nie mogą trafić do prawdziwego settings.json
     private bool _offline;
@@ -88,6 +106,11 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         _settings = Settings.Load();
+        // Konstruktor DispatcherTimer z callbackiem od razu uruchamia licznik – tu startują dopiero na żądanie.
+        _statsTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
+        _statsTimer.Tick += (_, _) => UpdateStats();
+        _settingsSaveTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(500) };
+        _settingsSaveTimer.Tick += (_, _) => FlushSettings();
 
         MacSides = new[]
         {
@@ -143,6 +166,7 @@ public partial class MainViewModel : ObservableObject
         _client.MessageReceived += (type, payload) => Post(() => OnMessage(type, payload));
         _client.RttMeasured += rtt => Post(() => RttMs = rtt);
         _discovery.PeerFound += peer => Post(() => OnPeerFound(peer));
+        _discovery.NetworkChanged += () => Post(WakeReconnect);
         _videoRx.FrameReceived += frame => _viewer?.Enqueue(frame);
         _videoRx.Closed += reason => Post(() => OnDisplayFailed(reason ?? T("Strumień ekranu zakończony.", "The display stream ended.")));
 
@@ -155,7 +179,6 @@ public partial class MainViewModel : ObservableObject
                 "The previous run crashed (%LOCALAPPDATA%\\BorderlessMouse\\crash-previous.log):\n") + string.Join("\n", lines));
         }
         Log(T($"Wersja {Updater.CurrentVersion}", $"Version {Updater.CurrentVersion}") + (Updater.IsDevChannel ? T(" (kanał testowy)", " (test channel)") : ""));
-        _statsTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => UpdateStats());
         _loading = false;
         UpdateStatus();
     }
@@ -320,7 +343,7 @@ public partial class MainViewModel : ObservableObject
         {
             Log(T("Nie udało się uruchomić wykrywania: ", "Discovery could not start: ") + ex.Message);
         }
-        _statsTimer.Start();
+        UpdateStatsTimer();
         if (AutoConnect && HasPairingKey && !string.IsNullOrWhiteSpace(HostAddress))
         {
             BeginConnect();
@@ -472,7 +495,19 @@ public partial class MainViewModel : ObservableObject
             ClipboardStatusText = T($"Wysłano {content.Summary} do Maca · {DateTime.Now:HH:mm:ss}", $"Sent {content.Summary} to Mac · {DateTime.Now:HH:mm:ss}");
         };
         _clipboardSync.Error += message => ClipboardStatusText = message;
-        _clipboardSync.Start();
+        UpdateClipboardPolling(skipPending: true);
+    }
+
+    /// <summary>
+    /// Schowek odpytujemy tylko podczas połączenia z włączoną synchronizacją. Po połączeniu
+    /// (<paramref name="skipPending"/>) to, co skopiowano bez połączenia, uchodzi za obsłużone – jak wcześniej,
+    /// gdy odpytywanie trwało cały czas. Ponowne włączenie przełącznika wysyła zmianę z czasu wyłączenia.
+    /// </summary>
+    private void UpdateClipboardPolling(bool skipPending)
+    {
+        if (_clipboardSync is null) return;
+        if (IsConnected && ClipboardSyncEnabled && !_offline) _clipboardSync.Start(skipPending);
+        else _clipboardSync.Stop();
     }
 
     public void Shutdown()
@@ -492,7 +527,7 @@ public partial class MainViewModel : ObservableObject
         _capture = null;
         _client.Disconnect(null);
         _discovery.Stop();
-        SaveSettings();
+        SaveSettings(immediate: true); // zaległy zapis z licznika też trafia na dysk
     }
 
     // ------------------------------------------------------------------
@@ -537,51 +572,135 @@ public partial class MainViewModel : ObservableObject
         _ = ConnectLoopAsync(cts.Token);
     }
 
+    /// <summary>
+    /// Łączy i po utracie połączenia ponawia próby z rosnącymi przerwami (3 → 6 → 12 → 30 s).
+    /// Dziennik dostaje pierwszą próbę i pierwszy błąd serii; klucz parowania jest czytany z DPAPI raz na serię.
+    /// Biegnie na wątku UI (await wraca do kontekstu Avalonii).
+    /// </summary>
     private async Task ConnectLoopAsync(CancellationToken ct)
     {
-        while (!ct.IsCancellationRequested && _desiredConnection)
+        byte[]? pairingKey = null;
+        var keyVersion = -1;
+        var step = 0;
+        string? loggedTarget = null;
+        _lastConnectFailure = null;
+        try
         {
-            var host = HostAddress.Trim();
-            var port = _settings.ControlPort;
-            IsConnecting = true;
-            UpdateStatus();
-            _disconnectedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            try
+            while (!ct.IsCancellationRequested && _desiredConnection)
             {
-                Log(T($"Łączenie z {host}:{port}…", $"Connecting to {host}:{port}…"));
-                var pairingKey = PairingKeyStore.Load();
-                if (pairingKey is null)
+                var host = HostAddress.Trim();
+                var port = _settings.ControlPort;
+                IsConnecting = true;
+                UpdateStatus();
+                _sessionEstablished = false;
+                _disconnectedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                try
                 {
-                    Post(() =>
+                    var target = $"{host}:{port}";
+                    if (target != loggedTarget)
                     {
-                        HasPairingKey = false;
-                        PairingCodeInvalid = true;
-                        PairingStatusText = T("Nie można odczytać kodu parowania. Wpisz go ponownie.", "The pairing code could not be read. Enter it again.");
-                    });
+                        Log(T($"Łączenie z {target}…", $"Connecting to {target}…"));
+                        loggedTarget = target;
+                    }
+                    // Klucz zmienia tylko SavePairingCode/ForgetPairing (wersja); zerujemy go wyłącznie między próbami,
+                    // bo ControlClient kopiuje go dopiero po nawiązaniu TCP.
+                    if (pairingKey is null || keyVersion != _pairingKeyVersion)
+                    {
+                        if (pairingKey is not null) System.Security.Cryptography.CryptographicOperations.ZeroMemory(pairingKey);
+                        keyVersion = _pairingKeyVersion;
+                        pairingKey = PairingKeyStore.Load();
+                    }
+                    if (pairingKey is null)
+                    {
+                        Post(() =>
+                        {
+                            HasPairingKey = false;
+                            PairingCodeInvalid = true;
+                            PairingStatusText = T("Nie można odczytać kodu parowania. Wpisz go ponownie.", "The pairing code could not be read. Enter it again.");
+                        });
+                        break;
+                    }
+                    await _client.ConnectAsync(host, port, DeviceName, pairingKey, ct);
+                    await _disconnectedTcs.Task.WaitAsync(ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
                     break;
                 }
-                await _client.ConnectAsync(host, port, DeviceName, pairingKey, ct);
-                await _disconnectedTcs.Task.WaitAsync(ct);
+                catch (OperationCanceledException)
+                {
+                    // Limit czasu TCP w ControlClient (4 s): Mac śpi albo jest poza siecią – to zwykła nieudana próba.
+                    LogConnectFailure(T("Nie udało się połączyć: Mac nie odpowiada.", "Connection failed: the Mac is not responding."));
+                }
+                catch (Exception ex)
+                {
+                    LogConnectFailure(T("Nie udało się połączyć: ", "Connection failed: ") + ex.Message);
+                }
+                IsConnecting = false;
+                UpdateStatus();
+                if (!_desiredConnection || !AutoConnect) break;
+                if (_sessionEstablished)
+                {
+                    // Po sesji nowa seria: krótka przerwa, wpis w dzienniku i świeży odczyt klucza.
+                    step = 0;
+                    loggedTarget = null;
+                    if (pairingKey is not null) System.Security.Cryptography.CryptographicOperations.ZeroMemory(pairingKey);
+                    pairingKey = null;
+                }
+                var delay = ReconnectDelays[Math.Min(step, ReconnectDelays.Length - 1)];
+                step++;
+                using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                _reconnectDelayCts = delayCts;
+                _reconnectWoken = false;
+                try
+                {
+                    await Task.Delay(delay, delayCts.Token);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    // WakeReconnect: Mac wrócił do sieci albo zmieniła się sieć
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                finally
+                {
+                    if (ReferenceEquals(_reconnectDelayCts, delayCts)) _reconnectDelayCts = null;
+                }
+                if (_reconnectWoken) step = 0;
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                Log(T("Nie udało się połączyć: ", "Connection failed: ") + ex.Message);
-            }
-            IsConnecting = false;
-            UpdateStatus();
-            if (!_desiredConnection || !AutoConnect) break;
-            try { await Task.Delay(3000, ct); } catch (OperationCanceledException) { break; }
+        }
+        finally
+        {
+            if (pairingKey is not null) System.Security.Cryptography.CryptographicOperations.ZeroMemory(pairingKey);
         }
         IsConnecting = false;
         UpdateStatus();
     }
 
+    /// <summary>Przerywa czekanie na kolejną próbę połączenia (Mac znów odpowiada albo zmieniła się sieć).</summary>
+    private void WakeReconnect()
+    {
+        if (_reconnectDelayCts is not { } cts) return;
+        _reconnectWoken = true;
+        cts.Cancel();
+    }
+
+    /// <summary>Powtarzający się ten sam błąd serii prób trafia do dziennika raz.</summary>
+    private void LogConnectFailure(string message)
+    {
+        if (message == _lastConnectFailure) return;
+        _lastConnectFailure = message;
+        Log(message);
+    }
+
     private void OnConnected(string macName)
     {
+        _sessionEstablished = true;
+        _lastConnectFailure = null;
+        // Połączeni: broadcast wykrywania niepotrzebny (wraca w OnDisconnected).
+        _discovery.Pause();
         IsConnected = true;
         IsConnecting = false;
         PeerName = string.IsNullOrWhiteSpace(macName) ? _client.RemoteAddress : macName;
@@ -596,6 +715,7 @@ public partial class MainViewModel : ObservableObject
     private void OnDisconnected(string? reason)
     {
         var was = IsConnected;
+        _discovery.Resume();
         IsConnected = false;
         CursorOnMac = false;
         _capture?.ReturnToLocal(0.5f, sendRelease: false);
@@ -619,9 +739,16 @@ public partial class MainViewModel : ObservableObject
             PairingCodeInvalid = true;
             PairingStatusText = reason ?? T("Mac odrzucił kod parowania.", "The Mac rejected the pairing code.");
         }
-        if (was || reason is not null) Log(reason is null ? T("Rozłączono", "Disconnected") : T("Rozłączono: ", "Disconnected: ") + reason);
+        if (was) Log(reason is null ? T("Rozłączono", "Disconnected") : T("Rozłączono: ", "Disconnected: ") + reason);
+        else if (reason is not null) LogConnectFailure(T("Rozłączono: ", "Disconnected: ") + reason); // nieudany handshake: raz na serię
         UpdateStatus();
         _disconnectedTcs?.TrySetResult();
+    }
+
+    partial void OnIsConnectedChanged(bool value)
+    {
+        UpdateStatsTimer();
+        UpdateClipboardPolling(skipPending: true);
     }
 
     private void OnMessage(MessageType type, byte[] payload)
@@ -734,6 +861,15 @@ public partial class MainViewModel : ObservableObject
             DiscoveredPeers[idx] = peer;
         }
         HasDiscoveredPeers = DiscoveredPeers.Count > 0;
+        // Mac spod skonfigurowanego adresu odpowiada po przerwie (np. obudził się): ponów próbę od razu.
+        // Stała obecność nie skraca przerw, żeby Mac, który odrzuca połączenie, nie był odpytywany co broadcast.
+        if (string.Equals(peer.Address, HostAddress.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            var now = Environment.TickCount64;
+            var returned = _hostLastSeen < 0 || now - _hostLastSeen > HostAbsentMs;
+            _hostLastSeen = now;
+            if (returned) WakeReconnect();
+        }
     }
 
     partial void OnSelectedPeerChanged(DiscoveredPeer? value)
@@ -961,21 +1097,76 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // ------------------------------------------------------------------
+    // Statystyki na żywo (tylko przy widocznym oknie)
+    // ------------------------------------------------------------------
+
+    /// <summary>MainWindow: okno jest na ekranie (nie w zasobniku i nie zminimalizowane).</summary>
+    public void SetWindowVisible(bool visible)
+    {
+        if (_windowVisible == visible) return;
+        _windowVisible = visible;
+        UpdateStatsTimer();
+    }
+
+    /// <summary>MainWindow: pokazana strona (znacznik z <see cref="MainWindow.PageTags"/>).</summary>
+    public void SetVisiblePage(string tag)
+    {
+        if (_visiblePage == tag) return;
+        _visiblePage = tag;
+        UpdateStatsTimer(refresh: true);
+    }
+
+    /// <summary>ConnectionPage: rozwinięte szczegóły połączenia (adres z pingiem, kursor).</summary>
+    public void SetConnectionDetailsVisible(bool visible)
+    {
+        if (_connectionDetailsVisible == visible) return;
+        _connectionDetailsVisible = visible;
+        UpdateStatsTimer(refresh: true);
+    }
+
+    /// <summary>Strona z <see cref="CursorStatusText"/> albo <see cref="ConnectionInfo"/> (UpdateStatus).</summary>
+    private bool PageShowsStatus => _visiblePage is "control" or "displays" || (_visiblePage == "connection" && _connectionDetailsVisible);
+
+    private bool PageHasLiveStats => PageShowsStatus || _visiblePage is "audio" or "windows";
+
+    /// <summary>
+    /// Licznik 250 ms chodzi tylko podczas połączenia, przy widocznym oknie i na stronie z wartościami na żywo
+    /// (podgląd --screenshot pokazuje dane demo). Po pokazaniu okna lub zmianie strony wartości odświeżamy od razu.
+    /// </summary>
+    private void UpdateStatsTimer(bool refresh = false)
+    {
+        var run = IsConnected && _windowVisible && !_offline && PageHasLiveStats;
+        if (run && !_statsTimer.IsEnabled)
+        {
+            _statsTimer.Start();
+            UpdateStats();
+        }
+        else if (!run && _statsTimer.IsEnabled) _statsTimer.Stop();
+        else if (run && refresh) UpdateStats();
+    }
+
     private void UpdateStats()
     {
-        if (CursorOnMac) UpdateStatus();
-        UpdateDisplayStats();
-        UpdateWinViewStats();
-        if (!AudioActive || _jitter is null)
+        var jitter = AudioActive ? _jitter : null;
+        // Jedno odświeżenie stanu na tick: liczba ruchów kursora na Macu i ping.
+        if ((CursorOnMac || jitter is not null) && PageShowsStatus) UpdateStatus();
+        if (_visiblePage == "windows")
+        {
+            UpdateDisplayStats();
+            UpdateWinViewStats();
+        }
+        if (_visiblePage != "audio") return;
+        if (jitter is null)
         {
             AudioLevel = 0;
             return;
         }
         AudioLevel = _audioRx.Level;
-        AudioStatsText = T(
-            $"bufor {_jitter.BufferedMs} ms · pakiety {_audioRx.PacketsReceived} · utracone {_audioRx.PacketsLost} · odrzucone {_audioRx.PacketsRejected} · niedopełnienia {_jitter.Underruns} · przepełnienia {_jitter.Overruns}",
-            $"buffer {_jitter.BufferedMs} ms · packets {_audioRx.PacketsReceived} · lost {_audioRx.PacketsLost} · rejected {_audioRx.PacketsRejected} · underruns {_jitter.Underruns} · overruns {_jitter.Overruns}");
-        if (IsConnected) UpdateStatus();
+        // Formatujemy tylko wariant w języku interfejsu (T() liczyłoby oba).
+        AudioStatsText = IsPolish
+            ? $"bufor {jitter.BufferedMs} ms · pakiety {_audioRx.PacketsReceived} · utracone {_audioRx.PacketsLost} · odrzucone {_audioRx.PacketsRejected} · niedopełnienia {jitter.Underruns} · przepełnienia {jitter.Overruns}"
+            : $"buffer {jitter.BufferedMs} ms · packets {_audioRx.PacketsReceived} · lost {_audioRx.PacketsLost} · rejected {_audioRx.PacketsRejected} · underruns {jitter.Underruns} · overruns {jitter.Overruns}";
     }
 
     // ------------------------------------------------------------------
@@ -1069,7 +1260,7 @@ public partial class MainViewModel : ObservableObject
             };
             VirtualDisplayDriver.Attach(monitor.DeviceName, width, height, x, y);
             _settings.WinViewAttached = true;
-            SaveSettings();
+            SaveSettings(immediate: true); // po awarii RecoverWinViewMonitor musi o nim wiedzieć
             var attached = VirtualDisplayDriver.Find();
             if (attached is not { Attached: true } live) throw new InvalidOperationException(
                 T("Windows nie podłączył monitora wirtualnego.", "Windows did not attach the virtual monitor."));
@@ -1175,7 +1366,7 @@ public partial class MainViewModel : ObservableObject
         {
             if (VirtualDisplayDriver.Find() is { Attached: true } monitor) VirtualDisplayDriver.Detach(monitor.DeviceName);
             _settings.WinViewAttached = false;
-            SaveSettings();
+            SaveSettings(immediate: true);
         }
         catch (Exception ex)
         {
@@ -1502,7 +1693,12 @@ public partial class MainViewModel : ObservableObject
     // Reakcje na zmiany ustawień
     // ------------------------------------------------------------------
 
-    partial void OnHostAddressChanged(string value) { _settings.HostAddress = value.Trim(); SaveSettings(); }
+    partial void OnHostAddressChanged(string value)
+    {
+        _settings.HostAddress = value.Trim();
+        _hostLastSeen = -1;
+        SaveSettings();
+    }
     partial void OnDeviceNameChanged(string value) { _settings.DeviceName = value; SaveSettings(); }
     partial void OnAutoConnectChanged(bool value) { _settings.AutoConnect = value; SaveSettings(); }
     partial void OnHideCursorWhileRemoteChanged(bool value)
@@ -1629,6 +1825,8 @@ public partial class MainViewModel : ObservableObject
         _settings.ClipboardSyncEnabled = value;
         SaveSettings();
         if (_clipboardSync is not null) _clipboardSync.Enabled = value;
+        // Jak dawniej: zmiana skopiowana przy wyłączonym przełączniku idzie na Maca po jego włączeniu.
+        UpdateClipboardPolling(skipPending: false);
     }
 
     partial void OnExclusiveModeChanged(bool value)
@@ -1654,6 +1852,7 @@ public partial class MainViewModel : ObservableObject
                 PairingStatusText = T("Kod ma nieprawidłowy format. Przepisz wszystkie grupy z Maca.", "The code format is invalid. Enter every group shown on the Mac.");
                 return;
             }
+            _pairingKeyVersion++; // trwająca seria prób przeczyta nowy klucz
             PairingCode = "";
             HasPairingKey = true;
             PairingCodeInvalid = false;
@@ -1675,6 +1874,7 @@ public partial class MainViewModel : ObservableObject
         _connectLoopCts?.Cancel();
         _client.Disconnect(null);
         try { PairingKeyStore.Clear(); } catch (Exception ex) { Log(T("Nie udało się usunąć kodu: ", "Could not remove the pairing code: ") + ex.Message); }
+        _pairingKeyVersion++;
         HasPairingKey = false;
         PairingCode = "";
         PairingCodeInvalid = false;
@@ -1689,9 +1889,23 @@ public partial class MainViewModel : ObservableObject
         SaveSettings();
     }
 
-    private void SaveSettings()
+    /// <summary>
+    /// Zmiany łączymy w jeden zapis 500 ms po ostatniej (suwak lub pisanie adresu = jeden zapis zamiast kilkudziesięciu).
+    /// <paramref name="immediate"/>: od razu, np. znacznik monitora wirtualnego, który musi przetrwać awarię.
+    /// Shutdown zapisuje zaległe zmiany przy każdym wyjściu (menu zasobnika, aktualizacja, wylogowanie).
+    /// </summary>
+    private void SaveSettings(bool immediate = false)
     {
         if (_loading || _offline) return;
+        _settingsSaveTimer.Stop();
+        if (immediate) _settings.Save();
+        else _settingsSaveTimer.Start();
+    }
+
+    private void FlushSettings()
+    {
+        if (!_settingsSaveTimer.IsEnabled) return;
+        _settingsSaveTimer.Stop();
         _settings.Save();
     }
 

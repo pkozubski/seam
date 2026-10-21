@@ -8,7 +8,8 @@ namespace Seam.Input;
 /// <summary>
 /// Ukryte, natywne okno Win32 (bez Avalonii) o dwóch zadaniach:
 /// 1) odbiera Raw Input myszy (WM_INPUT, RIDEV_INPUTSINK) – surowe delty ruchu,
-///    niezależne od pozycji kursora i od zablokowania zdarzeń przez hook;
+///    niezależne od pozycji kursora i od zablokowania zdarzeń przez hook
+///    (rejestrowany tylko na czas sterowania Makiem);
 /// 2) jako "hider" z pustym kursorem klasy pokazuje się pod zaparkowanym kursorem,
 ///    żeby kursor Windows znikł podczas sterowania Makiem (technika Synergy/Barrier).
 /// Musi być tworzone i używane na wątku z pętlą komunikatów (wątek UI).
@@ -31,10 +32,13 @@ public sealed class NativeInputWindow : IDisposable
     private bool _haveAbsolute;
     private int _lastAbsX, _lastAbsY;
     private readonly byte[] _rawBuffer = new byte[128];
+    /// <summary>Rozmiar RAWINPUTHEADER liczony raz (WM_INPUT przychodzi do 8000 razy na sekundę).</summary>
+    private static readonly int HeaderSize = Marshal.SizeOf<RAWINPUTHEADER>();
 
     /// <summary>Surowa delta ruchu myszy (wątek UI).</summary>
     public event Action<int, int>? RawMouseMove;
 
+    /// <summary>Raw Input jest teraz zarejestrowany (InputCapture robi to tylko na czas sterowania Makiem).</summary>
     public bool IsRawInputActive => _rawRegistered;
     public bool IsCreated => _hwnd != IntPtr.Zero;
 
@@ -69,6 +73,20 @@ public sealed class NativeInputWindow : IDisposable
 
     // ---------------- Raw Input ----------------
 
+    /// <summary>
+    /// Sprawdza, czy Raw Input myszy działa: rejestruje i od razu wyrejestrowuje (gdy był
+    /// już zarejestrowany, zostaje). Stała rejestracja budziłaby wątek UI przy każdym
+    /// raporcie myszy także wtedy, gdy kursor jest lokalnie.
+    /// </summary>
+    public bool ProbeRawMouse()
+    {
+        if (_rawRegistered) return true;
+        if (!RegisterRawMouse()) return false;
+        UnregisterRawMouse();
+        return true;
+    }
+
+    /// <summary>Rejestruje Raw Input (RIDEV_INPUTSINK). Idempotentne; true = zarejestrowany.</summary>
     public bool RegisterRawMouse()
     {
         if (_rawRegistered || _hwnd == IntPtr.Zero) return _rawRegistered;
@@ -78,6 +96,7 @@ public sealed class NativeInputWindow : IDisposable
         return _rawRegistered;
     }
 
+    /// <summary>Wyrejestrowuje Raw Input (RIDEV_REMOVE). Idempotentne.</summary>
     public void UnregisterRawMouse()
     {
         if (!_rawRegistered) return;
@@ -125,14 +144,14 @@ public sealed class NativeInputWindow : IDisposable
         {
             fixed (byte* p = _rawBuffer)
             {
-                got = GetRawInputData(hRawInput, RID_INPUT, (IntPtr)p, ref size, (uint)Marshal.SizeOf<RAWINPUTHEADER>());
+                got = GetRawInputData(hRawInput, RID_INPUT, (IntPtr)p, ref size, (uint)HeaderSize);
             }
         }
         if (got == unchecked((uint)-1) || got == 0) return;
         var span = _rawBuffer.AsSpan();
         var type = BinaryPrimitives.ReadUInt32LittleEndian(span);
         if (type != RIM_TYPEMOUSE) return;
-        var mouse = span[Marshal.SizeOf<RAWINPUTHEADER>()..];
+        var mouse = span[HeaderSize..];
         var flags = BinaryPrimitives.ReadUInt16LittleEndian(mouse);
         var lastX = BinaryPrimitives.ReadInt32LittleEndian(mouse[12..]);
         var lastY = BinaryPrimitives.ReadInt32LittleEndian(mouse[16..]);
