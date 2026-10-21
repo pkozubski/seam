@@ -174,14 +174,15 @@ enum VideoStream {
         /// `body` = rekord bez prefiksu długości. Licznik musi rosnąć o jeden (TCP).
         mutating func open(_ body: Data) -> Data? {
             guard body.count >= VideoStream.counterBytes + VideoStream.tagBytes else { return nil }
-            let bytes = [UInt8](body)
-            var counter: UInt64 = 0
-            for i in 0..<8 { counter |= UInt64(bytes[i]) << (8 * UInt64(i)) }
+            // Wycinki `Data` zamiast kopii całego rekordu (klatka kluczowa to setki kB).
+            let counter = body.withUnsafeBytes { UInt64(littleEndian: $0.loadUnaligned(as: UInt64.self)) }
+            let tagStart = body.endIndex - VideoStream.tagBytes
+            let nonce = VideoStream.nonce(counter)
             guard counter == expected,
-                  let box = try? AES.GCM.SealedBox(nonce: AES.GCM.Nonce(data: VideoStream.nonce(counter)),
-                                                   ciphertext: Data(bytes[8..<(bytes.count - VideoStream.tagBytes)]),
-                                                   tag: Data(bytes.suffix(VideoStream.tagBytes))),
-                  let clear = try? AES.GCM.open(box, using: key, authenticating: VideoStream.nonce(counter)) else { return nil }
+                  let box = try? AES.GCM.SealedBox(nonce: AES.GCM.Nonce(data: nonce),
+                                                   ciphertext: body[(body.startIndex + VideoStream.counterBytes)..<tagStart],
+                                                   tag: body[tagStart...]),
+                  let clear = try? AES.GCM.open(box, using: key, authenticating: nonce) else { return nil }
             expected &+= 1
             return clear
         }

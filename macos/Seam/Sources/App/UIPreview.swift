@@ -23,7 +23,7 @@ enum UIPreview {
             let app = NSApplication.shared
             app.setActivationPolicy(.regular)
             let host = NSHostingView(rootView: WindowsPage(fullPreview: true)
-                .environmentObject(state).environment(\.colorScheme, .dark).tint(DesignTokens.accent))
+                .environment(state).environment(\.colorScheme, .dark).tint(DesignTokens.accent))
             let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 1100, height: 1800),
                                   styleMask: [.borderless], backing: .buffered, defer: false)
             window.appearance = NSAppearance(named: .darkAqua)
@@ -57,7 +57,7 @@ enum UIPreview {
             } else {
                 ContentView(initialSection: section)
             }
-        }.environmentObject(state)
+        }.environment(state)
         let size: CGSize
         if args.contains("--ui-menu") {
             size = CGSize(width: 340, height: 420)

@@ -3,7 +3,7 @@ import SwiftUI
 /// The settings page shown in place of the detail column.
 struct SettingsDetail: View {
     @ObservedObject var navigation: SettingsNavigation
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
 
     var body: some View {
         ScrollView {

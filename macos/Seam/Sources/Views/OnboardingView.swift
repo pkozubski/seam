@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @State private var step = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 

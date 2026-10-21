@@ -128,6 +128,12 @@ Nonce audio to pierwsze cztery bajty `sessionId` + `counter`. Odbiornik sprawdza
 adres IPv4 aktywnego Maca, identyfikator sesji, rozmiary, tag i 64-pakietowe okno
 anty-replay. Pakiet nie wpływa na licznik replay przed poprawną autoryzacją.
 
+Po około sekundzie cyfrowej ciszy (same zera) Mac przestaje wysyłać pakiety i wznawia
+wysyłkę przy pierwszym niezerowym buforze. `sequence` i `counter` rosną tylko o pakiety
+faktycznie wysłane, więc po przerwie nie ma luki w numeracji: odbiornik traktuje ją jak
+zwykłe niedopełnienie bufora (gra ciszę i ponownie napełnia bufor). Odbiornik nie może
+traktować braku pakietów jako błędu strumienia.
+
 ## Ekran wirtualny (wideo)
 
 1. Windows wysyła `DISPLAY_START` z rozdzielczością monitora po stronie Maca (piksele

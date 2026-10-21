@@ -4,7 +4,9 @@ import SwiftUI
 @main
 struct SeamApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var state = AppState.shared
+    /// Dopiero przy budowaniu scen: tryby diagnostyczne z `init` kończą proces wcześniej i nie mogą
+    /// uruchamiać serwera ani zmieniać autostartu.
+    private var state: AppState { AppState.shared }
 
     init() {
         // Tryb diagnostyczny: sprawdza mechanizm autostartu i kończy działanie,
@@ -38,7 +40,7 @@ struct SeamApp: App {
 
     var body: some Scene {
         Window("Seam", id: "main") {
-            ContentView().environmentObject(state)
+            ContentView().environment(state)
         }
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
@@ -46,11 +48,21 @@ struct SeamApp: App {
         .commands { SettingsCommands() }
 
         MenuBarExtra {
-            MenuBarView().environmentObject(state)
+            MenuBarView().environment(state)
         } label: {
-            Image(systemName: state.cursorOnMac ? "cursorarrow.motionlines.click" : "cursorarrow.motionlines")
+            MenuBarLabel(state: state)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// Ikona w pasku menu jako osobny widok: każde odświeżenie etykiety to przerysowanie
+/// paska menu przez WindowServer, więc zależy ona tylko od położenia kursora.
+private struct MenuBarLabel: View {
+    let state: AppState
+
+    var body: some View {
+        Image(systemName: state.cursorOnMac ? "cursorarrow.motionlines.click" : "cursorarrow.motionlines")
     }
 }
 

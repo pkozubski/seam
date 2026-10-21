@@ -47,7 +47,7 @@ struct WindowsMoveCard: View {
 
 /// Stan połączenia: ten Mac, kropka statusu i komputer z Windows.
 struct WindowsConnectionCard: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     let openConnection: () -> Void
 
     private var macName: String { state.settings.deviceName }

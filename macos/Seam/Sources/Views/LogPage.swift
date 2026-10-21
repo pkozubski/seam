@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LogPage: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
 
     private static let formatter: DateFormatter = {
         let f = DateFormatter()

@@ -50,13 +50,12 @@ final class Updater: ObservableObject {
     /// Fast-changing install progress, kept apart so only the bar redraws on every report.
     let progress = UpdateProgress()
 
-    static var currentVersion: String {
+    // Info.plist działającego bundla nie zmienia się w trakcie pracy.
+    nonisolated static let currentVersion: String =
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
-    }
 
-    static var isDevChannel: Bool {
+    nonisolated static let isDevChannel: Bool =
         Bundle.main.infoDictionary?["UpdateChannel"] as? String == "dev"
-    }
 
     static var versionDescription: String {
         currentVersion + (isDevChannel ? L10n.text(" (kanał testowy)", " (test channel)") : "")

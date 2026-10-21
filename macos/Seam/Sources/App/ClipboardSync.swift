@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import ImageIO
 
-/// Obserwuje NSPasteboard (po `changeCount`, co 0,5 s) i pozwala ustawić
+/// Obserwuje NSPasteboard (po `changeCount`, co 0,5 s, tylko w trakcie połączenia) i pozwala ustawić
 /// schowek z zewnątrz bez odsyłania własnej zmiany z powrotem.
 final class ClipboardSync {
     /// Wołane na wątku głównym.
@@ -24,8 +24,10 @@ final class ClipboardSync {
         DispatchQueue.main.async {
             guard self.timer == nil else { return }
             self.lastChangeCount = self.pasteboard.changeCount
+            // Bez śledzenia w przerwie mogło zostać skopiowane coś innego – pierwsza zmiana idzie zawsze.
+            self.lastContent = nil
             let t = DispatchSource.makeTimerSource(queue: .main)
-            t.schedule(deadline: .now() + 0.5, repeating: 0.5, leeway: .milliseconds(100))
+            t.schedule(deadline: .now() + 0.5, repeating: 0.5, leeway: .milliseconds(150))
             t.setEventHandler { [weak self] in self?.poll() }
             t.resume()
             self.timer = t

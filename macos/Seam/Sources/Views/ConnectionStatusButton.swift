@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ConnectionStatusButton: View {
-    @ObservedObject var state: AppState
+    let state: AppState
     let action: () -> Void
     @State private var hovering = false
     private var connected: Bool { state.peer != nil }

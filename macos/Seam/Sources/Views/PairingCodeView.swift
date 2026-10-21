@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PairingCodeView: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var copied = false
 

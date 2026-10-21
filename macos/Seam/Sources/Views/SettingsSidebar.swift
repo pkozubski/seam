@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The sidebar while settings cover the window: back, search and the settings pages.
 struct SettingsSidebar: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @ObservedObject var navigation: SettingsNavigation
     @State private var query = ""
 

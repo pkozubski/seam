@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showConnectionStatus = false
     @State private var selection: SidebarSection?
@@ -66,7 +66,7 @@ struct ContentView: View {
                 ConnectionStatusAttachment(state: state) { showConnectionStatus = true }
             }
         }
-        .sheet(isPresented: $showConnectionStatus) { ConnectionDetails().environmentObject(state) }
+        .sheet(isPresented: $showConnectionStatus) { ConnectionDetails().environment(state) }
         .preferredColorScheme(.dark)
         .tint(DesignTokens.accent)
         .sheet(isPresented: Binding(
@@ -74,7 +74,7 @@ struct ContentView: View {
             set: { presented in if !presented { state.completeOnboarding() } }
         )) {
             OnboardingView()
-                .environmentObject(state)
+                .environment(state)
                 .interactiveDismissDisabled()
         }
     }

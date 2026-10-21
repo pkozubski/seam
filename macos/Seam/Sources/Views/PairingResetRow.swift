@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PairingResetRow: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @State private var confirming = false
 
     var body: some View {

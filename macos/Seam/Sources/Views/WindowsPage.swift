@@ -3,7 +3,7 @@ import SwiftUI
 /// Zakładka Okna w układzie z Windowsa (`windows/Seam/Views/Pages/WindowsPage.axaml`): główny przełącznik
 /// w pigułce, ilustracja po lewej, połączenie i układ ekranów po prawej, szczegóły pod przewinięciem.
 struct WindowsPage: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     var openConnection: () -> Void = {}
     var fullPreview = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -73,7 +73,8 @@ struct WindowsPage: View {
     }
 
     private var header: some View {
-        VStack(spacing: 16) {
+        @Bindable var state = state
+        return VStack(spacing: 16) {
             Text(L10n.text("Twoje aplikacje na obu komputerach.", "Your apps, on both computers."))
                 .font(.system(size: 32, weight: .semibold))
                 .multilineTextAlignment(.center)
@@ -159,7 +160,7 @@ private struct WindowsHowItWorks: View {
 /// „Opcje wyświetlania” po stronie Maca: stan ekranu, który Mac udostępnia Windowsowi.
 /// Kierunki i tryb pulpitu należą do aplikacji Windows, więc tu jest tylko wskazówka.
 private struct WindowsDisplayOptions: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
 
     private var statusColor: Color {
         if state.displayStreaming { return Color(red: 0.20, green: 0.78, blue: 0.35) }

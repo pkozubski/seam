@@ -8,12 +8,24 @@ struct UpdateProgressBar: View {
     var trackHeight: CGFloat = 12
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var follower = ProgressFollower()
+    /// Pełny pasek po zakończonej aktualizacji stoi nieruchomo: iskry w 60 kl./s rysowałyby
+    /// się bez końca, dopóki panel jest otwarty.
+    @State private var settled = false
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: settled)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            let shown = follower.follow(progress.value, at: time, response: reduceMotion ? 0.12 : 0.35)
-            ProgressTrack(value: shown, time: reduceMotion ? nil : time, trackHeight: trackHeight)
+            let shown = settled ? progress.value : follower.follow(progress.value, at: time, response: reduceMotion ? 0.12 : 0.35)
+            ProgressTrack(value: shown, time: reduceMotion || settled ? nil : time, trackHeight: trackHeight)
+        }
+        .task(id: progress.value >= 1) {
+            guard progress.value >= 1 else {
+                settled = false
+                return
+            }
+            // Czas na dojechanie paska do końca (wygładzanie ma stałą 0,35 s).
+            try? await Task.sleep(for: .seconds(2.5))
+            if !Task.isCancelled { settled = true }
         }
         .frame(height: trackHeight + 6)
         .accessibilityElement(children: .ignore)

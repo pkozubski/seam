@@ -20,6 +20,11 @@ final class AudioSender {
     private(set) var packetsSent: UInt64 = 0
     private(set) var sendErrors: UInt64 = 0
 
+    /// Ramki cyfrowej ciszy z rzędu (wątek audio).
+    private var silentFrames = 0
+    /// Około sekundy przy 48 kHz.
+    private static let silenceBeforePause = 48_000
+
     init(host: String, port: UInt16, channels: Int, format: AudioSampleFormat,
          key: Data, sessionID: UInt64) throws {
         guard key.count == 32, (1...8).contains(channels) else { throw POSIXError(.EINVAL) }
@@ -57,6 +62,15 @@ final class AudioSender {
 
     func send(int16Samples samples: UnsafePointer<Int16>, frames: Int) {
         guard fd >= 0, format == .int16, frames > 0 else { return }
+        // Po sekundzie ciszy nic nie wysyłamy: kilkaset pakietów zer na sekundę kosztuje oba
+        // komputery (szyfrowanie, wywołania systemowe, radio Wi-Fi). Numery pakietów idą dalej bez
+        // przerwy, więc Windows tylko na nowo napełnia bufor, gdy dźwięk wróci.
+        if Self.isSilent(samples, count: frames * channels) {
+            silentFrames += frames
+            if silentFrames > Self.silenceBeforePause { return }
+        } else {
+            silentFrames = 0
+        }
         var offset = 0
         while offset < frames {
             let count = min(maxFramesPerPacket, frames - offset)
@@ -120,6 +134,11 @@ final class AudioSender {
             }
         }
         if sent == packet.count { packetsSent &+= 1 } else { sendErrors &+= 1 }
+    }
+
+    private static func isSilent(_ samples: UnsafePointer<Int16>, count: Int) -> Bool {
+        for index in 0..<count where samples[index] != 0 { return false }
+        return true
     }
 
     private static func put<T: FixedWidthInteger>(_ value: T, into bytes: inout [UInt8], at offset: Int) {

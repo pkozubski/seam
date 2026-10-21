@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct MenuBarView: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        @Bindable var state = state
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
                 Image(nsImage: NSApp.applicationIconImage)

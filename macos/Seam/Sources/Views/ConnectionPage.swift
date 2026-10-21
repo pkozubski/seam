@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ConnectionPage: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     var openWindows: () -> Void = {}
     @State private var showDetails = false
 
@@ -40,7 +40,7 @@ struct ConnectionPage: View {
             }
         }
         .sheet(isPresented: $showDetails) {
-            ConnectionDetails().environmentObject(state)
+            ConnectionDetails().environment(state)
         }
     }
 }

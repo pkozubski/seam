@@ -10,11 +10,15 @@ struct LogEntry: Identifiable {
     let text: String
 }
 
+/// Stan aplikacji dla widoków. `@Observable` śledzi każdą właściwość osobno: widok odświeża się
+/// tylko po zmianie tego, co sam czyta, a nie przy każdej zmianie stanu (to dawało ciągłe
+/// przerysowywanie okna i ikony w pasku menu).
 @MainActor
-final class AppState: ObservableObject {
+@Observable
+final class AppState {
     static let shared = AppState()
 
-    @Published var settings: Settings {
+    var settings: Settings {
         didSet {
             guard settings != oldValue, !isPreview else { return }
             if settings.launchAtLogin != oldValue.launchAtLogin {
@@ -25,39 +29,45 @@ final class AppState: ObservableObject {
         }
     }
 
-    @Published private(set) var isListening = false
-    @Published private(set) var listenError: String?
-    @Published private(set) var peer: ControlServer.PeerInfo?
-    @Published private(set) var cursorOnMac = false
-    @Published private(set) var audioStreaming = false
-    @Published private(set) var audioDescription = ""
-    @Published private(set) var audioError: String?
-    @Published private(set) var audioLevel: Float = 0
-    @Published private(set) var audioPackets: UInt64 = 0
-    @Published private(set) var audioSendErrors: UInt64 = 0
-    @Published private(set) var audioPermission: SystemAudioTap.Permission = .unknown
-    @Published private(set) var accessibilityGranted = false
-    @Published private(set) var screenCaptureGranted = false
-    @Published private(set) var displayStreaming = false
-    @Published private(set) var displayEdge: ScreenEdge?
-    @Published private(set) var displayDescription = ""
-    @Published private(set) var displayError: String?
-    @Published private(set) var displayStats: DisplayStreamer.Stats?
-    @Published private(set) var clipboardStatus = L10n.text("Brak synchronizacji w tej sesji", "No synchronization in this session")
-    @Published private(set) var loginItemStatus = LoginItem.statusDescription
-    @Published var loginItemError: String?
-    @Published private(set) var pairingCode = PairingKeyStore.shared.displayCode
-    @Published private(set) var pairingStorageError = PairingKeyStore.shared.storageError
-    @Published private(set) var log: [LogEntry] = []
+    private(set) var isListening = false
+    private(set) var listenError: String?
+    private(set) var peer: ControlServer.PeerInfo?
+    private(set) var cursorOnMac = false
+    private(set) var audioStreaming = false
+    private(set) var audioDescription = ""
+    private(set) var audioError: String?
+    private(set) var audioPackets: UInt64 = 0
+    private(set) var audioSendErrors: UInt64 = 0
+    private(set) var audioPermission: SystemAudioTap.Permission = .unknown
+    private(set) var accessibilityGranted = false
+    private(set) var screenCaptureGranted = false
+    private(set) var displayStreaming = false
+    private(set) var displayEdge: ScreenEdge?
+    private(set) var displayDescription = ""
+    private(set) var displayError: String?
+    private(set) var displayStats: DisplayStreamer.Stats?
+    private(set) var clipboardStatus = L10n.text("Brak synchronizacji w tej sesji", "No synchronization in this session")
+    private(set) var loginItemStatus = LoginItem.statusDescription
+    var loginItemError: String?
+    private(set) var pairingCode = PairingKeyStore.shared.displayCode
+    private(set) var pairingStorageError = PairingKeyStore.shared.storageError
+    private(set) var log: [LogEntry] = []
 
-    let engine: Engine
-    let updater = Updater()
-    private var permissionTimer: Timer?
-    private var audioPermissionInFlight = false
-    private var audioPermissionCheckedAt: Date?
-    private var updateTimer: Timer?
-    private var updaterSink: AnyCancellable?
-    private let logger = Logger(subsystem: "com.borderlessmouse.mac", category: "app")
+    @ObservationIgnored let engine: Engine
+    @ObservationIgnored let updater = Updater()
+    @ObservationIgnored private var permissionTimer: Timer?
+    @ObservationIgnored private var activityObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var audioPermissionInFlight = false
+    @ObservationIgnored private var audioPermissionCheckedAt: Date?
+    @ObservationIgnored private var updateTimer: Timer?
+    @ObservationIgnored private var updaterSink: AnyCancellable?
+    @ObservationIgnored private let logger = Logger(subsystem: "com.borderlessmouse.mac", category: "app")
+    /// Poziom w podglądzie UI (bez silnika audio).
+    @ObservationIgnored private var demoAudioLevel: Float?
+
+    /// Poziom dźwięku 0–1. Nie jest obserwowany: miernik odczytuje go sam, tylko gdy jest widoczny,
+    /// więc strumień audio nie budzi wątku głównego kilkadziesiąt razy na sekundę.
+    var audioLevel: Float { demoAudioLevel ?? engine.audioLevel }
 
     /// Stan bez sieci i uprawnień, wypełniony przykładowymi danymi – tylko dla
     /// podglądu interfejsu (`--ui-preview`).
@@ -67,28 +77,27 @@ final class AppState: ObservableObject {
         return state
     }
 
-    private let isPreview: Bool
+    @ObservationIgnored private let isPreview: Bool
 
     private init(preview: Bool = false) {
         isPreview = preview
-        let s = preview ? Settings() : Settings.load()
+        var s = preview ? Settings() : Settings.load()
+        // stan autostartu bierzemy z systemu – to on jest źródłem prawdy
+        if !preview { LoginItem.refreshIfNeeded(wasEnabled: s.launchAtLogin) }
+        s.launchAtLogin = LoginItem.isEnabled
+        // Jedno przypisanie: przy @Observable każde kolejne w init wywołałoby już didSet (zapis i autostart).
         settings = s
         engine = Engine(config: s.engineConfig)
         engine.onEvent = { [weak self] event in
-            Task { @MainActor in self?.apply(event) }
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.apply(event) } }
         }
-        // stan autostartu bierzemy z systemu – to on jest źródłem prawdy
-        if !preview { LoginItem.refreshIfNeeded(wasEnabled: s.launchAtLogin) }
-        settings.launchAtLogin = LoginItem.isEnabled
         accessibilityGranted = InputInjector.isAccessibilityTrusted
         screenCaptureGranted = DisplayCapture.hasPermission
         guard !preview else { return }
         appendLog(L10n.text("Wersja \(Updater.versionDescription)", "Version \(Updater.versionDescription)"))
         engine.setAccessibilityGranted(accessibilityGranted)
         engine.start()
-        permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refreshPermissions() }
-        }
+        watchPermissions()
         if let finished = Updater.consumeRelaunchMarker() {
             updater.celebrate(version: finished.version, notes: finished.notes)
             SettingsNavigation.shared.present(.updates)
@@ -114,11 +123,45 @@ final class AppState: ObservableObject {
             try? await Task.sleep(for: .seconds(5))
             await self?.checkAutomaticUpdates()
         }
-        updateTimer = Timer.scheduledTimer(withTimeInterval: UpdatePolicy.checkInterval(isDev: Updater.isDevChannel), repeats: true) { [weak self] _ in
+        let interval = UpdatePolicy.checkInterval(isDev: Updater.isDevChannel)
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.checkAutomaticUpdates()
             }
         }
+        // Luz pozwala systemowi zgrać wybudzenie z innymi i nie budzić procesora tylko dla nas.
+        timer.tolerance = interval * 0.1
+        RunLoop.main.add(timer, forMode: .common)
+        updateTimer = timer
+    }
+
+    /// Zgody sprawdzamy często tylko wtedy, gdy użytkownik jest w aplikacji (wraca z Ustawień
+    /// systemowych); w tle wystarczy rzadko, żeby wyłapać cofnięcie zgody.
+    private func watchPermissions() {
+        let center = NotificationCenter.default
+        activityObservers = [
+            center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.refreshPermissions()
+                    self?.schedulePermissionTimer(active: true)
+                }
+            },
+            center.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.schedulePermissionTimer(active: false) }
+            },
+        ]
+        schedulePermissionTimer(active: NSApplication.shared.isActive)
+    }
+
+    private func schedulePermissionTimer(active: Bool) {
+        permissionTimer?.invalidate()
+        let interval: TimeInterval = active ? 2 : 30
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshPermissions() }
+        }
+        timer.tolerance = interval * 0.25
+        RunLoop.main.add(timer, forMode: .common)
+        permissionTimer = timer
     }
 
     private func checkAutomaticUpdates() async {
@@ -150,7 +193,7 @@ final class AppState: ObservableObject {
         audioStreaming = true
         audioPermission = .granted
         audioDescription = "48000 Hz · stereo · 16-bit → 192.168.1.42:47802"
-        audioLevel = 0.42
+        demoAudioLevel = 0.42
         audioPackets = 18_432
         screenCaptureGranted = true
         displayStreaming = true
@@ -444,6 +487,8 @@ final class AppState: ObservableObject {
     func shutdown() {
         permissionTimer?.invalidate()
         updateTimer?.invalidate()
+        activityObservers.forEach(NotificationCenter.default.removeObserver)
+        activityObservers = []
         engine.stop()
     }
 
@@ -477,18 +522,16 @@ final class AppState: ObservableObject {
         case .audioStopped:
             audioStreaming = false
             audioDescription = ""
-            audioLevel = 0
         case let .audioError(message):
             audioStreaming = false
             audioError = message
         case let .audioPermission(value):
             audioPermissionCheckedAt = Date()
             applyAudioPermission(value)
-        case let .audioLevel(level):
-            audioLevel = level
         case let .audioStats(packets, errors):
-            audioPackets = packets
-            audioSendErrors = errors
+            // Przy @Observable każde przypisanie powiadamia widoki, także tą samą wartością.
+            if audioPackets != packets { audioPackets = packets }
+            if audioSendErrors != errors { audioSendErrors = errors }
         case let .clipboardSent(summary):
             clipboardStatus = L10n.text("Wysłano \(summary) do Windowsa · \(Self.timeFormatter.string(from: Date()))",
                                         "Sent \(summary) to Windows · \(Self.timeFormatter.string(from: Date()))")
@@ -514,7 +557,7 @@ final class AppState: ObservableObject {
             displayError = message
             displayStats = nil
         case let .displayStats(stats):
-            displayStats = stats
+            if displayStats != stats { displayStats = stats }
         case let .log(text):
             appendLog(text)
         }

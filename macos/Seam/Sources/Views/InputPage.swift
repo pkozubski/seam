@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct InputPage: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
 
     private var status: String {
         guard state.settings.inputEnabled else { return L10n.text("Wyłączone", "Off") }
@@ -12,6 +12,7 @@ struct InputPage: View {
     }
 
     var body: some View {
+        @Bindable var state = state
         SettingsPageLayout(title: "Klawiatura i mysz", subtitle: "Jedna klawiatura i mysz dla obu komputerów.") {
             if !state.accessibilityGranted {
                 PermissionBanner(title: "Brak uprawnienia Dostępność",

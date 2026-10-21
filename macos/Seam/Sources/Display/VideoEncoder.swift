@@ -52,6 +52,11 @@ final class VideoEncoder {
     private var refineTimer: DispatchSourceTimer?
     private var refineBuffer: CVPixelBuffer?
     private var refineRemaining = 0
+    /// Rośnie przy każdej nowej klatce: spóźniony wynik starszego poprawiania nie przerwie nowego.
+    private var refineGeneration: UInt64 = 0
+    /// Klatka poprawiania mniejsza od tego progu prawie nic już nie dodaje – dalsze przebiegi
+    /// kosztowałyby koder i sieć bez widocznej różnicy (np. przy pisaniu tekstu).
+    private var refinementDoneBytes: Int { max(1200, width * height / 2048) }
 
     /// Bitrate w bitach na sekundę; 0 = automatycznie z rozdzielczości.
     init(width: Int, height: Int, bitrate: Int = 0) throws {
@@ -86,7 +91,7 @@ final class VideoEncoder {
         submit(pixelBuffer, presentationTime: presentationTime)
     }
 
-    private func submit(_ pixelBuffer: CVPixelBuffer, presentationTime: CMTime) {
+    private func submit(_ pixelBuffer: CVPixelBuffer, presentationTime: CMTime, refinement: UInt64? = nil) {
         encodeLock.lock()
         defer { encodeLock.unlock() }
         lock.lock()
@@ -108,7 +113,7 @@ final class VideoEncoder {
                                                      duration: .invalid,
                                                      frameProperties: properties,
                                                      infoFlagsOut: nil) { [weak self] status, _, sampleBuffer in
-            self?.handleOutput(status: status, sampleBuffer: sampleBuffer)
+            self?.handleOutput(status: status, sampleBuffer: sampleBuffer, refinement: refinement)
         }
         if status != noErr {
             if key { requestKeyframe() }
@@ -141,6 +146,7 @@ final class VideoEncoder {
         guard session != nil else { return }
         refineBuffer = pixelBuffer
         refineRemaining = Self.refinePasses
+        refineGeneration &+= 1
         if refineTimer == nil {
             let timer = DispatchSource.makeTimerSource(queue: refineQueue)
             timer.setEventHandler { [weak self] in self?.refine() }
@@ -160,17 +166,23 @@ final class VideoEncoder {
             return
         }
         refineRemaining -= 1
+        let generation = refineGeneration
         lock.unlock()
-        submit(buffer, presentationTime: CMClockGetTime(CMClockGetHostTimeClock()))
+        submit(buffer, presentationTime: CMClockGetTime(CMClockGetHostTimeClock()), refinement: generation)
     }
 
-    private func handleOutput(status: OSStatus, sampleBuffer: CMSampleBuffer?) {
+    private func handleOutput(status: OSStatus, sampleBuffer: CMSampleBuffer?, refinement: UInt64?) {
         guard status == noErr else {
             requestKeyframe()
             onError?(status)
             return
         }
         guard let sampleBuffer, let frame = Self.annexB(from: sampleBuffer, width: width, height: height) else { return }
+        if let refinement, !frame.isKeyframe, frame.annexB.count < refinementDoneBytes {
+            lock.lock()
+            if refineGeneration == refinement { refineRemaining = 0 }
+            lock.unlock()
+        }
         onFrame?(frame)
     }
 
@@ -256,20 +268,35 @@ final class VideoEncoder {
         }
 
         let total = CMBlockBufferGetDataLength(block)
-        var bytes = [UInt8](repeating: 0, count: total)
-        guard CMBlockBufferCopyDataBytes(block, atOffset: 0, dataLength: total, destination: &bytes) == noErr else { return nil }
         let lengthSize = Int(nalLengthSize)
         guard (1...4).contains(lengthSize) else { return nil }
-        var offset = 0
-        while offset + lengthSize <= total {
-            var nalLength = 0
-            for i in 0..<lengthSize { nalLength = (nalLength << 8) | Int(bytes[offset + i]) }
-            offset += lengthSize
-            guard nalLength > 0, offset + nalLength <= total else { return nil }
-            output.append(contentsOf: startCode)
-            output.append(contentsOf: bytes[offset..<(offset + nalLength)])
-            offset += nalLength
+        func appendUnits(_ bytes: UnsafeRawBufferPointer) -> Bool {
+            var offset = 0
+            while offset + lengthSize <= total {
+                var nalLength = 0
+                for i in 0..<lengthSize { nalLength = (nalLength << 8) | Int(bytes[offset + i]) }
+                offset += lengthSize
+                guard nalLength > 0, offset + nalLength <= total else { return false }
+                output.append(contentsOf: startCode)
+                output.append(bytes.baseAddress!.advanced(by: offset).assumingMemoryBound(to: UInt8.self), count: nalLength)
+                offset += nalLength
+            }
+            return true
         }
+        // Wynik VideoToolbox leży zwykle w jednym kawałku pamięci – czytamy go bez kopii pośredniej.
+        var contiguousLength = 0
+        var pointer: UnsafeMutablePointer<CChar>?
+        let converted: Bool
+        if CMBlockBufferGetDataPointer(block, atOffset: 0, lengthAtOffsetOut: &contiguousLength, totalLengthOut: nil,
+                                       dataPointerOut: &pointer) == kCMBlockBufferNoErr,
+           let pointer, contiguousLength == total {
+            converted = appendUnits(UnsafeRawBufferPointer(start: pointer, count: total))
+        } else {
+            var bytes = [UInt8](repeating: 0, count: total)
+            guard CMBlockBufferCopyDataBytes(block, atOffset: 0, dataLength: total, destination: &bytes) == noErr else { return nil }
+            converted = bytes.withUnsafeBytes(appendUnits)
+        }
+        guard converted else { return nil }
         return EncodedFrame(annexB: output, isKeyframe: isKeyframe, width: width, height: height,
                             presentationTime: sampleBuffer.presentationTimeStamp)
     }

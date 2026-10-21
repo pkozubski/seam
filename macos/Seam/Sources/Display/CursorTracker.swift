@@ -17,11 +17,16 @@ final class CursorTracker {
     private var last: Shape?
     private lazy var fingerprints: [(Shape, [Float], CGPoint)] = Self.referenceFingerprints()
 
-    /// Wątek główny.
+    /// Wątek główny. Każdy start wysyła bieżący kształt od razu (Windows mógł w międzyczasie pokazać swój).
     func start() {
         stop()
         last = nil
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.poll() }
+        poll()
+        // Odczyt kursora to zapytanie do WindowServera (ok. 0,3 ms), więc tylko wtedy, gdy jest potrzebny.
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.poll() }
+        timer.tolerance = 0.005
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     func stop() {

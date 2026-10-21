@@ -16,7 +16,7 @@ final class DisplayStreamer {
         let bitrate: Int
     }
 
-    struct Stats {
+    struct Stats: Equatable {
         let framesPerSecond: Int
         let kilobitsPerSecond: Int
         let dropped: UInt64
@@ -292,7 +292,7 @@ final class DisplayStreamer {
     private func startStatsTimer() {
         lastStats = (0, 0)
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 1, repeating: 1)
+        timer.schedule(deadline: .now() + 1, repeating: 1, leeway: .milliseconds(200))
         timer.setEventHandler { [weak self] in self?.tick() }
         timer.resume()
         statsTimer = timer

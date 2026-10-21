@@ -36,3 +36,18 @@ Pokazuje prawdziwe okno przez około 1,5 s i robi zrzut (`UIPreview.swift`). Obe
 - Prywatne `CGVirtualDisplay` jest słabo linkowane (`Sources/Display/CGVirtualDisplay.h`); aplikacja musi startować bez niego.
 - Strony: `Sources/Views/*Page.swift`, sekcje paska bocznego w `SidebarSection`; macOS nie ma strony Ekrany
   (położenie Maca ustawia Windows).
+
+## Energia
+
+- `AppState` jest `@Observable` (widok odświeża się tylko po zmianie tego, co czyta). Nie wkładaj do niego wartości
+  zmieniających się częściej niż ~1 Hz (poziomy, liczniki pakietów, pozycje): wystaw je do odczytu na żądanie
+  (jak `Engine.audioLevel` + `TimelineView` w `LevelMeter`). `SeamApp.body` nie może czytać stanu: każde odświeżenie
+  etykiety `MenuBarExtra` to przerysowanie paska menu przez WindowServer (stąd osobny `MenuBarLabel`).
+- `@Observable`: drugie przypisanie właściwości w `init` wywołuje już `didSet` – przygotuj wartość i przypisz raz.
+- Odpytywanie (WindowServer, kursor, schowek) tylko wtedy, gdy wynik jest potrzebny, z luzem (`leeway`/`tolerance`);
+  wzór tempa adaptacyjnego: `WindowTracker.poke()`.
+- Pomiar działającej aplikacji: `top -l 2 -s 3 -pid <pid> -stats pid,cpu,idlew,power`, ruch sieci
+  `nettop -p <pid> -L 3 -s 1`, profil CPU `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun xctrace record
+  --template 'Time Profiler' --attach <pid> --time-limit 8s --output t.trace`, potem `xctrace export --input t.trace
+  --xpath '/trace-toc/run[@number="1"]/data/table[@schema="time-profile"]'` (XML z id/ref do zsumowania skryptem).
+  `sample <pid>` liczy też wątki czekające, więc nie pokazuje, gdzie idzie CPU.

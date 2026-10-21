@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ConnectionDetails: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

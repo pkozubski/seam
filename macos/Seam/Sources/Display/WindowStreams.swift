@@ -36,7 +36,7 @@ final class WindowStreams {
             self.active = true
             self.retryTimer?.cancel()
             let timer = DispatchSource.makeTimerSource(queue: self.queue)
-            timer.schedule(deadline: .now() + 1, repeating: .seconds(1))
+            timer.schedule(deadline: .now() + 1, repeating: .seconds(1), leeway: .milliseconds(250))
             timer.setEventHandler { [weak self] in self?.reconcile() }
             self.retryTimer = timer
             timer.resume()

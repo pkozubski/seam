@@ -1,6 +1,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import os
 
 /// Nieizolowany "silnik": łączy serwer TCP, discovery, wstrzykiwanie
 /// wejścia i przechwytywanie audio. Cała logika działa na `eventsQueue`;
@@ -30,7 +31,6 @@ final class Engine {
         case audioStopped
         case audioError(String)
         case audioPermission(SystemAudioTap.Permission)
-        case audioLevel(Float)
         case audioStats(packets: UInt64, errors: UInt64)
         case clipboardSent(summary: String)
         case clipboardReceived(summary: String)
@@ -43,6 +43,11 @@ final class Engine {
     }
 
     var onEvent: ((Event) -> Void)?
+
+    /// Szczytowy poziom dźwięku 0–1, zapisywany z wątku audio. Interfejs czyta go sam, gdy
+    /// pokazuje miernik – bez zdarzeń wysyłanych na wątek główny przy każdym buforze.
+    var audioLevel: Float { level.withLock { $0 } }
+    private let level = OSAllocatedUnfairLock<Float>(initialState: 0)
 
     let eventsQueue = DispatchQueue(label: "blm.events", qos: .userInteractive)
 
@@ -114,7 +119,7 @@ final class Engine {
     // MARK: - Cykl życia
 
     func start() {
-        if config.clipboardSync { clipboard.start() }
+        // Schowek sprawdzamy dopiero po połączeniu z Windowsem – wcześniej nie ma dokąd go wysłać.
         eventsQueue.async {
             self.server.start(port: self.config.controlPort)
             do {
@@ -177,7 +182,7 @@ final class Engine {
                                                                       "The virtual display was turned off on the Mac."))
             }
             if old.clipboardSync != newConfig.clipboardSync {
-                if newConfig.clipboardSync { self.clipboard.start() } else { self.clipboard.stop() }
+                if newConfig.clipboardSync, self.peer != nil { self.clipboard.start() } else { self.clipboard.stop() }
             }
             self.sendStatus()
         }
@@ -231,6 +236,7 @@ final class Engine {
         server.onPeerConnected = { [weak self] info in
             guard let self else { return }
             self.peer = info
+            if self.config.clipboardSync { self.clipboard.start() }
             self.emit(.peerConnected(info))
             self.emit(.log(L10n.text("Połączono: \(info.name) (\(info.address))",
                                      "Connected: \(info.name) (\(info.address))")))
@@ -239,6 +245,7 @@ final class Engine {
         server.onPeerDisconnected = { [weak self] in
             guard let self else { return }
             self.peer = nil
+            self.clipboard.stop()
             self.injector.deactivate()
             self.stopAudioLocked(notify: true)
             self.stopDisplayLocked(notify: true, reason: nil)
@@ -327,6 +334,7 @@ final class Engine {
 
     private func handle(_ type: MessageType, _ payload: [UInt8], sessionKeys: ControlServer.SessionKeys) {
         var r = ByteReader(payload)
+        if displayMode == .windows, Self.affectsWindows(type) { windowTracker.poke() }
         switch type {
         case .mouseMove:
             guard let dx = r.i16(), let dy = r.i16() else { return }
@@ -422,11 +430,14 @@ final class Engine {
         case .windowEnter:
             guard displayMode == .windows, let id = displayID, let x = r.u16(), let y = r.u16() else { return }
             injector.windowEnter(at: WindowTracker.point(x: x, y: y, on: id))
+            // Kształt kursora jest potrzebny tylko, gdy wskaźnik Windows jest nad oknem Maca.
+            DispatchQueue.main.async { [cursorTracker] in cursorTracker.start() }
         case .mouseAbsolute:
             guard let id = displayID, let x = r.u16(), let y = r.u16() else { return }
             injector.windowMove(to: WindowTracker.point(x: x, y: y, on: id))
         case .windowLeave:
             injector.windowLeave(keepKeyboard: r.u8() == 1)
+            DispatchQueue.main.async { [cursorTracker] in cursorTracker.stop() }
         case .winViewStart:
             guard let raw = r.u8(), let edge = ScreenEdge(rawValue: raw) else { return }
             startWinView(edge: edge)
@@ -447,6 +458,17 @@ final class Engine {
             injector.enter(at: session.macPoint(x: x, y: y), edge: winViewEdge)
         default:
             break
+        }
+    }
+
+    /// Wejście, po którym okna Maca na ekranie wirtualnym mogą się zmienić (menu, przesunięcie, nowe okno).
+    private static func affectsWindows(_ type: MessageType) -> Bool {
+        switch type {
+        case .mouseMove, .mouseButton, .mouseWheel, .key, .mouseAbsolute, .windowEnter, .windowLeave,
+             .windowRaise, .windowClose, .windowResize, .windowReturn, .menuInvoke:
+            return true
+        default:
+            return false
         }
     }
 
@@ -540,9 +562,9 @@ final class Engine {
                 self?.windowsChanged(windows, displayID: id)
             }
             let server = self.server
+            // Śledzenie rusza dopiero po WINDOW_ENTER (wskaźnik nad oknem Maca).
             DispatchQueue.main.async { [cursorTracker] in
                 cursorTracker.onChange = { shape in server.send(Frame.cursorShape(shape.rawValue)) }
-                cursorTracker.start()
             }
         } else {
             DispatchQueue.main.async { [cursorTracker] in cursorTracker.stop() }
@@ -723,7 +745,7 @@ final class Engine {
                         return
                     }
                     tap.onSamples = { ptr, frames in sender.send(int16Samples: ptr, frames: frames) }
-                    tap.onLevel = { [weak self] level in self?.emit(.audioLevel(level)) }
+                    tap.onLevel = { [weak self] value in self?.level.withLock { $0 = value } }
                     tap.onDefaultDeviceChanged = { [weak self] in
                         self?.eventsQueue.asyncAfter(deadline: .now() + 0.4) { self?.restartAudio() }
                     }
@@ -771,8 +793,10 @@ final class Engine {
         audioGeneration &+= 1 // unieważnia trwające uruchamianie
         if let tap {
             tap.onSamples = nil
+            tap.onLevel = nil
             tap.stop()
             self.tap = nil
+            level.withLock { $0 = 0 }
             sender?.close()
             sender = nil
             if notify {
@@ -785,7 +809,7 @@ final class Engine {
 
     private func startStatsTimer() {
         let t = DispatchSource.makeTimerSource(queue: eventsQueue)
-        t.schedule(deadline: .now() + 1, repeating: 1)
+        t.schedule(deadline: .now() + 1, repeating: 1, leeway: .milliseconds(200))
         t.setEventHandler { [weak self] in
             guard let self, let sender = self.sender else { return }
             self.emit(.audioStats(packets: sender.packetsSent, errors: sender.sendErrors))

@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct ConnectionOverview: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     var openWindows: () -> Void = {}
     private var connected: Bool { state.peer != nil }
 
     var body: some View {
+        @Bindable var state = state
         VStack(alignment: .leading, spacing: 22) {
             Text(L10n.text("Dwa komputery.\nJedna przestrzeń.", "Two computers.\nOne space."))
                 .font(.system(size: 36, weight: .regular)).tracking(-1)

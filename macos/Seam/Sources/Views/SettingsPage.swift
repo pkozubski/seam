@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
 
     var body: some View {
+        @Bindable var state = state
         VStack(alignment: .leading, spacing: SettingsChrome.sectionSpacing) {
             SettingsSection(title: L10n.text("Ten Mac", "This Mac")) {
                 SettingsCardRow(title: L10n.text("Nazwa tego Maca", "This Mac's name"),
@@ -32,10 +33,11 @@ struct GeneralSettingsPane: View {
 }
 
 struct UpdatesSettingsPane: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @ObservedObject var updater: Updater
 
     var body: some View {
+        @Bindable var state = state
         VStack(alignment: .leading, spacing: SettingsChrome.sectionSpacing) {
             SettingsCard {
                 HStack(spacing: 14) {
@@ -158,11 +160,12 @@ private struct UpdateStatusRow: View {
 }
 
 struct AdvancedSettingsPane: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @State private var portText = ""
     @State private var portError: String?
 
     var body: some View {
+        @Bindable var state = state
         VStack(alignment: .leading, spacing: SettingsChrome.sectionSpacing) {
             SettingsSection(title: L10n.text("Sieć", "Network")) {
                 SettingsCardRow(title: L10n.text("Port TCP", "TCP port"),

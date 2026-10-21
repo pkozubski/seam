@@ -31,8 +31,11 @@ final class WinViewSession {
     private var displaySize = CGSize(width: 1, height: 1)
     /// Numery okien macOS pokazujących okna Windows (do sprawdzania, czy nie są zasłonięte).
     private var proxyNumbers: Set<Int> = []
-    /// Najnowsze obrazy czekające na wątek główny (pod `lock`).
+    /// Najnowszy stan czekający na wątek główny (pod `lock`): lista okien, obrazy i kursor idą jednym
+    /// przebiegiem, więc zajęty przez chwilę wątek główny nie odtwarza potem zaległych pozycji po kolei.
+    private var pendingList: WinWindowList?
     private var pendingImages: [UInt32: WinStreamImage] = [:]
+    private var pendingCursor: (point: CGPoint, shape: UInt8)?
     private var drainScheduled = false
     private var lastRelease = Date.distantPast
     private let primaryHeight = CGDisplayBounds(CGMainDisplayID()).height
@@ -63,7 +66,9 @@ final class WinViewSession {
         DispatchQueue.main.async { proxies.removeAll() }
         lock.withLock {
             hitRects = []
+            pendingList = nil
             pendingImages = [:]
+            pendingCursor = nil
         }
     }
 
@@ -88,9 +93,8 @@ final class WinViewSession {
             for id in self.listedIDs.subtracting(ids) { self.decoders[id] = nil }
             self.listedIDs = ids
         }
-        // Położenie z listy od razu, bez czekania na obraz.
-        let screen = self.screen
-        DispatchQueue.main.async { [proxies] in proxies.update(list, screen: screen) }
+        // Położenie z listy od razu, bez czekania na obraz (lista jest pełna – liczy się tylko najnowsza).
+        scheduleDrain { pendingList = list }
     }
 
     /// Okno Windows na Macu w tym punkcie jest widoczne (nie zasłania go okno innej aplikacji).
@@ -131,15 +135,15 @@ final class WinViewSession {
             lastRelease = Date()
             onPointerRelease?(update.x, update.y)
         }
-        DispatchQueue.main.async {
-            CGWarpMouseCursorPosition(point)
-            WinViewSession.cursor(for: update.shape).set()
-        }
+        scheduleDrain { pendingCursor = (point, update.shape) }
     }
 
     /// Aktywna aplikacja decyduje o kursorze – nad oknem Windows musi to być Seam.
     func pointerEntered() {
         DispatchQueue.main.async { [proxies] in
+            // Kluczowe staje się okno Windows z bieżącego biurka: aktywacja z kluczowym oknem głównym
+            // Seam przeniosłaby na biurko, na którym ono leży.
+            proxies.makeFrontKey()
             NSApp.activate(ignoringOtherApps: true)
             proxies.bringToFront()
         }
@@ -202,22 +206,41 @@ final class WinViewSession {
     /// Na wątek główny trafia tylko najnowszy obraz każdego okna – zablokowany wątek
     /// główny nie odtwarza potem zaległych klatek.
     private func deliver(_ id: UInt32, _ image: WinStreamImage) {
+        scheduleDrain { pendingImages[id] = image }
+    }
+
+    /// Dowolny wątek: zmiana stanu pod blokadą i najwyżej jeden czekający przebieg na wątku głównym.
+    private func scheduleDrain(_ change: () -> Void) {
         let schedule: Bool = lock.withLock {
-            pendingImages[id] = image
+            change()
             guard !drainScheduled else { return false }
             drainScheduled = true
             return true
         }
         guard schedule else { return }
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            let images: [UInt32: WinStreamImage] = self.lock.withLock {
-                let images = self.pendingImages
-                self.pendingImages = [:]
-                self.drainScheduled = false
-                return images
+        DispatchQueue.main.async { [weak self] in self?.drain() }
+    }
+
+    /// Wątek główny: najpierw lista (nowe okna, położenie), potem obrazy, na końcu kursor – w jednej transakcji,
+    /// żeby okno i kursor przesuwały się razem.
+    private func drain() {
+        let (list, images, cursor) = lock.withLock { () -> (WinWindowList?, [UInt32: WinStreamImage], (point: CGPoint, shape: UInt8)?) in
+            defer {
+                pendingList = nil
+                pendingImages = [:]
+                pendingCursor = nil
+                drainScheduled = false
             }
-            self.proxies.show(images)
+            return (pendingList, pendingImages, pendingCursor)
+        }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        if let list { proxies.update(list, screen: screen) }
+        proxies.show(images)
+        CATransaction.commit()
+        if let cursor {
+            CGWarpMouseCursorPosition(cursor.point)
+            WinViewSession.cursor(for: cursor.shape).set()
         }
     }
 
@@ -242,6 +265,14 @@ struct WinStreamImage {
 
 /// Okna macOS pokazujące okna Windows (wątek główny).
 final class WinWindowProxies {
+    /// Okno pokazujące okno Windows. Może być kluczowe (wtedy aktywacja Seam nie przenosi na biurko
+    /// z oknem głównym), ale klawiszy z klawiatury Maca nie obsługuje – pisze się w Windowsie.
+    private final class ProxyWindow: NSWindow {
+        override var canBecomeKey: Bool { true }
+        override var canBecomeMain: Bool { false }
+        override func keyDown(with event: NSEvent) {}
+    }
+
     private final class Proxy {
         let window: NSWindow
         /// Jedna warstwa z obrazem strumienia okna, przycięta do rogów okna.
@@ -253,13 +284,15 @@ final class WinWindowProxies {
 
         init(descriptor: WinWindowDescriptor) {
             self.descriptor = descriptor
-            window = NSWindow(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
+            window = ProxyWindow(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.isOpaque = false
             window.backgroundColor = .clear
             window.hasShadow = !descriptor.isPopup
             window.level = descriptor.isPopup ? .popUpMenu : .normal
-            window.collectionBehavior = [.managed, .fullScreenNone]
+            // Monitor Windows odpowiada ekranowi Maca, a nie jednemu biurku: okna Windows są na każdym biurku.
+            // Inaczej wysunięcie okna (aktywne na Windowsie, nowe okno) przełączałoby na biurko, na którym powstało.
+            window.collectionBehavior = [.managed, .canJoinAllSpaces, .fullScreenNone]
             window.animationBehavior = .none
             let view = NSView()
             view.wantsLayer = true
@@ -376,6 +409,12 @@ final class WinWindowProxies {
     }
 
     func bringToFront() { restack(bringToFront: true) }
+
+    /// Najwyższe widoczne okno Windows staje się kluczowe (przed aktywacją Seam).
+    func makeFrontKey() {
+        guard let id = order.first(where: { proxies[$0]?.shown == true }), let proxy = proxies[id] else { return }
+        proxy.window.makeKey()
+    }
 
     func windowNumber(for id: UInt32) -> Int? { proxies[id]?.window.windowNumber }
 

@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import os
 
 /// Okno Maca leżące na ekranie wirtualnym (tryb okien).
 struct TrackedWindow: Equatable {
@@ -14,7 +15,9 @@ struct TrackedWindow: Equatable {
 
 /// Śledzi okna na ekranie wirtualnym. Każde z nich dostaje na Windowsie własne,
 /// prawdziwe okno (pasek zadań, Alt+Tab, minimalizacja) i osobny strumień obrazu.
-/// Lista jest odświeżana 30 razy na sekundę i zgłaszana tylko po zmianie.
+/// Lista jest zgłaszana tylko po zmianie. Odpytywanie WindowServera jest kosztowne (także
+/// dla samego WindowServera), więc tempo zależy od aktywności: 30 razy na sekundę, gdy okna
+/// się zmieniają albo Windows steruje oknami Maca, potem coraz rzadziej.
 final class WindowTracker {
     private let queue = DispatchQueue(label: "blm.display.windows", qos: .userInitiated)
     private var timer: DispatchSourceTimer?
@@ -22,12 +25,32 @@ final class WindowTracker {
     private var ownership: [Int32: (ids: Set<UInt32>, checked: TimeInterval, appIDs: Set<UInt32>?)] = [:]
     private var state = WindowTrackingState()
 
+    private enum Pace: Int {
+        case fast = 33, medium = 100, slow = 250
+        var interval: DispatchTimeInterval { .milliseconds(rawValue) }
+        var leeway: DispatchTimeInterval { .milliseconds(rawValue / 6) }
+    }
+    /// Kolejka trackera (`timer` należy do wołającego start/stop).
+    private var activeTimer: DispatchSourceTimer?
+    private var pace = Pace.fast
+    private var lastChange: TimeInterval = 0
+    /// Ostatnie wejście z Windowsa i czy tracker jest w szybkim tempie (dowolny wątek).
+    private let pacing = OSAllocatedUnfairLock(initialState: (lastInput: TimeInterval(0), fast: true))
+
     /// Wywoływane na kolejce trackera, tylko gdy lista się zmieniła.
     func start(displayID: CGDirectDisplayID, onChange: @escaping ([TrackedWindow]) -> Void) {
         stop()
-        queue.sync { last = nil; ownership.removeAll(); state = WindowTrackingState() }
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(33), leeway: .milliseconds(5))
+        queue.sync {
+            last = nil
+            ownership.removeAll()
+            state = WindowTrackingState()
+            pace = .fast
+            lastChange = ProcessInfo.processInfo.systemUptime
+            pacing.withLock { $0.fast = true }
+            activeTimer = timer
+        }
+        timer.schedule(deadline: .now(), repeating: Pace.fast.interval, leeway: Pace.fast.leeway)
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             let current = Self.snapshot(displayID: displayID)
@@ -36,9 +59,13 @@ final class WindowTracker {
             let existing = self.state.hasMissingOwners(in: current) ? Self.existingWindows() : []
             let windows = self.state.update(current, applicationWindows: self.ownership.compactMapValues(\.appIDs),
                                             existing: existing, display: CGDisplayBounds(displayID), now: now)
-            guard windows != self.last else { return }
-            self.last = windows
-            onChange(windows)
+            if windows != self.last {
+                self.last = windows
+                self.lastChange = now
+                onChange(windows)
+            }
+            let quiet = now - max(self.lastChange, self.pacing.withLock { $0.lastInput })
+            self.setPace(quiet < 1 ? .fast : (quiet < 5 ? .medium : .slow))
         }
         timer.resume()
         self.timer = timer
@@ -47,11 +74,36 @@ final class WindowTracker {
     func stop() {
         timer?.cancel()
         timer = nil
+        queue.async { self.activeTimer = nil }
     }
 
     /// Wymusza ponowne wysłanie listy przy następnym odświeżeniu.
     func resend() {
-        queue.async { self.last = nil }
+        queue.async {
+            self.last = nil
+            self.setPace(.fast, immediately: true)
+        }
+    }
+
+    /// Wejście z Windowsa w trybie okien (klik, klawisz, ruch): za chwilę może się pojawić
+    /// menu albo okno może się przesunąć, więc tracker wraca do pełnego tempa. Dowolny wątek, tani.
+    func poke() {
+        let now = ProcessInfo.processInfo.systemUptime
+        let wake = pacing.withLock { state -> Bool in
+            state.lastInput = now
+            guard !state.fast else { return false }
+            state.fast = true
+            return true
+        }
+        if wake { queue.async { self.setPace(.fast, immediately: true) } }
+    }
+
+    /// Kolejka trackera.
+    private func setPace(_ next: Pace, immediately: Bool = false) {
+        guard next != pace || immediately, let timer = activeTimer else { return }
+        pace = next
+        pacing.withLock { $0.fast = next == .fast }
+        timer.schedule(deadline: immediately ? .now() : .now() + next.interval, repeating: next.interval, leeway: next.leeway)
     }
 
     private func refreshOwnership(_ windows: [TrackedWindow], now: TimeInterval) {

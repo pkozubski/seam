@@ -51,22 +51,26 @@ struct StatusDot: View {
     }
 }
 
+/// Miernik sam odczytuje poziom, 20 razy na sekundę i tylko wtedy, gdy jest na ekranie.
 struct LevelMeter: View {
-    let level: Float
+    let level: () -> Float
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.08))
-                Capsule()
-                    .fill(level > 0.9 ? Color.orange : DesignTokens.accent)
-                    .frame(width: max(0, geo.size.width * CGFloat(min(level, 1))))
-                    .animation(reduceMotion ? nil : .linear(duration: 0.05), value: level)
+        TimelineView(.periodic(from: .now, by: 1.0 / 20)) { _ in
+            let value = min(max(level(), 0), 1)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.08))
+                    Capsule()
+                        .fill(value > 0.9 ? Color.orange : DesignTokens.accent)
+                        .frame(width: geo.size.width * CGFloat(value))
+                        .animation(reduceMotion ? nil : .linear(duration: 0.05), value: value)
+                }
             }
+            .accessibilityValue("\(Int(value * 100))%")
         }
         .frame(height: 8)
         .accessibilityLabel(L10n.text("Poziom dźwięku", "Audio level"))
-        .accessibilityValue("\(Int(max(0, min(level, 1)) * 100))%")
     }
 }

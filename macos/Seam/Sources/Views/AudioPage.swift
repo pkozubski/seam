@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AudioPage: View {
-    @EnvironmentObject private var state: AppState
+    @Environment(AppState.self) private var state
     @State private var showStats = false
 
     private var status: String {
@@ -18,6 +18,7 @@ struct AudioPage: View {
     }
 
     var body: some View {
+        @Bindable var state = state
         SettingsPageLayout(title: "Dźwięk", subtitle: "Dźwięk systemowy Maca grany na głośnikach Windowsa.") {
             if state.audioPermissionGranted == false {
                 PermissionBanner(title: "Brak zgody na nagrywanie dźwięku systemowego",
@@ -34,7 +35,7 @@ struct AudioPage: View {
                 }
             } accessory: {
                 if state.audioStreaming {
-                    LevelMeter(level: state.audioLevel)
+                    LevelMeter(level: { state.audioLevel })
                 }
             }
             SettingsGroup("Odtwarzanie") {

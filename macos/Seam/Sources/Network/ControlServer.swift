@@ -35,6 +35,9 @@ final class ControlServer {
     private var secureSession: SecureSession?
     private var handshakeState: HandshakeState = .waitingForHello
     private var handshakeTimeout: DispatchWorkItem?
+    /// Wiadomości z jednego odczytu TCP, przekazywane do `callbackQueue` jedną paczką
+    /// (ruchy myszy przychodzą setki razy na sekundę – osobny blok na każdą to zbędny narzut).
+    private var pendingMessages: [(type: MessageType, payload: [UInt8], keys: SessionKeys)] = []
     private var blockedUntil: DispatchTime = .now()
     private let localName: () -> String
     private let pairingKey: () -> Data
@@ -145,6 +148,8 @@ final class ControlServer {
     }
 
     private func closeConnection(notify: Bool) {
+        // Wiadomości odebrane przed rozłączeniem muszą trafić do silnika przed zdarzeniem rozłączenia.
+        flushMessages()
         handshakeTimeout?.cancel()
         handshakeTimeout = nil
         guard let current = connection else { return }
@@ -191,6 +196,7 @@ final class ControlServer {
                     | (UInt32(inbox[cursor + 4]) << 16)
                     | (UInt32(inbox[cursor + 5]) << 24)
                 guard rawLength <= UInt32(ProtocolConstants.maxWireFrame) else {
+                    flushMessages()
                     failAuthentication(on: connection, reason: "Nieprawidłowa długość ramki")
                     return
                 }
@@ -204,6 +210,19 @@ final class ControlServer {
             guard connection === self.connection else { return }
         }
         if cursor > 0 { inbox.removeFirst(cursor) }
+        flushMessages()
+    }
+
+    private func flushMessages() {
+        guard !pendingMessages.isEmpty, let callback = onMessage else {
+            pendingMessages.removeAll(keepingCapacity: true)
+            return
+        }
+        let batch = pendingMessages
+        pendingMessages.removeAll(keepingCapacity: true)
+        callbackQueue.async {
+            for message in batch { callback(message.type, message.payload, message.keys) }
+        }
     }
 
     private func handle(typeByte: UInt8, payload: [UInt8], connection: NWConnection) {
@@ -295,8 +314,7 @@ final class ControlServer {
             return
         }
         let keys = SessionKeys(audioKey: session.audioKey, audioSessionID: session.audioSessionID)
-        let callback = onMessage
-        callbackQueue.async { callback?(type, payload, keys) }
+        pendingMessages.append((type, payload, keys))
     }
 
     private func failAuthentication(on connection: NWConnection, reason: String) {

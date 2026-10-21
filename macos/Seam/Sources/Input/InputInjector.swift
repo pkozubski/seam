@@ -62,6 +62,8 @@ final class InputInjector {
     private var clickCount: [Int: Int] = [:]
     private var scrollRemainderX = 0.0
     private var scrollRemainderY = 0.0
+    private var naturalScrolling = true
+    private var naturalScrollingCheckedAt = -TimeInterval.infinity
 
     private let source = CGEventSource(stateID: .hidSystemState)
 
@@ -310,7 +312,7 @@ final class InputInjector {
         if let forced = invertScroll {
             invert = forced
         } else {
-            invert = Self.naturalScrollingEnabled
+            invert = naturalScrollingEnabled()
         }
         let sign = invert ? -1.0 : 1.0
         scrollRemainderY += Double(dy) / 120.0 * scrollPixelsPerNotch * sign
@@ -329,9 +331,16 @@ final class InputInjector {
         ev.post(tap: .cghidEventTap)
     }
 
-    private static var naturalScrollingEnabled: Bool {
-        let defaults = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)
-        return defaults?["com.apple.swipescrolldirection"] as? Bool ?? true
+    /// Odczyt kopiuje całą domenę globalnych preferencji, a kółko daje dziesiątki zdarzeń na
+    /// sekundę – ustawienie sprawdzamy najwyżej co 2 s (zmiana w Ustawieniach działa od razu po tej chwili).
+    private func naturalScrollingEnabled() -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - naturalScrollingCheckedAt > 2 {
+            let defaults = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)
+            naturalScrolling = defaults?["com.apple.swipescrolldirection"] as? Bool ?? true
+            naturalScrollingCheckedAt = now
+        }
+        return naturalScrolling
     }
 
     // MARK: - Klawiatura

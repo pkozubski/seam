@@ -63,7 +63,7 @@ final class SystemAudioTap {
 
     /// Wołane na wątku audio. `frames` ramek interleaved Int16.
     var onSamples: ((UnsafePointer<Int16>, Int) -> Void)?
-    /// Poziom szczytowy 0–1 (wątek audio).
+    /// Poziom szczytowy 0–1 z ostatnich 8 buforów (wątek audio).
     var onLevel: ((Float) -> Void)?
     /// Zmieniło się domyślne urządzenie wyjściowe – warto zrestartować tap.
     var onDefaultDeviceChanged: (() -> Void)?
@@ -80,6 +80,8 @@ final class SystemAudioTap {
     private var conversionCapacity = 0
     private var listenerInstalled = false
     private var levelCounter = 0
+    /// Szczyt z buforów od ostatniego zgłoszenia poziomu.
+    private var levelPeak: Float = 0
 
     deinit { stop() }
 
@@ -230,10 +232,12 @@ final class SystemAudioTap {
             }
         }
         onSamples?(UnsafePointer(out), frames)
+        levelPeak = max(levelPeak, peak)
         levelCounter += 1
         if levelCounter >= 8 {
             levelCounter = 0
-            onLevel?(min(peak, 1))
+            onLevel?(min(levelPeak, 1))
+            levelPeak = 0
         }
     }
 
