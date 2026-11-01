@@ -1,12 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// Adresy w jednym miejscu: po starcie strony (Cloudflare) zmienią się tylko tutaj.
+/// Adresy w jednym miejscu. Lista zmian zostaje na GitHubie, dopóki strona nie ma własnej.
 enum AppLinks {
-    static let website = URL(string: "https://github.com/pkozubski/seam")!
+    static let website = URL(string: "https://seamdesk.app/")!
     static let changelog = URL(string: "https://github.com/pkozubski/seam/blob/main/CHANGELOG.md")!
-    static let privacy = URL(string: "https://github.com/pkozubski/seam/blob/main/PRIVACY.md")!
-    static let reportProblem = URL(string: "https://github.com/pkozubski/seam/issues")!
+    static let privacy = URL(string: "https://seamdesk.app/legal/privacy/")!
+    static let reportProblem = URL(string: "mailto:support@seamdesk.app")!
 }
 
 /// Ustawienia → O programie: wersja, aktualizacja, lista zmian, wprowadzenie i dokumenty.

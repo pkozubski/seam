@@ -8,8 +8,8 @@ public partial class SettingsPage : UserControl
 {
     // Adresy w jednym miejscu (jak AppLinks na macOS): po starcie strony zmienią się tylko tutaj.
     private const string ChangelogUrl = "https://github.com/pkozubski/seam/blob/main/CHANGELOG.md";
-    private const string IssuesUrl = "https://github.com/pkozubski/seam/issues";
-    private const string PrivacyUrl = "https://github.com/pkozubski/seam/blob/main/PRIVACY.md";
+    private const string IssuesUrl = "mailto:support@seamdesk.app";
+    private const string PrivacyUrl = "https://seamdesk.app/legal/privacy/";
 
     public SettingsPage()
     {

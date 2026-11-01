@@ -10,7 +10,10 @@
     "html_handling": "auto-trailing-slash",
     // nieznany adres → 404.html ze statusem 404
     "not_found_handling": "404-page"
-  }
-  // TODO(launch): własna domena po jej wyborze, np.
-  // "routes": [{ "pattern": "seam.example", "custom_domain": true }]
+  },
+  // Własna domena (strefa seamdesk.app w tym samym koncie Cloudflare); www pokazuje to samo, canonical wskazuje seamdesk.app.
+  "routes": [
+    { "pattern": "seamdesk.app", "custom_domain": true },
+    { "pattern": "www.seamdesk.app", "custom_domain": true }
+  ]
 }

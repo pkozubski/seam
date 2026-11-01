@@ -79,9 +79,9 @@ review” (`.legal__draft`, komentarz `TODO(launch)`). Po akceptacji usuń ramk�
   Workers”), opcjonalnie `CLOUDFLARE_ACCOUNT_ID`.
 - Sprawdzenie konfiguracji bez wysyłki: `cd site && npx wrangler deploy --dry-run` (potem usuń `site/.wrangler/`).
 
-## Do uzupełnienia przed startem (`grep -rn "TODO(launch)\|seam.example\|PLACEHOLDER" site`)
+## Do uzupełnienia przed startem (`grep -rn "TODO(launch)\|seamdesk.app\|PLACEHOLDER" site`)
 
-1. `seam.example` → docelowa domena (canonical, hreflang, og:url, `support@seam.example`), trasa w `wrangler.jsonc`.
+1. `seamdesk.app` → docelowa domena (canonical, hreflang, og:url, `support@seamdesk.app`), trasa w `wrangler.jsonc`.
 2. `CHECKOUT_URL` w `checkout.js` (ten sam link co `LicenseConfig.checkoutURL` w aplikacjach).
 3. Pola `[…]` na stronach prawnych (sprzedawca, kontakt, okres zwrotu, prawo właściwe, rękojmia).
 4. FAQ „Will macOS or Windows warn me…” mówi o podpisie Developer ID i Authenticode: prawdziwe dopiero po Fazie 5.
