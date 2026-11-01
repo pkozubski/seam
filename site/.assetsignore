@@ -4,3 +4,7 @@ README.md
 .assetsignore
 .wrangler
 .DS_Store
+# wrangler-action instaluje wranglera w tym katalogu
+node_modules
+package.json
+package-lock.json
