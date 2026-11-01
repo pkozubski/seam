@@ -15,7 +15,7 @@
                WindowStartupLocation="CenterScreen">
 
     <Grid RowDefinitions="32,*">
-        <!-- Jedno tło pod paskiem tytułu, paskiem bocznym i treścią, bez osobnych pasów; zielone tylko na zakładce Okna -->
+        <!-- Jedno tło pod paskiem tytułu, paskiem bocznym i treścią, bez osobnych pasów; strony funkcji mają własny kolor -->
         <views:SeamBackdrop x:Name="Backdrop" Grid.RowSpan="2" />
 
         <!-- Pasek tytułu (obszar przeciągania okna): nazwa strony na środku; logo jest w pasku bocznym -->
@@ -100,6 +100,12 @@
             </StackPanel>
             <TextBlock x:Name="VersionText" FontSize="11.5" Foreground="#61FFFFFF" Margin="20,0" />
         </StackPanel>
+
+        <!-- Kula stanu połączenia na dole treści, w kolorze strony (jak na macOS); strony zostawiają pod nią margines -->
+        <views:StatusOrb x:Name="Orb" Grid.Row="1" Margin="220,0,0,-16"
+                         HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                         IsConnected="{Binding IsConnected}" IsConnecting="{Binding IsConnecting}"
+                         Click="Orb_OnClick" />
 
         <!-- Separator paska bocznego: znika w tle u góry i u dołu, jak w CleanMyMac -->
         <Rectangle Grid.RowSpan="2" Width="1" HorizontalAlignment="Left" Margin="220,0,0,0" IsHitTestVisible="False">

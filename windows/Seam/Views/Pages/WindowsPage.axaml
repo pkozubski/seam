@@ -4,31 +4,7 @@
              x:Class="Seam.Views.Pages.WindowsPage" x:DataType="vm:MainViewModel">
     <!-- Projekt „Your apps, on both computers”: główny przełącznik w pastylce, ilustracja po lewej,
          połączenie i układ ekranów po prawej. Funkcje szczegółowe są niżej, pod przewinięciem. -->
-    <!-- Zielone tokeny projektu (tokens.css) tylko na tej stronie; reszta aplikacji jest grafitowa -->
-    <UserControl.Resources>
-        <LinearGradientBrush x:Key="CardBackground" StartPoint="0%,0%" EndPoint="100%,85%">
-            <GradientStop Color="#3DDEF5C9" Offset="0" />
-            <GradientStop Color="#1CBEE0B8" Offset="1" />
-        </LinearGradientBrush>
-        <SolidColorBrush x:Key="CardBorder" Color="#38D8F6CA" />
-        <SolidColorBrush x:Key="MutedText" Color="#C3D5BC" />
-        <SolidColorBrush x:Key="RowDivider" Color="#26D8F6CA" />
-        <SolidColorBrush x:Key="PillBackground" Color="#24CFEAC4" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#45DB30" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#55E541" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#3BC228" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#45DB30" />
-        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#40C5E1BA" />
-        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#47E4FFD6" />
-        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#E8F0DE" />
-        <SolidColorBrush x:Key="ButtonBackground" Color="#17CFEAC4" />
-        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#29DEF9D1" />
-        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#10CFEAC4" />
-        <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3BDFF7D4" />
-        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#4DDFF7D4" />
-        <SolidColorBrush x:Key="ButtonForeground" Color="#F2F8E6" />
-        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F2F8E6" />
-    </UserControl.Resources>
+    <!-- Zielone tokeny strony (karty, tekst, przełączniki) daje PageTheme.Green, wspólne z zielenią liści na macOS -->
     <UserControl.Styles>
         <Style Selector="TextBlock.cardTitle">
             <Setter Property="FontSize" Value="20" />
@@ -42,8 +18,8 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="Border.switchPill">
-            <Setter Property="Background" Value="#1FCFEAC4" />
-            <Setter Property="BorderBrush" Value="#38D8F6CA" />
+            <Setter Property="Background" Value="{DynamicResource PillBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="18,4,8,4" />
@@ -53,13 +29,13 @@
             <Setter Property="Width" Value="62" />
             <Setter Property="Height" Value="46" />
             <Setter Property="CornerRadius" Value="7" />
-            <Setter Property="BorderBrush" Value="#DAF5B8" />
+            <Setter Property="BorderBrush" Value="#C4EC8A" />
             <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="Background">
                 <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                    <GradientStop Color="#4F9D28" Offset="0" />
-                    <GradientStop Color="#25852A" Offset="0.5" />
-                    <GradientStop Color="#15632B" Offset="1" />
+                    <GradientStop Color="#7CC43F" Offset="0" />
+                    <GradientStop Color="#4A8E22" Offset="0.5" />
+                    <GradientStop Color="#2F6416" Offset="1" />
                 </LinearGradientBrush>
             </Setter>
         </Style>
@@ -79,7 +55,7 @@
         <Style Selector="TextBlock.stepNumber">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#9BE88A" />
+            <Setter Property="Foreground" Value="{DynamicResource PageLight}" />
         </Style>
     </UserControl.Styles>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
@@ -112,7 +88,7 @@
                         <Button Grid.Row="2" Classes="accent" HorizontalAlignment="Right" Click="ShowHow">
                             <StackPanel Orientation="Horizontal" Spacing="10">
                                 <TextBlock Text="See how" VerticalAlignment="Center" />
-                                <Path Data="M0,0 L9,6 L0,12 Z" Fill="#143B1E" VerticalAlignment="Center" />
+                                <Path Data="M0,0 L9,6 L0,12 Z" Fill="{DynamicResource AccentButtonText}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </Grid>

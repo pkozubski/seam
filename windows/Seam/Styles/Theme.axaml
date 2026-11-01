@@ -77,6 +77,8 @@
             <!-- bez paska po lewej: zaznaczenie pokazuje sama pigułka -->
             <x:Double x:Key="NavigationViewSelectionIndicatorWidth">0</x:Double>
 
+            <!-- Tekst jasnego przycisku głównego; kolorowe strony podmieniają go na swój najciemniejszy odcień (PageTheme) -->
+            <SolidColorBrush x:Key="AccentButtonText" Color="#143B1E" />
             <SolidColorBrush x:Key="StatusGreen" Color="#34C759" />
             <SolidColorBrush x:Key="StatusOrange" Color="#FF9F0A" />
             <SolidColorBrush x:Key="StatusRed" Color="#FF453A" />
@@ -121,7 +123,8 @@
     </Style>
     <Style Selector="StackPanel.page">
         <Setter Property="Spacing" Value="14" />
-        <Setter Property="Margin" Value="24,20,24,20" />
+        <!-- dół: miejsce na kulę stanu połączenia (StatusOrb) -->
+        <Setter Property="Margin" Value="24,20,24,110" />
         <Setter Property="MaxWidth" Value="900" />
     </Style>
     <Style Selector="Border.card">
@@ -230,18 +233,18 @@
     <Style Selector="Button.accent">
         <Setter Property="Background" Value="#F2F8E6" />
         <Setter Property="BorderBrush" Value="#F2F8E6" />
-        <Setter Property="Foreground" Value="#143B1E" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentButtonText}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Padding" Value="16,7" />
         <Setter Property="CornerRadius" Value="8" />
     </Style>
     <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="White" />
-        <Setter Property="Foreground" Value="#143B1E" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentButtonText}" />
     </Style>
     <Style Selector="Button.accent:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="#DCE6D2" />
-        <Setter Property="Foreground" Value="#143B1E" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentButtonText}" />
     </Style>
 
 
@@ -270,6 +273,37 @@
         <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="Margin" Value="4,0,0,0" />
+    </Style>
+
+    <!-- Kolorowe strony funkcji (jak na macOS): duży nagłówek, szklane karty z kafelkiem i poświata pod grafiką -->
+    <Style Selector="TextBlock.featureTitle">
+        <Setter Property="FontSize" Value="36" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="-0.8" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.featureSubtitle">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.glassTitle">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.glassBody">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.glass">
+        <Setter Property="Padding" Value="22,18" />
+    </Style>
+    <Style Selector="Image.featureTile">
+        <Setter Property="Width" Value="46" />
+        <Setter Property="Height" Value="46" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <!-- Układ ekranów: kropkowane tło, monitor na środku, cztery miejsca na Maca -->

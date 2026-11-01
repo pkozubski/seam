@@ -130,20 +130,30 @@ public partial class MainWindow : AppWindow
                 "connection" => new ConnectionPage(),
                 "displays" => new DisplaysPage(),
                 "control" => new ControlPage(),
-                "audio" or "clipboard" => new ControlPage(tag),
+                "audio" => new AudioPage(),
+                "clipboard" => new ClipboardPage(),
                 "windows" => new WindowsPage(),
                 "settings" => new SettingsPage(),
                 "log" => new LogPage(),
                 _ => new ConnectionPage(),
             };
             _pages[tag] = page;
+            PageTheme.For(PageTheme.ForTag(tag))?.Apply(page);
             L10n.Apply(page);
         }
         PageHost.Content = page;
         _currentTag = tag;
         _vm?.SetVisiblePage(tag);
-        Backdrop.IsGreen = tag == "windows";
+        var color = PageTheme.ForTag(tag);
+        Backdrop.PageColor = color;
+        Orb.Palette = PageTheme.For(color) ?? PageTheme.Blue;
         PageTitle.Text = NavItems.FirstOrDefault(i => (string?)i.Tag == tag)?.Content as string;
+    }
+
+    private void Orb_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        NavigateTo("connection");
+        (CurrentPage as ConnectionPage)?.ShowDetails();
     }
 
     internal Control? CurrentPage => PageHost.Content as Control;

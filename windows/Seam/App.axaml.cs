@@ -79,7 +79,7 @@ public partial class App : Application
                         using var composite = new RenderTargetBitmap(full.PixelSize, new Vector(192, 192));
                         using (var drawing = composite.CreateDrawingContext())
                         {
-                            drawing.DrawRectangle(Avalonia.Media.Brush.Parse("#053A18"), null, new Rect(guide.Bounds.Size));
+                            drawing.DrawRectangle(Avalonia.Media.Brush.Parse("#16360C"), null, new Rect(guide.Bounds.Size));
                             drawing.DrawImage(full, new Rect(0, 0, full.PixelSize.Width, full.PixelSize.Height), new Rect(guide.Bounds.Size));
                         }
                         composite.Save(path);
