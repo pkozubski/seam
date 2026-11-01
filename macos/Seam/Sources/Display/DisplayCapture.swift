@@ -15,11 +15,11 @@ final class DisplayCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         var errorDescription: String? {
             switch self {
             case .permissionDenied:
-                return L10n.text("Brak zgody na nagrywanie ekranu. Nadaj ją w Ustawieniach systemowych → Prywatność i ochrona → Nagrywanie ekranu i dźwięku.",
-                                 "Screen Recording permission is missing. Grant it in System Settings → Privacy & Security → Screen & System Audio Recording.")
+                return L10n.text("Screen Recording permission is missing. Grant it in System Settings → Privacy & Security → Screen & System Audio Recording.",
+                                 pl: "Brak zgody na nagrywanie ekranu. Nadaj ją w Ustawieniach systemowych → Prywatność i ochrona → Nagrywanie ekranu i dźwięku.")
             case .displayNotFound:
-                return L10n.text("ScreenCaptureKit nie widzi wirtualnego monitora.",
-                                 "ScreenCaptureKit cannot see the virtual display.")
+                return L10n.text("ScreenCaptureKit cannot see the virtual display.",
+                                 pl: "ScreenCaptureKit nie widzi wirtualnego monitora.")
             }
         }
     }

@@ -18,7 +18,7 @@ struct SidebarRow: View {
             Spacer(minLength: 0)
             if attention {
                 Circle().fill(.orange).frame(width: 7, height: 7)
-                    .accessibilityLabel(L10n.text("Wymaga uwagi", "Needs attention"))
+                    .accessibilityLabel(L10n.text("Needs attention", pl: "Wymaga uwagi"))
             }
         }
         .padding(.horizontal, 12)

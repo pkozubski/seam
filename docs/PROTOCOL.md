@@ -75,6 +75,7 @@ musi rosnąć ściśle; powtórzenie, przestawienie lub modyfikacja kończy sesj
 | 0x50 | PING | obie | `u64 timestamp` |
 | 0x51 | PONG | obie | echo PING |
 | 0x60 | STATUS | M → W | flagi stanu |
+| 0x61 | PEER_STATUS | W → M | `u8 flags` (bit 0: ten PC ma Seam Pro albo trial); tylko gdy Mac ma bit `PeerStatus` w `STATUS` |
 | 0x70 | CLIPBOARD | obie | `u8 format`, dane |
 | 0x80 | DISPLAY_START | W → M | `u16 width`, `u16 height`, `u16 scalePercent`, `u8 edge`, `u8 codec=0`, `u32 maxBitrateKbps` (0 = auto), opcjonalnie `u8 mode` (0 = cały pulpit, 1 = okna) |
 | 0x81 | DISPLAY_STOP | W → M | – |
@@ -108,6 +109,14 @@ Opcjonalny drugi bajt `STATUS` (starsze wersje Windows czytają tylko pierwszy):
 pokazuje każdą aplikację Windows jako osobną aplikację (`WINVIEW_APP`, numery aplikacji w `WINVIEW_WINDOWS`).
 Mac wysyła `WINVIEW_ACTIVATE` i `WINVIEW_CLOSE` tylko po liście z numerami aplikacji, bo tylko nowa wersja
 Windows je zna. Nieznany typ ramki zrywa sesję po obu stronach, stąd te warunki.
+
+Seam Pro (od 3.0): bit 1 drugiego bajtu `STATUS` (`ProEntitled`) mówi, że Mac ma licencję Pro albo trwający
+trial; bit 2 (`PeerStatus`) – że Mac rozumie `PEER_STATUS`. Windows wysyła `PEER_STATUS` po pierwszym `STATUS`
+z bitem 2 i przy każdej zmianie swojej licencji. Funkcje Pro (dźwięk, ekran wirtualny i okna Maca, okna Windows
+na Macu, obrazy w schowku) działają, gdy uprawniona jest **którakolwiek** strona pary. Mac odpowiada na
+`AUDIO_START`, `DISPLAY_START` i `WINVIEW_START` bez uprawnienia odmową ze statusem błędu i komunikatem; obrazy
+w `CLIPBOARD` są wtedy pomijane w obie strony, tekst działa zawsze. Brak bitów (starsza wersja) = brak uprawnienia
+tej strony. Wektory: `tests/fixtures/entitlement.json`.
 
 Schowek przyjmuje tekst do 1 MiB i PNG do 32 MiB / 64 megapikseli. Nieznane,
 niepoprawne i zbyt duże ramki są odrzucane przed przetwarzaniem.

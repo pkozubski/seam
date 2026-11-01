@@ -235,7 +235,7 @@ final class DisplayStreamer {
             self?.queue.async {
                 guard let self, self.active else { return }
                 self.stopLocked()
-                self.onStopped?(L10n.text("Windows zamknął strumień ekranu.", "Windows closed the display stream."))
+                self.onStopped?(L10n.text("Windows closed the display stream.", pl: "Windows zamknął strumień ekranu."))
             }
         }
     }

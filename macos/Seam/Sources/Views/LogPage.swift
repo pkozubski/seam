@@ -10,21 +10,21 @@ struct LogPage: View {
     }()
 
     var body: some View {
-        SettingsPageLayout(title: "Dziennik", subtitle: "Połączenia i zdarzenia aplikacji. Przydatne przy zgłaszaniu błędu.") {
+        SettingsPageLayout(title: "Diagnostics", subtitle: "Connections and app events. Useful when reporting a bug.") {
             if state.log.isEmpty {
                 ContentUnavailableView {
-                    Label("Brak zdarzeń", systemImage: "list.bullet.rectangle")
+                    Label("No events", systemImage: "list.bullet.rectangle")
                 } description: {
-                    Text("Tutaj pojawią się informacje o połączeniu i działaniu aplikacji.")
+                    Text("Connection and app activity will appear here.")
                 }
                 .frame(maxWidth: .infinity, minHeight: 300)
             } else {
                 HStack {
-                    Text(L10n.text("Ostatnie zdarzenia", "Recent activity"))
+                    Text(L10n.text("Recent activity", pl: "Ostatnie zdarzenia"))
                         .font(.headline).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Kopiuj", action: copyLog)
-                    Button("Wyczyść dziennik", action: state.clearLog)
+                    Button("Copy", action: copyLog)
+                    Button("Clear activity", action: state.clearLog)
                 }
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(state.log.suffix(200)) { entry in

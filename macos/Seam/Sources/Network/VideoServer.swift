@@ -13,7 +13,7 @@ final class VideoServer {
         var errorDescription: String? {
             switch self {
             case let .listener(message):
-                return L10n.text("Serwer wideo: \(message)", "Video server: \(message)")
+                return L10n.text("Video server: \(message)", pl: "Serwer wideo: \(message)")
             }
         }
     }

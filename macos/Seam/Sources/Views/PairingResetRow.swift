@@ -5,15 +5,15 @@ struct PairingResetRow: View {
     @State private var confirming = false
 
     var body: some View {
-        SettingRow(title: "Unieważnij dostęp",
-                   subtitle: "Nowy kod natychmiast rozłączy komputer i unieważni poprzedni kod.") {
-            Button("Wygeneruj nowy kod", role: .destructive) { confirming = true }
+        SettingRow(title: "Revoke access",
+                   subtitle: "A new code immediately disconnects the PC and revokes the previous code.") {
+            Button("Generate new code", role: .destructive) { confirming = true }
         }
-        .alert("Wygenerować nowy kod parowania?", isPresented: $confirming) {
-            Button("Anuluj", role: .cancel) { }
-            Button("Wygeneruj", role: .destructive) { state.regeneratePairingCode() }
+        .alert("Generate a new pairing code?", isPresented: $confirming) {
+            Button("Cancel", role: .cancel) { }
+            Button("Generate", role: .destructive) { state.regeneratePairingCode() }
         } message: {
-            Text("Windows będzie wymagał ponownego wpisania kodu.")
+            Text("Windows will require the new code.")
         }
     }
 }

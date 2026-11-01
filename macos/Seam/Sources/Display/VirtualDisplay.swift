@@ -14,17 +14,17 @@ final class VirtualDisplay {
         var errorDescription: String? {
             switch self {
             case .unsupported:
-                return L10n.text("Ta wersja macOS nie udostępnia wirtualnych monitorów.",
-                                 "This macOS version does not provide virtual displays.")
+                return L10n.text("This macOS version does not provide virtual displays.",
+                                 pl: "Ta wersja macOS nie udostępnia wirtualnych monitorów.")
             case .creationFailed:
-                return L10n.text("macOS odmówił utworzenia wirtualnego monitora.",
-                                 "macOS refused to create the virtual display.")
+                return L10n.text("macOS refused to create the virtual display.",
+                                 pl: "macOS odmówił utworzenia wirtualnego monitora.")
             case .settingsRejected:
-                return L10n.text("macOS odrzucił tryby wirtualnego monitora.",
-                                 "macOS rejected the virtual display modes.")
+                return L10n.text("macOS rejected the virtual display modes.",
+                                 pl: "macOS odrzucił tryby wirtualnego monitora.")
             case .notOnline:
-                return L10n.text("Wirtualny monitor nie pojawił się w systemie.",
-                                 "The virtual display did not come online.")
+                return L10n.text("The virtual display did not come online.",
+                                 pl: "Wirtualny monitor nie pojawił się w systemie.")
             }
         }
     }

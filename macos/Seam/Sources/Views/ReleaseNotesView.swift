@@ -15,7 +15,7 @@ struct ReleaseNotesView: View {
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
                 if let link {
-                    Link(L10n.text("Wydanie na GitHubie ↗", "Release on GitHub ↗"), destination: link).font(.callout)
+                    Link(L10n.text("Release on GitHub ↗", pl: "Wydanie na GitHubie ↗"), destination: link).font(.callout)
                 }
             }
             .padding(.horizontal, 4)

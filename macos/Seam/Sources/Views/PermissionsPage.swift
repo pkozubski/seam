@@ -4,25 +4,25 @@ struct PermissionsPage: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        SettingsPageLayout(title: "Uprawnienia", subtitle: summary) {
-            SettingsGroup("Dla funkcji Klawiatura i mysz") {
-                SettingRow(title: "Dostępność",
+        SettingsPageLayout(title: "Permissions", subtitle: summary) {
+            SettingsGroup("For Keyboard & mouse") {
+                SettingRow(title: "Accessibility",
                            subtitle: state.accessibilityGranted
-                           ? L10n.text("Gotowe. Możesz sterować Makiem z Windowsa.", "Ready. You can control your Mac from Windows.")
-                           : L10n.text("Wymagane. Ustawienia → Prywatność i ochrona → Dostępność.", "Required. System Settings → Privacy & Security → Accessibility.")) {
+                           ? L10n.text("Ready. You can control your Mac from Windows.", pl: "Gotowe. Możesz sterować Makiem z Windowsa.")
+                           : L10n.text("Required. System Settings → Privacy & Security → Accessibility.", pl: "Wymagane. Ustawienia → Prywatność i ochrona → Dostępność.")) {
                     HStack(spacing: 8) {
                         StatusDot(ok: state.accessibilityGranted)
                         if state.accessibilityGranted {
-                            Text("OK").foregroundStyle(.secondary)
+                            Text("Ready").foregroundStyle(.secondary)
                         } else {
-                            Button("Poproś") { state.requestAccessibility() }
-                            Button("Ustawienia") { state.openAccessibilitySettings() }
+                            Button("Request") { state.requestAccessibility() }
+                            Button("Settings") { state.openAccessibilitySettings() }
                         }
                     }
                 }
             }
-            SettingsGroup("Dla funkcji Dźwięk") {
-                SettingRow(title: "Nagrywanie dźwięku systemowego",
+            SettingsGroup("For Audio") {
+                SettingRow(title: "System audio recording",
                            subtitle: state.audioPermissionSubtitle) {
                     HStack(spacing: 8) {
                         if case .checking = state.audioPermission {
@@ -31,31 +31,31 @@ struct PermissionsPage: View {
                             StatusDot(ok: state.audioPermissionGranted)
                         }
                         if state.audioPermission.isGranted {
-                            Text("OK").foregroundStyle(.secondary)
-                            Button("Sprawdź") { state.checkAudioPermission(force: true) }
+                            Text("Ready").foregroundStyle(.secondary)
+                            Button("Check") { state.checkAudioPermission(force: true) }
                         } else {
-                            Button("Poproś") { state.checkAudioPermission(force: true) }
+                            Button("Request") { state.checkAudioPermission(force: true) }
                             if state.audioPermissionGranted == false {
-                                Button("Napraw zgodę") { state.repairAudioPermission() }
+                                Button("Repair") { state.repairAudioPermission() }
                             }
-                            Button("Ustawienia") { state.openAudioCaptureSettings() }
+                            Button("Settings") { state.openAudioCaptureSettings() }
                         }
                     }
                     .disabled({ if case .checking = state.audioPermission { return true }; return false }())
                 }
             }
-            SettingsGroup("Dla funkcji Okna") {
-                SettingRow(title: "Nagrywanie ekranu",
+            SettingsGroup("For Windows") {
+                SettingRow(title: "Screen Recording",
                            subtitle: state.screenCaptureGranted
-                           ? L10n.text("Nadane – Mac może pokazać ekran wirtualny na Windowsie.", "Granted — the Mac can show its virtual display on Windows.")
-                           : L10n.text("Potrzebne tylko dla ekranu wirtualnego. Po nadaniu zgody uruchom aplikację ponownie.", "Needed only for the virtual display. Relaunch the app after granting it.")) {
+                           ? L10n.text("Granted — the Mac can show its virtual display on Windows.", pl: "Nadane – Mac może pokazać ekran wirtualny na Windowsie.")
+                           : L10n.text("Needed only for the virtual display. Relaunch the app after granting it.", pl: "Potrzebne tylko dla ekranu wirtualnego. Po nadaniu zgody uruchom aplikację ponownie.")) {
                     HStack(spacing: 8) {
                         StatusDot(ok: state.screenCaptureGranted ? true : nil)
                         if state.screenCaptureGranted {
-                            Text("OK").foregroundStyle(.secondary)
+                            Text("Ready").foregroundStyle(.secondary)
                         } else {
-                            Button("Poproś") { state.requestScreenCapture() }
-                            Button("Ustawienia") { state.openScreenCaptureSettings() }
+                            Button("Request") { state.requestScreenCapture() }
+                            Button("Settings") { state.openScreenCaptureSettings() }
                         }
                     }
                 }
@@ -66,7 +66,7 @@ struct PermissionsPage: View {
 
     private var summary: String {
         let granted = [state.accessibilityGranted, state.audioPermission.isGranted, state.screenCaptureGranted].filter { $0 }.count
-        return L10n.text("Nadane: \(granted) z 3. Każde uprawnienie potrzebne jest tylko jednej funkcji.",
-                         "Granted: \(granted) of 3. Each permission is needed by one feature only.")
+        return L10n.text("Granted: \(granted) of 3. Each permission is needed by one feature only.",
+                         pl: "Nadane: \(granted) z 3. Każde uprawnienie potrzebne jest tylko jednej funkcji.")
     }
 }

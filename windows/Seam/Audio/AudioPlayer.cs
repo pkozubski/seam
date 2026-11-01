@@ -30,7 +30,7 @@ public sealed class AudioPlayer : IDisposable
 
     public static IReadOnlyList<AudioDeviceInfo> EnumerateOutputDevices()
     {
-        var list = new List<AudioDeviceInfo> { new(null, T("Domyślne urządzenie systemowe", "Default system device")) };
+        var list = new List<AudioDeviceInfo> { new(null, T("Default system device", pl: "Domyślne urządzenie systemowe")) };
         try
         {
             using var enumerator = new MMDeviceEnumerator();

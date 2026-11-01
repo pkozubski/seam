@@ -8,8 +8,8 @@
     <ScrollViewer>
         <StackPanel Classes="page">
             <StackPanel Spacing="4">
-                <TextBlock Classes="pageTitle" x:Name="SectionTitle" Text="Klawiatura i mysz" />
-                <TextBlock Classes="pageSubtitle" x:Name="SectionSubtitle" Text="Jedna klawiatura i mysz dla obu komputerów." />
+                <TextBlock Classes="pageTitle" x:Name="SectionTitle" Text="Keyboard &amp; mouse" />
+                <TextBlock Classes="pageSubtitle" x:Name="SectionSubtitle" Text="One keyboard and mouse for both computers." />
             </StackPanel>
 
             <!-- KLAWIATURA I MYSZ -->
@@ -18,7 +18,7 @@
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                         <views:IconTile Icon="icon-control" TileSize="44" IsActive="{Binding InputSharingEnabled}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                            <TextBlock Classes="heroTitle" Text="Udostępniaj klawiaturę i mysz" />
+                            <TextBlock Classes="heroTitle" Text="Share keyboard and mouse" />
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="8" Height="8" Fill="{Binding CursorStatusBrush}" VerticalAlignment="Center" />
                                 <TextBlock Classes="subtitle" Text="{Binding CursorStatusText}" VerticalAlignment="Center" />
@@ -30,8 +30,8 @@
 
                 <Border Classes="card">
                     <StackPanel Spacing="12">
-                        <StackPanel Classes="sectionHeader"><TextBlock Text="KLAWIATURA" /></StackPanel>
-                        <views:SettingRow Title="Skrót awaryjny" Subtitle="{Binding EmergencyHotkeyDescription}">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="KEYBOARD" /></StackPanel>
+                        <views:SettingRow Title="Emergency shortcut" Subtitle="{Binding EmergencyHotkeyDescription}">
                             <ComboBox ItemsSource="{Binding EmergencyHotkeys}" SelectedItem="{Binding SelectedEmergencyHotkey}" MinWidth="170" />
                         </views:SettingRow>
                     </StackPanel>
@@ -39,25 +39,25 @@
 
                 <Border Classes="card">
                     <StackPanel Spacing="12">
-                        <StackPanel Classes="sectionHeader"><TextBlock Text="MYSZ" /></StackPanel>
-                        <views:SettingRow Title="Czułość myszy na Macu" Subtitle="{Binding RemoteMouseSpeedLabel}">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="MOUSE" /></StackPanel>
+                        <views:SettingRow Title="Pointer speed on Mac" Subtitle="{Binding RemoteMouseSpeedLabel}">
                             <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25" IsSnapToTickEnabled="True"
                                     Value="{Binding RemoteMouseSpeed}" Width="210" />
                         </views:SettingRow>
                         <Rectangle Classes="divider" />
-                        <views:SettingRow Title="Ukrywaj kursor podczas sterowania Makiem"
-                                          Subtitle="Kursor zostaje przy krawędzi, przez którą wyszedł, i znika pod niewidocznym oknem.">
+                        <views:SettingRow Title="Hide the Windows pointer while controlling Mac"
+                                          Subtitle="The Windows pointer stays at the exit edge and is hidden.">
                             <ToggleSwitch Classes="compact" IsChecked="{Binding HideCursorWhileRemote}" />
                         </views:SettingRow>
                     </StackPanel>
                 </Border>
 
                 <Border Classes="card">
-                    <views:SettingRow Title="Położenie Maca" Subtitle="Krawędź, przez którą kursor przechodzi na Maca, ustawiasz w zakładce Ekrany.">
-                        <Button Content="Otwórz Ekrany" Click="OpenDisplays" />
+                    <views:SettingRow Title="Mac position" Subtitle="Set the edge the pointer uses to reach the Mac under Displays.">
+                        <Button Content="Open Displays" Click="OpenDisplays" />
                     </views:SettingRow>
                 </Border>
-                <TextBlock Classes="note" Text="Zamianę klawiszy Ctrl i Cmd oraz przewijanie ustawiasz w aplikacji na Macu." />
+                <TextBlock Classes="note" Text="Ctrl and Cmd swap and scrolling are set in the Mac app." />
             </StackPanel>
 
 
@@ -68,25 +68,30 @@
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                             <views:IconTile Icon="icon-audio" TileSize="44" IsActive="{Binding AudioEnabled}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                                <TextBlock Classes="heroTitle" Text="Odbieraj dźwięk z Maca" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="heroTitle" Text="Play audio from Mac" />
+                                    <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                                    <Border Classes="pill" IsVisible="{Binding HasTrialBadge}"><TextBlock Text="{Binding TrialBadgeText}" FontSize="11" /></Border>
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="7">
                                     <Ellipse Width="8" Height="8" Fill="{Binding AudioStatusBrush}" VerticalAlignment="Center" />
                                     <TextBlock Classes="subtitle" Text="{Binding AudioStatusText}" VerticalAlignment="Center" MaxWidth="460" />
                                 </StackPanel>
                             </StackPanel>
-                            <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding AudioEnabled}" VerticalAlignment="Center" />
+                            <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding AudioSwitch}" IsEnabled="{Binding SessionPro}" VerticalAlignment="Center" />
                         </Grid>
                         <ProgressBar Classes="level" Minimum="0" Maximum="1" Value="{Binding AudioLevel}" IsVisible="{Binding AudioActive}" />
                     </StackPanel>
                 </Border>
+                <views:ProGateCard />
 
                 <Border Classes="card">
                     <StackPanel Spacing="12">
-                        <StackPanel Classes="sectionHeader"><TextBlock Text="ODTWARZANIE" /></StackPanel>
-                        <views:SettingRow Title="Urządzenie wyjściowe" Subtitle="Słuchawki lub głośniki podłączone do Windowsa.">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="PLAYBACK" /></StackPanel>
+                        <views:SettingRow Title="Output device" Subtitle="Headphones or speakers connected to Windows.">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <ComboBox ItemsSource="{Binding AudioDevices}" SelectedItem="{Binding SelectedAudioDevice}" MinWidth="220" MaxWidth="260" />
-                                <Button Command="{Binding RefreshAudioDevicesCommand}" ToolTip.Tip="Odśwież listę urządzeń">
+                                <Button Command="{Binding RefreshAudioDevicesCommand}" ToolTip.Tip="Refresh devices">
                                     <ui:FontIcon Glyph="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="14" />
                                 </Button>
                             </StackPanel>
@@ -96,14 +101,14 @@
 
                 <Border Classes="card">
                     <StackPanel Spacing="12">
-                        <StackPanel Classes="sectionHeader"><TextBlock Text="OPÓŹNIENIE" /></StackPanel>
-                        <views:SettingRow Title="Bufor sieciowy" Subtitle="{Binding JitterBufferLabel}">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="LATENCY" /></StackPanel>
+                        <views:SettingRow Title="Network buffer" Subtitle="{Binding JitterBufferLabel}">
                             <Slider Minimum="5" Maximum="150" TickFrequency="5" IsSnapToTickEnabled="True"
                                     Value="{Binding JitterBufferMs}" Width="210" />
                         </views:SettingRow>
                         <Rectangle Classes="divider" />
-                        <views:SettingRow Title="Tryb WASAPI exclusive"
-                                          Subtitle="Najniższe opóźnienie, ale blokuje kartę dla innych aplikacji. Przy braku wsparcia wraca do shared.">
+                        <views:SettingRow Title="WASAPI exclusive mode"
+                                          Subtitle="Lowest latency, but reserves the device. Falls back to shared mode when unavailable.">
                             <ToggleSwitch Classes="compact" IsChecked="{Binding ExclusiveMode}" />
                         </views:SettingRow>
                     </StackPanel>
@@ -118,7 +123,7 @@
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                         <views:IconTile Icon="icon-clipboard" TileSize="44" IsActive="{Binding ClipboardSyncEnabled}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-                            <TextBlock Classes="heroTitle" Text="Synchronizuj schowek" />
+                            <TextBlock Classes="heroTitle" Text="Sync clipboard" />
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="8" Height="8" Fill="{Binding StatusBrush}" VerticalAlignment="Center" />
                                 <TextBlock Classes="subtitle" Text="{Binding ClipboardStatusText}" VerticalAlignment="Center" MaxWidth="460" />
@@ -129,15 +134,26 @@
                 </Border>
                 <Border Classes="card">
                     <StackPanel Spacing="10">
-                        <StackPanel Classes="sectionHeader"><TextBlock Text="CO JEST PRZESYŁANE" /></StackPanel>
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="WHAT IS SHARED" /></StackPanel>
                         <WrapPanel ItemSpacing="8" LineSpacing="8">
-                            <Border Classes="pill"><TextBlock Text="Tekst" FontSize="12" /></Border>
-                            <Border Classes="pill"><TextBlock Text="Zdjęcia i zrzuty ekranu" FontSize="12" /></Border>
-                            <Border Classes="pill"><TextBlock Text="Obrazy do 32 MiB" FontSize="12" /></Border>
+                            <Border Classes="pill"><TextBlock Text="Text" FontSize="12" /></Border>
+                            <Border Classes="pill">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Photos and screenshots" FontSize="12" VerticalAlignment="Center" />
+                                    <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="pill">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Images up to 32 MiB" FontSize="12" VerticalAlignment="Center" />
+                                    <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                                </StackPanel>
+                            </Border>
                         </WrapPanel>
-                        <TextBlock Classes="subtitle" Text="W obie strony, tylko w sieci lokalnej, szyfrowane jak całe połączenie." />
+                        <TextBlock Classes="subtitle" Text="Both ways, local network only, encrypted like the whole connection." />
                     </StackPanel>
                 </Border>
+                <views:ProGateCard />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

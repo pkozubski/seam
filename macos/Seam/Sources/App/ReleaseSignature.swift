@@ -42,12 +42,12 @@ enum ReleaseSignature {
         var errorDescription: String? {
             switch self {
             case .missingCertificate:
-                return L10n.text("Brak prawidłowego certyfikatu wydawcy w aplikacji. Aktualizacja nie została zainstalowana.",
-                                 "The app does not contain a valid publisher certificate. The update was not installed.")
+                return L10n.text("The app does not contain a valid publisher certificate. The update was not installed.",
+                                 pl: "Brak prawidłowego certyfikatu wydawcy w aplikacji. Aktualizacja nie została zainstalowana.")
             case .invalidSignature(let status):
-                let detail = SecCopyErrorMessageString(status, nil) as String? ?? L10n.text("kod \(status)", "code \(status)")
-                return L10n.text("Nieprawidłowy podpis aktualizacji: \(detail). Dotychczasowa aplikacja pozostaje bez zmian.",
-                                 "The update signature is invalid: \(detail). The installed app was not changed.")
+                let detail = SecCopyErrorMessageString(status, nil) as String? ?? L10n.text("code \(status)", pl: "kod \(status)")
+                return L10n.text("The update signature is invalid: \(detail). The installed app was not changed.",
+                                 pl: "Nieprawidłowy podpis aktualizacji: \(detail). Dotychczasowa aplikacja pozostaje bez zmian.")
             }
         }
     }

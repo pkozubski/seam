@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Seam.Localization;
 
 namespace Seam.Views.Pages;
 
@@ -15,9 +16,12 @@ public partial class ControlPage : UserControl
         ClipboardSection.IsVisible = section == "clipboard";
         (SectionTitle.Text, SectionSubtitle.Text) = section switch
         {
-            "audio" => ("Dźwięk", "Dźwięk systemowy Maca grany na tym komputerze."),
-            "clipboard" => ("Schowek", "Kopiuj na jednym komputerze, wklejaj na drugim."),
-            _ => ("Klawiatura i mysz", "Jedna klawiatura i mysz dla obu komputerów."),
+            "audio" => (L10n.T("Audio", pl: "Dźwięk"),
+                        L10n.T("The Mac's system audio played on this computer.", pl: "Dźwięk systemowy Maca grany na tym komputerze.")),
+            "clipboard" => (L10n.T("Clipboard", pl: "Schowek"),
+                            L10n.T("Copy on one computer, paste on the other.", pl: "Kopiuj na jednym komputerze, wklejaj na drugim.")),
+            _ => (L10n.T("Keyboard & mouse", pl: "Klawiatura i mysz"),
+                  L10n.T("One keyboard and mouse for both computers.", pl: "Jedna klawiatura i mysz dla obu komputerów.")),
         };
         Localization.L10n.Apply(this);
     }

@@ -16,7 +16,7 @@ struct DeviceTile: View {
                 .accessibilityHidden(true)
             Text(name).font(.headline).lineLimit(1).help(name)
             Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            Label(active ? L10n.text("Tutaj jest kursor", "Pointer is here") : L10n.text("Gotowy do pracy", "Ready to work"),
+            Label(active ? L10n.text("Pointer is here", pl: "Tutaj jest kursor") : L10n.text("Ready to work", pl: "Gotowy do pracy"),
                   systemImage: active ? "cursorarrow" : "minus")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(active ? Color.accentColor : .secondary)

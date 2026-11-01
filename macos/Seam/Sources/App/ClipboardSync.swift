@@ -52,8 +52,8 @@ final class ClipboardSync {
             case .png:
                 guard let bitmap = NSBitmapImageRep(data: content.data),
                       let tiff = bitmap.tiffRepresentation else {
-                    self.onError?(L10n.text("Nie udało się odczytać obrazu ze schowka Windowsa.",
-                                            "Could not read the image received from the Windows clipboard."))
+                    self.onError?(L10n.text("Could not read the image received from the Windows clipboard.",
+                                            pl: "Nie udało się odczytać obrazu ze schowka Windowsa."))
                     return
                 }
                 item.setData(content.data, forType: .png)
@@ -61,8 +61,8 @@ final class ClipboardSync {
             }
             self.pasteboard.clearContents()
             guard self.pasteboard.writeObjects([item]) else {
-                self.onError?(L10n.text("Nie udało się zapisać schowka. Spróbuj skopiować ponownie.",
-                                        "Could not update the clipboard. Copy the item again."))
+                self.onError?(L10n.text("Could not update the clipboard. Copy the item again.",
+                                        pl: "Nie udało się zapisać schowka. Spróbuj skopiować ponownie."))
                 return
             }
             self.lastChangeCount = self.pasteboard.changeCount
@@ -94,8 +94,8 @@ final class ClipboardSync {
         // Przeglądarki mogą kopiować obraz razem z URL-em; obraz ma pierwszeństwo.
         if let png = pasteboard.data(forType: .png) {
             guard let content = ClipboardContent(format: .png, data: png) else {
-                onError?(L10n.text("Nieobsługiwany obraz lub przekroczony limit 32 MiB / 64 megapikseli.",
-                                   "Unsupported image or the 32 MiB / 64 megapixel limit was exceeded."))
+                onError?(L10n.text("Unsupported image or the 32 MiB / 64 megapixel limit was exceeded.",
+                                   pl: "Nieobsługiwany obraz lub przekroczony limit 32 MiB / 64 megapikseli."))
                 return nil
             }
             return content
@@ -112,8 +112,8 @@ final class ClipboardSync {
                   let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
                   let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]),
                   let content = ClipboardContent(format: .png, data: png) else {
-                onError?(L10n.text("Nieobsługiwany obraz lub przekroczony limit 32 MiB / 64 megapikseli.",
-                                   "Unsupported image or the 32 MiB / 64 megapixel limit was exceeded."))
+                onError?(L10n.text("Unsupported image or the 32 MiB / 64 megapixel limit was exceeded.",
+                                   pl: "Nieobsługiwany obraz lub przekroczony limit 32 MiB / 64 megapikseli."))
                 return nil
             }
             return content

@@ -15,6 +15,7 @@ Najpierw przeczytaj [../CLAUDE.md](../CLAUDE.md).
 ```sh
 build/Seam.app/Contents/MacOS/Seam --ui-preview ../output/mac.png [--ui-section control] [--ui-settings general]
   [--ui-update <stan>] [--ui-onboarding] [--ui-menu] [--ui-light|--ui-dark] [--ui-compact] [--ui-full-windows]
+  [--ui-license free|trial|expired|pro] [-AppleLanguages '(en)'|'(pl)']
 ```
 Pokazuje prawdziwe okno przez około 1,5 s i robi zrzut (`UIPreview.swift`). Obejrzyj PNG narzędziem Read.
 

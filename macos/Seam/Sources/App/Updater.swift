@@ -58,14 +58,14 @@ final class Updater: ObservableObject {
         Bundle.main.infoDictionary?["UpdateChannel"] as? String == "dev"
 
     static var versionDescription: String {
-        currentVersion + (isDevChannel ? L10n.text(" (kanał testowy)", " (test channel)") : "")
+        currentVersion + (isDevChannel ? L10n.text(" (test channel)", pl: " (kanał testowy)") : "")
     }
 
     static var automaticUpdatesDescription: String {
         isDevChannel
-            ? L10n.text("Co 2 minuty; instalacja po minucie bezczynności, bez zdalnego sterowania i przeniesionych okien.",
-                        "Every 2 minutes; installs after a minute of inactivity, with no remote control or transferred windows.")
-            : L10n.text("Po starcie i co 6 godzin, przez GitHub Releases.", "At startup and every 6 hours, through GitHub Releases.")
+            ? L10n.text("Every 2 minutes; installs after a minute of inactivity, with no remote control or transferred windows.",
+                        pl: "Co 2 minuty; instalacja po minucie bezczynności, bez zdalnego sterowania i przeniesionych okien.")
+            : L10n.text("At startup and every 6 hours, through GitHub Releases.", pl: "Po starcie i co 6 godzin, przez GitHub Releases.")
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -86,7 +86,7 @@ final class Updater: ObservableObject {
         if case .updated = previous { quiet = previous }
         do {
             guard let release = try await fetchLatest() else {
-                state = silent ? quiet : .failed(L10n.text("Brak wydań na GitHubie", "No releases found on GitHub"))
+                state = silent ? quiet : .failed(L10n.text("No releases found on GitHub", pl: "Brak wydań na GitHubie"))
                 return
             }
             if Self.isNewer(release.version, than: Self.currentVersion) {
@@ -267,7 +267,7 @@ final class Updater: ObservableObject {
             state = .installing
             progress.advance(to: 0.8)
         case "updated": celebrate(version: Self.currentVersion, notes: Self.previewNotes)
-        case "failed": state = .failed(L10n.text("Brak połączenia z GitHubem", "Cannot reach GitHub"))
+        case "failed": state = .failed(L10n.text("Cannot reach GitHub", pl: "Brak połączenia z GitHubem"))
         default: state = .upToDate("18:04")
         }
     }
@@ -436,17 +436,17 @@ final class Updater: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .http(let code): return L10n.text("GitHub odpowiedział kodem \(code)", "GitHub returned status \(code)")
-            case .malformed: return L10n.text("Nieoczekiwana odpowiedź GitHuba", "Unexpected GitHub response")
-            case .wrongRelease: return L10n.text("Pobrana aplikacja ma inną wersję lub kanał aktualizacji. Spróbuj ponownie.", "The downloaded app has a different version or update channel. Try again.")
-            case .noAppInArchive: return L10n.text("W archiwum nie ma aplikacji", "The archive does not contain the app")
-            case .missingChecksum: return L10n.text("W wydaniu brakuje prawidłowej sumy SHA-256 dla aplikacji", "The release has no valid SHA-256 checksum for the app")
-            case .missingSignature: return L10n.text("W wydaniu brakuje podpisu kryptograficznego aplikacji", "The release has no cryptographic signature for the app")
-            case .invalidSignatureFile: return L10n.text("Plik podpisu aktualizacji jest nieprawidłowy", "The update signature file is invalid")
-            case .checksumMismatch: return L10n.text("Suma SHA-256 pobranego pliku nie zgadza się z wydaniem", "The downloaded file does not match the release SHA-256 checksum")
-            case .downloadTooLarge: return L10n.text("Plik aktualizacji przekracza limit 300 MiB", "The update exceeds the 300 MiB limit")
-            case .adHocIdentity: return L10n.text("Podpis ad-hoc nie zachowuje uprawnień. Zostaw pole certyfikatu puste, aby użyć stałego podpisu wydawcy.", "An ad-hoc signature cannot preserve permissions. Leave the certificate field empty to use the publisher signature.")
-            case .notWritable(let path): return L10n.text("Brak prawa zapisu do \(path) – przenieś aplikację np. do ~/Applications", "Cannot write to \(path); move the app to a writable location such as ~/Applications")
+            case .http(let code): return L10n.text("GitHub returned status \(code)", pl: "GitHub odpowiedział kodem \(code)")
+            case .malformed: return L10n.text("Unexpected GitHub response", pl: "Nieoczekiwana odpowiedź GitHuba")
+            case .wrongRelease: return L10n.text("The downloaded app has a different version or update channel. Try again.", pl: "Pobrana aplikacja ma inną wersję lub kanał aktualizacji. Spróbuj ponownie.")
+            case .noAppInArchive: return L10n.text("The archive does not contain the app", pl: "W archiwum nie ma aplikacji")
+            case .missingChecksum: return L10n.text("The release has no valid SHA-256 checksum for the app", pl: "W wydaniu brakuje prawidłowej sumy SHA-256 dla aplikacji")
+            case .missingSignature: return L10n.text("The release has no cryptographic signature for the app", pl: "W wydaniu brakuje podpisu kryptograficznego aplikacji")
+            case .invalidSignatureFile: return L10n.text("The update signature file is invalid", pl: "Plik podpisu aktualizacji jest nieprawidłowy")
+            case .checksumMismatch: return L10n.text("The downloaded file does not match the release SHA-256 checksum", pl: "Suma SHA-256 pobranego pliku nie zgadza się z wydaniem")
+            case .downloadTooLarge: return L10n.text("The update exceeds the 300 MiB limit", pl: "Plik aktualizacji przekracza limit 300 MiB")
+            case .adHocIdentity: return L10n.text("An ad-hoc signature cannot preserve permissions. Leave the certificate field empty to use the publisher signature.", pl: "Podpis ad-hoc nie zachowuje uprawnień. Zostaw pole certyfikatu puste, aby użyć stałego podpisu wydawcy.")
+            case .notWritable(let path): return L10n.text("Cannot write to \(path); move the app to a writable location such as ~/Applications", pl: "Brak prawa zapisu do \(path) – przenieś aplikację np. do ~/Applications")
             case .tool(let tool, let msg): return "\(tool): \(msg)"
             }
         }

@@ -5,9 +5,9 @@ enum ScrollDirectionMode: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .auto: return L10n.text("Automatycznie", "Automatic")
-        case .normal: return L10n.text("Jak na Windowsie", "Match Windows")
-        case .inverted: return L10n.text("Odwrócony", "Inverted")
+        case .auto: return L10n.text("Automatic", pl: "Automatycznie")
+        case .normal: return L10n.text("Match Windows", pl: "Jak na Windowsie")
+        case .inverted: return L10n.text("Inverted", pl: "Odwrócony")
         }
     }
     var forcedInvert: Bool? {

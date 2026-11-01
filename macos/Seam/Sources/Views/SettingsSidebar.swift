@@ -14,7 +14,7 @@ struct SettingsSidebar: View {
         VStack(alignment: .leading, spacing: 0) {
             SidebarBrand()
             VStack(alignment: .leading, spacing: 2) {
-                SettingsSidebarButton(title: L10n.text("Wstecz", "Back"), symbol: "chevron.left", action: navigation.close)
+                SettingsSidebarButton(title: L10n.text("Back", pl: "Wstecz"), symbol: "chevron.left", action: navigation.close)
                     .padding(.bottom, 6)
                 SettingsSearchField(text: $query)
                     .padding(.bottom, 10)
@@ -25,7 +25,7 @@ struct SettingsSidebar: View {
                     }
                 }
                 if results.isEmpty {
-                    Text(L10n.text("Brak wyników", "No results"))
+                    Text(L10n.text("No results", pl: "Brak wyników"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 10)
@@ -113,14 +113,14 @@ private struct SettingsSearchField: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            TextField(L10n.text("Szukaj w ustawieniach", "Search settings"), text: $text)
+            TextField(L10n.text("Search settings", pl: "Szukaj w ustawieniach"), text: $text)
                 .textFieldStyle(.plain)
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(L10n.text("Wyczyść", "Clear"))
+                .accessibilityLabel(L10n.text("Clear", pl: "Wyczyść"))
             }
         }
         .padding(.horizontal, 10)

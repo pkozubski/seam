@@ -17,7 +17,7 @@ struct OnboardingView: View {
                         .frame(width: index == step ? 28 : 10, height: 6)
                 }
                 Spacer()
-                Text("Krok \(step + 1) z 3")
+                Text("Step \(step + 1) of 3")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
@@ -35,14 +35,14 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             HStack {
-                if step > 0 { Button("Wstecz") { step -= 1 } }
+                if step > 0 { Button("Back") { step -= 1 } }
                 Spacer()
                 if step < 2 {
-                    Button("Dalej") { step += 1 }
+                    Button("Continue") { step += 1 }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                 } else {
-                    Button("Zakończ konfigurację") { state.completeOnboarding() }
+                    Button("Finish setup") { state.completeOnboarding() }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                 }
@@ -58,20 +58,20 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 16) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable().interpolation(.high).frame(width: 64, height: 64)
-            Text("Jedno biurko. Dwa komputery.")
+            Text("One desk. Two computers.")
                 .font(.largeTitle.bold())
-            Text("Seam połączy klawiaturę, mysz, schowek i dźwięk między Windowsem a tym Makiem — lokalnie, bez konta i bez chmury.")
+            Text("Seam connects your keyboard, mouse, clipboard and audio between Windows and this Mac — locally, without an account or cloud.")
                 .font(.title3).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Label("Dane pozostają w Twojej sieci lokalnej", systemImage: "house.and.flag")
+            Label("Your data stays on your local network", systemImage: "house.and.flag")
                 .foregroundStyle(.secondary)
         }
     }
 
     private var pairing: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Sparuj komputer z Windows")
+            Text("Pair your Windows PC")
                 .font(.largeTitle.bold())
-            Text("Uruchom Seam na Windowsie i przepisz ten kod parowania. Sekret jest przechowywany w Pęku kluczy.")
+            Text("Open Seam on Windows and enter this pairing code. The secret is protected in Keychain.")
                 .font(.title3).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             PairingCodeView()
             if let error = state.pairingStorageError {
@@ -82,22 +82,22 @@ struct OnboardingView: View {
 
     private var permissions: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Nadaj wymagane uprawnienie")
+            Text("Grant the required permission")
                 .font(.largeTitle.bold())
-            Text("macOS musi zezwolić aplikacji na sterowanie kursorem i klawiaturą. Zgoda na dźwięk pojawi się dopiero przy pierwszym uruchomieniu strumienia.")
+            Text("macOS must allow the app to control the pointer and keyboard. Audio permission appears when streaming starts for the first time.")
                 .font(.title3).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 StatusDot(ok: state.accessibilityGranted)
                 Text(state.accessibilityGranted
-                     ? L10n.text("Dostępność jest gotowa", "Accessibility is ready")
-                     : L10n.text("Dostępność wymaga zgody", "Accessibility permission required"))
+                     ? L10n.text("Accessibility is ready", pl: "Dostępność jest gotowa")
+                     : L10n.text("Accessibility permission required", pl: "Dostępność wymaga zgody"))
                     .font(.headline)
             }
             if !state.accessibilityGranted {
                 HStack {
-                    Button("Poproś o dostęp") { state.requestAccessibility() }
+                    Button("Request access") { state.requestAccessibility() }
                         .buttonStyle(.borderedProminent)
-                    Button("Otwórz Ustawienia systemowe") { state.openAccessibilitySettings() }
+                    Button("Open System Settings") { state.openAccessibilitySettings() }
                 }
                 .controlSize(.large)
             }

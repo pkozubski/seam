@@ -49,16 +49,16 @@ public sealed class AudioReceiver : IDisposable
     {
         Stop();
         if (!IPAddress.TryParse(expectedAddress, out var address))
-            throw new ArgumentException(T("Nie można ustalić adresu IPv4 Maca.", "Cannot determine the Mac IPv4 address."), nameof(expectedAddress));
+            throw new ArgumentException(T("Cannot determine the Mac IPv4 address.", pl: "Nie można ustalić adresu IPv4 Maca."), nameof(expectedAddress));
         // Gniazdo sterowania jest dual-stack, więc Mac w IPv4 potrafi przyjść
         // jako adres zmapowany (::ffff:192.168.x.y) – to nadal ten sam host.
         if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
         if (address.AddressFamily != AddressFamily.InterNetwork)
             throw new ArgumentException(
-                T($"Sesja zestawiona po IPv6 ({expectedAddress}); dźwięk wymaga adresu IPv4 Maca.",
-                  $"The session uses IPv6 ({expectedAddress}); audio requires the Mac IPv4 address."),
+                T($"The session uses IPv6 ({expectedAddress}); audio requires the Mac IPv4 address.",
+                  pl: $"Sesja zestawiona po IPv6 ({expectedAddress}); dźwięk wymaga adresu IPv4 Maca."),
                 nameof(expectedAddress));
-        if (key.Length != 32) throw new ArgumentException(T("Nieprawidłowy klucz sesji audio.", "Invalid audio-session key."), nameof(key));
+        if (key.Length != 32) throw new ArgumentException(T("Invalid audio-session key.", pl: "Nieprawidłowy klucz sesji audio."), nameof(key));
 
         var udp = new UdpClient(AddressFamily.InterNetwork);
         AesGcm aes;

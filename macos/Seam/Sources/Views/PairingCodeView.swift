@@ -7,7 +7,7 @@ struct PairingCodeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Wpisz ten kod na komputerze z Windows. Zachowaj go dla siebie.")
+            Text("Enter this code on your Windows computer. Keep it private.")
                 .font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
@@ -40,13 +40,13 @@ struct PairingCodeView: View {
             .font(.system(.callout, design: .monospaced).weight(.semibold))
             .textSelection(.enabled)
             .fixedSize(horizontal: true, vertical: false)
-            .accessibilityLabel(L10n.text("Kod parowania", "Pairing code"))
+            .accessibilityLabel(L10n.text("Pairing code", pl: "Kod parowania"))
             .accessibilityValue(state.pairingCode)
     }
 
     private var copyButton: some View {
         Button(action: copy) {
-            Label(copied ? L10n.text("Skopiowano", "Copied") : L10n.text("Kopiuj kod", "Copy code"),
+            Label(copied ? L10n.text("Copied", pl: "Skopiowano") : L10n.text("Copy code", pl: "Kopiuj kod"),
                   systemImage: copied ? "checkmark" : "doc.on.doc")
                 .frame(minWidth: 95)
                 .contentTransition(.opacity)

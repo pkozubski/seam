@@ -36,6 +36,9 @@ public partial class App : Application
             if (screenshot)
             {
                 // zrzut interfejsu: żadnej sieci, żeby nie dotykać działających instancji
+                var args = desktop.Args ?? [];
+                var licenseIndex = Array.IndexOf(args, "--screenshot-license");
+                _viewModel.UsePreviewLicense(licenseIndex >= 0 && licenseIndex + 1 < args.Length ? args[licenseIndex + 1] : "pro");
                 _viewModel.StartOffline();
             }
             else

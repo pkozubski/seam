@@ -32,6 +32,20 @@ once, verifies their SHA-256 checksums and installs them with administrator
 approval. The contents of that virtual monitor are sent only to the paired Mac
 over the encrypted local connection.
 
+## Seam Pro licenses
+
+The free features and the 7-day trial work without any license request: the trial
+start date stays on the device (Mac Keychain, Windows DPAPI-protected file).
+
+When you activate a Seam Pro license key, the application sends the key and this
+computer's name to the Lemon Squeezy License API (`api.lemonsqueezy.com`), which
+answers with the license status and the purchase email. The application checks the
+license about once a week while it has internet access and works offline for up to
+30 days. Deactivating sends the key and the activation ID so the slot is freed.
+No clipboard, input, audio, window or device-pairing data is ever sent. Lemon
+Squeezy is the merchant of record for purchases; see its privacy policy for how it
+processes payment and order data.
+
 ## Diagnostics
 
 Logs remain on the device unless the user chooses to copy and send them. Users
@@ -42,4 +56,4 @@ sharing a diagnostic report.
 
 Privacy questions can be submitted through the repository's private GitHub
 Security Advisory form. This policy must be updated before adding telemetry,
-online licensing, accounts or any other external service.
+accounts or any other external service.

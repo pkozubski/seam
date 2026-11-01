@@ -17,6 +17,7 @@ enum UIPreview {
             exit(2)
         }
         let path = args[idx + 1]
+        if let i = args.firstIndex(of: "--ui-license"), i + 1 < args.count { AppState.previewLicenseState = args[i + 1] }
         let state = AppState.demo()
         if args.contains("--ui-full-windows") {
             // NSHostingView includes AppKit-backed controls that ImageRenderer omits.

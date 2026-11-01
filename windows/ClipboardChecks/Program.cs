@@ -25,6 +25,7 @@ internal static class Program
     {
         if (args.Contains("--window-checks") || args.Contains("--native-viewer-checks"))
         {
+            LicenseChecks.Run();
             UpdateChecks.Run();
             WindowChecks.Run();
             RunVirtualDisplayChecks(nativeViewer: args.Contains("--native-viewer-checks"));
@@ -67,6 +68,8 @@ internal static class Program
 
     private static async Task RunChecks()
     {
+        LocalizationChecks.Run();
+        LicenseChecks.Run();
         UpdateChecks.Run();
         RunSecurityChecks();
         RunAudioSessionChecks();

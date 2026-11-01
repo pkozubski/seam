@@ -7,23 +7,68 @@
              x:DataType="vm:MainViewModel">
     <ScrollViewer>
         <StackPanel Classes="page">
-            <TextBlock Classes="pageTitle" Text="Ustawienia" />
+            <TextBlock Classes="pageTitle" Text="Settings" />
+
+            <!-- Licencja: stan Seam Pro, okres próbny, klucz, zakup i dezaktywacja (Ustawienia → Licencja na Macu) -->
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader">
+                        <TextBlock Text="LICENSE" />
+                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding LicenseHeadline}" FontSize="17" FontWeight="SemiBold" />
+                                <Border Classes="proBadge" IsVisible="{Binding IsPro}"><TextBlock Text="PRO" /></Border>
+                            </StackPanel>
+                            <TextBlock Classes="subtitle" FontSize="13" Text="{Binding LicenseDetail}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button Content="{Binding StartTrialLabel}" Command="{Binding StartTrialCommand}" IsVisible="{Binding CanStartTrial}" />
+                            <Button Classes="accent" Content="{Binding BuyProLabel}" Command="{Binding BuyProCommand}" IsVisible="{Binding !IsPro}" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Classes="subtitle" Text="{Binding TesterOfferText}" IsVisible="{Binding ShowsTesterOffer}" />
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="License key" Subtitle="From the purchase email. One license covers up to 3 computers."
+                                      IsVisible="{Binding !HasLicense}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox Text="{Binding LicenseKeyInput}" Watermark="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" Width="340" />
+                            <Button Content="Activate" Command="{Binding ActivateLicenseCommand}" IsEnabled="{Binding !IsLicenseBusy}" />
+                        </StackPanel>
+                    </views:SettingRow>
+                    <views:SettingRow Title="License key" Subtitle="{Binding LicenseKeyDetail}" IsVisible="{Binding HasLicense}">
+                        <Button Content="Deactivate" Command="{Binding DeactivateLicenseCommand}" IsEnabled="{Binding !IsLicenseBusy}" />
+                    </views:SettingRow>
+                    <TextBlock Classes="subtitle" Text="{Binding LicenseCheckedText}" IsVisible="{Binding HasLicense}" />
+                    <TextBlock Classes="subtitle" Foreground="#FF9F0A" Text="{Binding LicenseError}"
+                               IsVisible="{Binding LicenseError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="subtitle" Text="Free: keyboard and mouse, text in the clipboard. Pro: Mac audio, windows in both directions, images in the clipboard. Pro works on both computers when either of them has a license or a trial." />
+                </StackPanel>
+            </Border>
 
             <Border Classes="card">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="OGÓLNE" />
+                        <TextBlock Text="GENERAL" />
                     </StackPanel>
-                    <views:SettingRow Title="Nazwa tego komputera" Subtitle="Widoczna w aplikacji na Macu.">
+                    <views:SettingRow Title="This PC name" Subtitle="Shown in the Mac app.">
                         <TextBox Text="{Binding DeviceName}" Width="200" />
                     </views:SettingRow>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Port TCP Maca" Subtitle="Domyślnie 47800 – musi zgadzać się z ustawieniem na Macu.">
+                    <views:SettingRow Title="Mac TCP port" Subtitle="Default 47800 — must match the Mac setting.">
                         <TextBox Text="{Binding ControlPortText}" Width="90" />
                     </views:SettingRow>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Port UDP audio (ten komputer)" Subtitle="Domyślnie 47802. Zapora Windows musi go przepuszczać.">
+                    <views:SettingRow Title="Audio UDP port on this PC" Subtitle="Default 47802. Windows Firewall must allow it.">
                         <TextBox Text="{Binding AudioPortText}" Width="90" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="App language" Subtitle="{Binding LanguageSubtitle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Restart" Command="{Binding RestartAppCommand}" IsVisible="{Binding LanguageRestartNeeded}" />
+                            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" MinWidth="140" />
+                        </StackPanel>
                     </views:SettingRow>
                 </StackPanel>
             </Border>
@@ -32,14 +77,14 @@
             <Border Classes="card">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="URUCHAMIANIE" />
+                        <TextBlock Text="STARTUP" />
                     </StackPanel>
-                    <views:SettingRow Title="Uruchamiaj przy logowaniu" Subtitle="{Binding AutostartStatus}">
+                    <views:SettingRow Title="Launch at sign-in" Subtitle="{Binding AutostartStatus}">
                         <ToggleSwitch Classes="compact" IsChecked="{Binding LaunchAtLogin}" />
                     </views:SettingRow>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Startuj zminimalizowany do zasobnika"
-                                      Subtitle="Przy autostarcie okno pozostaje ukryte; kliknij ikonę w zasobniku, aby je otworzyć.">
+                    <views:SettingRow Title="Start minimized to tray"
+                                      Subtitle="Keep the window hidden at startup; use the tray icon to open it.">
                         <ToggleSwitch Classes="compact" IsChecked="{Binding StartMinimized}" IsEnabled="{Binding LaunchAtLogin}" />
                     </views:SettingRow>
                 </StackPanel>
@@ -49,18 +94,18 @@
             <Border Classes="card">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="AKTUALIZACJE" />
+                        <TextBlock Text="UPDATES" />
                     </StackPanel>
                     <views:SettingRow Title="{Binding VersionLabel}" Subtitle="{Binding UpdateStatusText}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ProgressBar IsIndeterminate="True" Width="120" Height="4" IsVisible="{Binding IsCheckingUpdates}" />
                             <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" Width="120" Height="4" IsVisible="{Binding IsInstallingUpdate}" />
-                            <Button Content="Sprawdź teraz" Command="{Binding CheckUpdatesCommand}" IsVisible="{Binding !UpdateAvailable}" />
-                            <Button Classes="accent" Content="Zainstaluj" Command="{Binding InstallUpdateCommand}" IsVisible="{Binding UpdateAvailable}" />
+                            <Button Content="Check now" Command="{Binding CheckUpdatesCommand}" IsVisible="{Binding !UpdateAvailable}" />
+                            <Button Classes="accent" Content="Install" Command="{Binding InstallUpdateCommand}" IsVisible="{Binding UpdateAvailable}" />
                         </StackPanel>
                     </views:SettingRow>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Sprawdzaj automatycznie" Subtitle="Po starcie i co 6 godzin, przez GitHub Releases.">
+                    <views:SettingRow Title="Check automatically" Subtitle="At startup and every six hours through GitHub Releases.">
                         <ToggleSwitch Classes="compact" IsChecked="{Binding AutoCheckUpdates}" />
                     </views:SettingRow>
                 </StackPanel>

@@ -31,7 +31,7 @@ public sealed class VideoReceiver : IDisposable
     {
         Stop();
         if (key.Length != VideoStream.KeyBytes || token.Length != VideoStream.TokenBytes)
-            throw new ArgumentException(T("Nieprawidłowe klucze strumienia ekranu.", "Invalid display stream keys."));
+            throw new ArgumentException(T("Invalid display stream keys.", pl: "Nieprawidłowe klucze strumienia ekranu."));
         var keyCopy = key.ToArray();
         var tokenCopy = token.ToArray();
         Interlocked.Exchange(ref _framesReceived, 0);
@@ -65,7 +65,7 @@ public sealed class VideoReceiver : IDisposable
             using var tcp = new TcpClient(address.AddressFamily) { NoDelay = true, ReceiveBufferSize = 4 * 1024 * 1024 };
             _tcp = tcp;
             if (!tcp.ConnectAsync(address, port).Wait(TimeSpan.FromSeconds(4)))
-                throw new IOException(T("Mac nie przyjął połączenia wideo.", "The Mac did not accept the video connection."));
+                throw new IOException(T("The Mac did not accept the video connection.", pl: "Mac nie przyjął połączenia wideo."));
             using var stream = tcp.GetStream();
             stream.Write(token);
             using var opener = new VideoStream.Opener(key);
@@ -73,19 +73,19 @@ public sealed class VideoReceiver : IDisposable
             var body = new byte[1024 * 1024];
             while (_running)
             {
-                if (!ReadFully(stream, header)) { reason = T("Mac zamknął strumień ekranu.", "The Mac closed the display stream."); break; }
+                if (!ReadFully(stream, header)) { reason = T("The Mac closed the display stream.", pl: "Mac zamknął strumień ekranu."); break; }
                 var length = (int)BinaryPrimitives.ReadUInt32LittleEndian(header);
                 if (length < VideoStream.CounterBytes + VideoStream.TagBytes || length > VideoStream.MaxRecordBytes)
                 {
-                    reason = T("Nieprawidłowy rekord strumienia ekranu.", "Invalid display stream record.");
+                    reason = T("Invalid display stream record.", pl: "Nieprawidłowy rekord strumienia ekranu.");
                     break;
                 }
                 if (body.Length < length) body = new byte[Math.Max(length, body.Length * 2)];
-                if (!ReadFully(stream, body.AsSpan(0, length))) { reason = T("Mac zamknął strumień ekranu.", "The Mac closed the display stream."); break; }
+                if (!ReadFully(stream, body.AsSpan(0, length))) { reason = T("The Mac closed the display stream.", pl: "Mac zamknął strumień ekranu."); break; }
                 var clear = opener.Open(body.AsSpan(0, length));
                 if (clear is null || !VideoStream.TryParseFrame(clear, out var frame))
                 {
-                    reason = T("Błąd integralności strumienia ekranu.", "Display stream integrity check failed.");
+                    reason = T("Display stream integrity check failed.", pl: "Błąd integralności strumienia ekranu.");
                     break;
                 }
                 Interlocked.Increment(ref _framesReceived);
@@ -95,7 +95,7 @@ public sealed class VideoReceiver : IDisposable
         }
         catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException or AggregateException)
         {
-            if (_running) reason = T("Błąd połączenia wideo: ", "Video connection error: ") + (ex.InnerException ?? ex).Message;
+            if (_running) reason = T("Video connection error: ", pl: "Błąd połączenia wideo: ") + (ex.InnerException ?? ex).Message;
         }
         finally
         {

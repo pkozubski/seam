@@ -22,7 +22,7 @@ final class VideoEncoder {
         var errorDescription: String? {
             switch self {
             case let .osStatus(status, what):
-                return L10n.text("Koder wideo: \(what) (błąd \(status))", "Video encoder: \(what) (error \(status))")
+                return L10n.text("Video encoder: \(what) (error \(status))", pl: "Koder wideo: \(what) (błąd \(status))")
             }
         }
     }
@@ -209,7 +209,7 @@ final class VideoEncoder {
             if lastStatus == noErr { return session }
             VTCompressionSessionInvalidate(session)
         }
-        throw EncoderError.osStatus(lastStatus, L10n.text("nie można utworzyć sesji H.264", "cannot create an H.264 session"))
+        throw EncoderError.osStatus(lastStatus, L10n.text("cannot create an H.264 session", pl: "nie można utworzyć sesji H.264"))
     }
 
     private static func configure(_ session: VTCompressionSession, bitrate: Int, lowLatency: Bool) {

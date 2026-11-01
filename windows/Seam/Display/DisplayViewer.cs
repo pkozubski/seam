@@ -290,7 +290,7 @@ public sealed class DisplayViewer : IDisposable
         }
         catch (Exception ex)
         {
-            if (_running) Failed?.Invoke(T("Podgląd ekranu Maca: ", "Mac display viewer: ") + ex.Message);
+            if (_running) Failed?.Invoke(T("Mac display viewer: ", pl: "Podgląd ekranu Maca: ") + ex.Message);
         }
         finally
         {

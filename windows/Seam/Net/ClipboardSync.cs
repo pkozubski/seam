@@ -98,7 +98,7 @@ public sealed class ClipboardSync
         if (data.Formats.Contains(PngFormat) && await data.TryGetValueAsync(PngFormat) is { } png)
         {
             var content = ClipboardContent.Create(ClipboardFormat.Png, png);
-            if (content is null) Error?.Invoke(T("Nieobsługiwany obraz lub przekroczony limit 32 MiB / 64 megapikseli.", "Unsupported image or the 32 MiB / 64 megapixel limit was exceeded."));
+            if (content is null) Error?.Invoke(T("Unsupported image or the 32 MiB / 64 megapixel limit was exceeded.", pl: "Nieobsługiwany obraz lub przekroczony limit 32 MiB / 64 megapikseli."));
             return content;
         }
         var bitmap = await data.TryGetBitmapAsync();
@@ -169,7 +169,7 @@ public sealed class ClipboardSync
         }
         catch (Exception)
         {
-            Error?.Invoke(T("Nie udało się zapisać schowka z Maca. Spróbuj skopiować ponownie.", "Could not write the Mac clipboard content. Copy it again."));
+            Error?.Invoke(T("Could not write the Mac clipboard content. Copy it again.", pl: "Nie udało się zapisać schowka z Maca. Spróbuj skopiować ponownie."));
             return false;
         }
         finally

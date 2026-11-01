@@ -22,15 +22,15 @@ struct ConnectionPage: View {
                     .frame(minHeight: max(370, geometry.size.height - 160))
                     VStack(spacing: 12) {
                         Text(state.peer != nil
-                             ? L10n.text("Wszystko gotowe. Pracuj jak na jednym komputerze.", "All set. Work as if it were one computer.")
-                             : L10n.text("Uruchom aplikację na Windowsie i połącz oba komputery.", "Open the app on Windows and connect your computers."))
+                             ? L10n.text("All set. Work as if it were one computer.", pl: "Wszystko gotowe. Pracuj jak na jednym komputerze.")
+                             : L10n.text("Open the app on Windows and connect your computers.", pl: "Uruchom aplikację na Windowsie i połącz oba komputery."))
                             .font(.callout).foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
-                        Button(L10n.text("Parowanie i szczegóły połączenia", "Pairing and connection details")) { showDetails = true }
+                        Button(L10n.text("Pairing and connection details", pl: "Parowanie i szczegóły połączenia")) { showDetails = true }
                             .buttonStyle(.link).font(.caption)
                     }
                     if state.peer == nil {
-                        SettingsGroup("Bezpieczne parowanie") { PairingCodeView() }
+                        SettingsGroup("Secure pairing") { PairingCodeView() }
                             .frame(maxWidth: 640)
                     }
                 }

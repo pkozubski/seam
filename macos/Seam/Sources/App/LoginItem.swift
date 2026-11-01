@@ -34,16 +34,16 @@ enum LoginItem {
     static var statusDescription: String {
         switch mechanism {
         case .service:
-            return L10n.text("Włączony (element logowania macOS)", "Enabled (macOS login item)")
+            return L10n.text("Enabled (macOS login item)", pl: "Włączony (element logowania macOS)")
         case .launchAgent:
-            return L10n.text("Włączony (LaunchAgent w ~/Library/LaunchAgents)", "Enabled (LaunchAgent in ~/Library/LaunchAgents)")
+            return L10n.text("Enabled (LaunchAgent in ~/Library/LaunchAgents)", pl: "Włączony (LaunchAgent w ~/Library/LaunchAgents)")
         case .none:
             switch SMAppService.mainApp.status {
             case .requiresApproval:
-                return L10n.text("Wymaga zgody w Ustawieniach → Ogólne → Elementy logowania",
-                                 "Approval required in System Settings → General → Login Items")
+                return L10n.text("Approval required in System Settings → General → Login Items",
+                                 pl: "Wymaga zgody w Ustawieniach → Ogólne → Elementy logowania")
             default:
-                return L10n.text("Wyłączony", "Disabled")
+                return L10n.text("Disabled", pl: "Wyłączony")
             }
         }
     }

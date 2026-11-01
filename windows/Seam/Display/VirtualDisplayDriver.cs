@@ -125,12 +125,12 @@ public static class VirtualDisplayDriver
     {
         var result = ChangeDisplaySettingsExW(deviceName, ref mode, IntPtr.Zero, CDS_UPDATEREGISTRY | CDS_NORESET, IntPtr.Zero);
         if (result != DISP_CHANGE_SUCCESSFUL)
-            throw new InvalidOperationException(T($"Windows odrzucił ustawienia monitora wirtualnego (kod {result}).",
-                $"Windows rejected the virtual monitor settings (code {result})."));
+            throw new InvalidOperationException(T($"Windows rejected the virtual monitor settings (code {result}).",
+                pl: $"Windows odrzucił ustawienia monitora wirtualnego (kod {result})."));
         result = ChangeDisplaySettingsExW(null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
         if (result != DISP_CHANGE_SUCCESSFUL)
-            throw new InvalidOperationException(T($"Nie udało się zastosować układu monitorów (kod {result}).",
-                $"Could not apply the monitor layout (code {result})."));
+            throw new InvalidOperationException(T($"Could not apply the monitor layout (code {result}).",
+                pl: $"Nie udało się zastosować układu monitorów (kod {result})."));
     }
 
     /// <summary>Najbliższe skalowanie z listy Windows.</summary>
@@ -287,10 +287,10 @@ public static class VirtualDisplayDriver
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
-            throw new InvalidOperationException(T("Instalację anulowano w oknie Kontroli konta użytkownika.",
-                "The installation was cancelled in the User Account Control prompt."));
+            throw new InvalidOperationException(T("The installation was cancelled in the User Account Control prompt.",
+                pl: "Instalację anulowano w oknie Kontroli konta użytkownika."));
         }
-        if (process is null) throw new InvalidOperationException(T("Nie udało się uruchomić instalatora.", "Could not start the installer."));
+        if (process is null) throw new InvalidOperationException(T("Could not start the installer.", pl: "Nie udało się uruchomić instalatora."));
         using (process)
         {
             try
@@ -305,16 +305,16 @@ public static class VirtualDisplayDriver
             {
                 var details = File.Exists(log) ? File.ReadAllText(log).Trim() : "";
                 if (details.Length == 0 && process.ExitCode == 3)
-                    details = T("plik instalatora został zmieniony przed uruchomieniem.", "the installer file was modified before it ran.");
-                throw new InvalidOperationException(T("Instalacja sterownika nie powiodła się", "Driver installation failed")
+                    details = T("the installer file was modified before it ran.", pl: "plik instalatora został zmieniony przed uruchomieniem.");
+                throw new InvalidOperationException(T("Driver installation failed", pl: "Instalacja sterownika nie powiodła się")
                     + (details.Length > 0 ? ": " + details : $" (kod {process.ExitCode})."));
             }
         }
         // Sterownik pojawia się jako nowy monitor dopiero po chwili.
         for (var i = 0; i < 40 && !IsInstalled; i++) await Task.Delay(250);
         if (!IsInstalled)
-            throw new InvalidOperationException(T("Sterownik zainstalowano, ale monitor wirtualny się nie pojawił. Uruchom ponownie komputer.",
-                "The driver was installed but the virtual monitor did not appear. Restart the computer."));
+            throw new InvalidOperationException(T("The driver was installed but the virtual monitor did not appear. Restart the computer.",
+                pl: "Sterownik zainstalowano, ale monitor wirtualny się nie pojawił. Uruchom ponownie komputer."));
     }
 
     private static string InstallScript(string logPath, string userSid)

@@ -71,6 +71,6 @@ struct LevelMeter: View {
             .accessibilityValue("\(Int(value * 100))%")
         }
         .frame(height: 8)
-        .accessibilityLabel(L10n.text("Poziom dźwięku", "Audio level"))
+        .accessibilityLabel(L10n.text("Audio level", pl: "Poziom dźwięku"))
     }
 }

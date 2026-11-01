@@ -86,14 +86,17 @@
         <StackPanel x:Name="GuideContent" Classes="page" MaxWidth="1040" Spacing="18">
             <StackPanel Spacing="16" Margin="0,10,0,6">
                 <TextBlock FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                           Text="Twoje aplikacje na obu komputerach." />
+                           Text="Your apps, on both computers." />
                 <Border Classes="switchPill">
                     <StackPanel Orientation="Horizontal" Spacing="18">
                         <TextBlock x:Name="MasterLabel" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding WindowSharingEnabled}" VerticalAlignment="Center"
-                                      AutomationProperties.Name="Przenoszenie okien" />
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding WindowSharingSwitch}" IsEnabled="{Binding SessionPro}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Window moving" />
+                        <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                        <Border Classes="pill" IsVisible="{Binding HasTrialBadge}"><TextBlock Text="{Binding TrialBadgeText}" FontSize="11" /></Border>
                     </StackPanel>
                 </Border>
+                <views:ProGateCard MaxWidth="640" />
             </StackPanel>
 
             <Grid ColumnDefinitions="5*,9*" RowDefinitions="*,*" ColumnSpacing="18" RowSpacing="18">
@@ -101,14 +104,14 @@
                 <Border Grid.RowSpan="2" Classes="card" Padding="26,24">
                     <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                         <StackPanel Spacing="8">
-                            <TextBlock Classes="cardTitle" Text="Przenieś dowolne okno" />
-                            <TextBlock Classes="cardBody" Text="Przeciągnij aplikację do krawędzi ekranu. Pojawi się na drugim komputerze." />
+                            <TextBlock Classes="cardTitle" Text="Move any window" />
+                            <TextBlock Classes="cardBody" Text="Drag an app to the edge of your screen. It appears on your other computer." />
                         </StackPanel>
                         <Image Grid.Row="1" Source="avares://Seam/Assets/okna-mirroring.png" MaxWidth="270" MinHeight="150"
                                Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         <Button Grid.Row="2" Classes="accent" HorizontalAlignment="Right" Click="ShowHow">
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <TextBlock Text="Zobacz jak" VerticalAlignment="Center" />
+                                <TextBlock Text="See how" VerticalAlignment="Center" />
                                 <Path Data="M0,0 L9,6 L0,12 Z" Fill="#143B1E" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
@@ -134,7 +137,7 @@
                                 <Image Grid.Column="4" Source="avares://Seam/Assets/device-monitor.png" Width="34" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="5" x:Name="PcName" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             </Grid>
-                            <Button Grid.Column="1" Content="Ustawienia połączenia" Click="OpenConnection" />
+                            <Button Grid.Column="1" Content="Connection settings" Click="OpenConnection" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -143,8 +146,8 @@
                 <Border Grid.Column="1" Grid.Row="1" Classes="card" Padding="26,24">
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" RowSpacing="18">
                         <StackPanel Spacing="8">
-                            <TextBlock Classes="cardTitle" Text="Wybierz układ ekranów" />
-                            <TextBlock Classes="cardBody" Text="Dopasuj układ do urządzeń na biurku." />
+                            <TextBlock Classes="cardTitle" Text="Choose your screen arrangement" />
+                            <TextBlock Classes="cardBody" Text="Match the layout to the devices on your desk." />
                         </StackPanel>
                         <Image Grid.Column="1" Source="avares://Seam/Assets/okna-arrangement.png" Width="110"
                                VerticalAlignment="Top" Margin="12,-4,0,0" />
@@ -152,7 +155,7 @@
                             <Grid x:Name="LayoutTiles" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" x:Name="ArrangementLabel" FontSize="14" Foreground="{DynamicResource MutedText}"
                                        VerticalAlignment="Center" TextWrapping="Wrap" />
-                            <Button Grid.Column="2" Content="Ustaw ekrany" Click="OpenDisplays" VerticalAlignment="Bottom" />
+                            <Button Grid.Column="2" Content="Arrange screens" Click="OpenDisplays" VerticalAlignment="Bottom" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -160,7 +163,7 @@
 
             <Button Classes="link" HorizontalAlignment="Right" Click="OpenHelp" Margin="0,-8,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="Pomoc z połączeniem" FontSize="13" VerticalAlignment="Center" />
+                    <TextBlock Text="Connection help" FontSize="13" VerticalAlignment="Center" />
                     <TextBlock Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="10" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
@@ -168,25 +171,25 @@
             <!-- JAK TO DZIAŁA (cel przycisku „Zobacz jak”) -->
             <Border x:Name="HowSection" Classes="card">
                 <StackPanel Spacing="14">
-                    <StackPanel Classes="sectionHeader"><TextBlock Text="JAK TO DZIAŁA" /></StackPanel>
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="HOW IT WORKS" /></StackPanel>
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
                         <StackPanel Spacing="8">
                             <views:WindowTransferDiagram Height="86" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
                             <TextBlock Classes="stepNumber" Text="01" />
-                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Otwórz dowolne okno" />
-                            <TextBlock Classes="subtitle" Text="Przeglądarka, dokument, komunikator — to, z czym pracujesz." />
+                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Open any window" />
+                            <TextBlock Classes="subtitle" Text="A browser, document or chat — whatever you are working on." />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="8">
                             <views:WindowTransferDiagram Height="86" Progress="0.5" MacSide="{Binding SelectedMacSide.Value}" />
                             <TextBlock Classes="stepNumber" Text="02" />
-                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Przeciągnij za krawędź" />
-                            <TextBlock Classes="subtitle" Text="Chwyć górny pasek i przesuń okno w stronę drugiego ekranu." />
+                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Drag across the edge" />
+                            <TextBlock Classes="subtitle" Text="Grab the title bar and move it towards the other display." />
                         </StackPanel>
                         <StackPanel Grid.Column="2" Spacing="8">
                             <views:WindowTransferDiagram Height="86" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
                             <TextBlock Classes="stepNumber" Text="03" />
-                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Pracuj na drugim ekranie" />
-                            <TextBlock Classes="subtitle" Text="Okno pojawi się na drugim urządzeniu. Wróci tą samą krawędzią w przeciwną stronę." />
+                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Use the other display" />
+                            <TextBlock Classes="subtitle" Text="Your window appears on the other device. Drag it back across the same edge." />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -195,49 +198,49 @@
             <!-- KIERUNKI I OPCJE -->
             <Border Classes="card">
                 <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader"><TextBlock Text="OPCJE WYŚWIETLANIA" /></StackPanel>
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="DISPLAY OPTIONS" /></StackPanel>
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="44">
                         <views:IconTile Icon="icon-windows" TileSize="34" IsActive="{Binding DisplayEnabled}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Classes="rowTitle" Text="Okna Maca na tym komputerze" />
+                            <TextBlock Classes="rowTitle" Text="Mac windows on this computer" />
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="7" Height="7" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
                                 <TextBlock Classes="subtitle" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
-                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding DisplayEnabled}"
-                                      AutomationProperties.Name="Okna Maca na tym komputerze" />
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding DisplaySwitch}" IsEnabled="{Binding SessionPro}"
+                                      AutomationProperties.Name="Mac windows on this computer" />
                     </Grid>
                     <Rectangle Classes="divider" />
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="44">
                         <views:IconTile Icon="icon-displays" TileSize="34" IsActive="{Binding WinViewEnabled}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Classes="rowTitle" Text="Okna Windows na Macu" />
+                            <TextBlock Classes="rowTitle" Text="Windows apps on the Mac" />
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="7" Height="7" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
                                 <TextBlock Classes="subtitle" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                            <Button Classes="accent" Content="Zainstaluj sterownik"
+                            <Button Classes="accent" Content="Install driver"
                                     IsVisible="{Binding WinViewDriverMissing}" Command="{Binding InstallDisplayDriverCommand}"
                                     IsEnabled="{Binding !IsInstallingDriver}"
-                                    ToolTip.Tip="Jednorazowa instalacja darmowego, podpisanego sterownika Virtual Display Driver (wymaga zgody administratora)." />
-                            <ToggleSwitch Classes="compact" IsChecked="{Binding WinViewEnabled}"
-                                          AutomationProperties.Name="Okna Windows na Macu" />
+                                    ToolTip.Tip="One-time install of the free, signed Virtual Display Driver (requires administrator approval)." />
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding WinViewSwitch}" IsEnabled="{Binding SessionPro}"
+                                          AutomationProperties.Name="Windows apps on the Mac" />
                         </StackPanel>
                     </Grid>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Tylko okna Maca" Subtitle="Okna Maca leżą na pulpicie Windows obok zwykłych okien. Wyłączone: cały pulpit Maca na monitorze.">
+                    <views:SettingRow Title="Mac windows only" Subtitle="Mac windows sit on the Windows desktop next to Windows apps. Off: the whole Mac desktop fills the monitor.">
                         <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
                     </views:SettingRow>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Pokazuj go przez cały czas sterowania Makiem" Subtitle="Tylko dla całego pulpitu. Wyłączone: pulpit Maca pojawia się dopiero, gdy przeciągniesz na niego okno.">
+                    <views:SettingRow Title="Show it whenever you control the Mac" Subtitle="Full desktop only. Off: the Mac desktop appears only when you drag a window onto it.">
                         <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" IsEnabled="{Binding !DisplayWindowMode}" />
                     </views:SettingRow>
                     <Rectangle Classes="divider" />
-                    <views:SettingRow Title="Strumień obrazu" Subtitle="Uruchom ponownie, gdy obraz się zatrzyma albo nie nadąża.">
-                        <Button Content="Uruchom ponownie" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
+                    <views:SettingRow Title="Video stream" Subtitle="Restart it if the picture freezes or lags behind.">
+                        <Button Content="Restart" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
                     </views:SettingRow>
                 </StackPanel>
             </Border>

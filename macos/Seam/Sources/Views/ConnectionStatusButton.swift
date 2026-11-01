@@ -40,8 +40,8 @@ struct ConnectionStatusButton: View {
     }
 
     private var label: String {
-        if state.listenError != nil { return L10n.text("Błąd", "Error") }
-        return connected ? L10n.text("Połączono", "Connected") : L10n.text("Oczekiwanie", "Waiting")
+        if state.listenError != nil { return L10n.text("Error", pl: "Błąd") }
+        return connected ? L10n.text("Connected", pl: "Połączono") : L10n.text("Waiting", pl: "Oczekiwanie")
     }
 
     private var symbol: String {
@@ -91,9 +91,9 @@ struct ConnectionStatusButton: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.15), value: hovering)
-        .help(L10n.text("Stan i szczegóły połączenia", "Connection status and details"))
+        .help(L10n.text("Connection status and details", pl: "Stan i szczegóły połączenia"))
         .accessibilityLabel(state.statusSummary.text)
-        .accessibilityHint(L10n.text("Otwiera szczegóły połączenia", "Opens connection details"))
+        .accessibilityHint(L10n.text("Opens connection details", pl: "Otwiera szczegóły połączenia"))
         .frame(width: Self.panelSide, height: Self.panelSide)
         .preferredColorScheme(.dark)
     }

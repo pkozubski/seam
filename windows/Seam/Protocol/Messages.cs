@@ -4,6 +4,23 @@ using System.Text;
 namespace Seam.Protocol;
 
 /// <summary>Stałe protokołu – zgodne z docs/PROTOCOL.md i aplikacją macOS.</summary>
+/// <summary>
+/// Powody w ramce REJECT wysyłane przez Maca. To wartości protokołu (`RejectReason` w Protocol.swift),
+/// nie napisy interfejsu: zostają po polsku, a <c>ControlClient</c> tłumaczy je do wyświetlenia.
+/// </summary>
+public static class RejectReason
+{
+    public const string Busy = "Serwer jest zajęty lub chwilowo zablokowany";
+    public const string FrameTooLarge = "Przekroczono limit ramki";
+    public const string BadFrameLength = "Nieprawidłowa długość ramki";
+    public const string UnknownMessage = "Nieznany typ wiadomości";
+    public const string Integrity = "Błąd integralności sesji";
+    public const string SecureProtocolRequired = "Wymagany jest bezpieczny protokół v2";
+    public const string BadDeviceName = "Nieprawidłowa nazwa urządzenia";
+    public const string NoPairingCode = "Brak kodu parowania na Macu";
+    public const string WrongPairingCode = "Kod parowania jest nieprawidłowy";
+}
+
 public static class ProtocolConstants
 {
     public const byte Version = 2;
@@ -56,6 +73,8 @@ public enum MessageType : byte
     Ping = 0x50,
     Pong = 0x51,
     Status = 0x60,
+    /// <summary>Windows → Mac, tylko gdy Mac ma bit <see cref="ExtendedStatusFlags.PeerStatus"/>.</summary>
+    PeerStatus = 0x61,
     Clipboard = 0x70,
     DisplayStart = 0x80,
     DisplayStop = 0x81,
@@ -137,6 +156,19 @@ public enum ExtendedStatusFlags : byte
     None = 0,
     /// <summary>Mac pokazuje aplikacje Windows jako osobne aplikacje (WINVIEW_APP, numer aplikacji przy oknie).</summary>
     WinViewApps = 1 << 0,
+    /// <summary>Mac ma licencję Pro albo trwający trial.</summary>
+    ProEntitled = 1 << 1,
+    /// <summary>Mac rozumie PEER_STATUS – starsza wersja zerwałaby sesję na nieznanej ramce.</summary>
+    PeerStatus = 1 << 2,
+}
+
+/// <summary>Flagi PEER_STATUS (Windows → Mac).</summary>
+[Flags]
+public enum PeerStatusFlags : byte
+{
+    None = 0,
+    /// <summary>Ten komputer ma licencję Pro albo trwający trial.</summary>
+    ProEntitled = 1 << 0,
 }
 
 /// <summary>Okno Windows na wirtualnym monitorze (piksele tego monitora, może wystawać poza niego).</summary>
@@ -399,6 +431,8 @@ public static class Frame
     // --- okna Windows na Macu ---
 
     /// <summary>Prośba o pokazywanie okien Windows na Macu; <paramref name="macEdgeFacingWindows"/> wskazuje ekran Maca.</summary>
+    public static byte[] PeerStatus(PeerStatusFlags flags) => Make(MessageType.PeerStatus, [(byte)flags]);
+
     public static byte[] WinViewStart(ScreenEdge macEdgeFacingWindows) => Make(MessageType.WinViewStart, [(byte)macEdgeFacingWindows]);
     public static byte[] WinViewStop() => Make(MessageType.WinViewStop, ReadOnlySpan<byte>.Empty);
 

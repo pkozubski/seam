@@ -17,18 +17,18 @@ final class SystemAudioTap {
         var errorDescription: String? {
             switch self {
             case let .osStatus(status, what):
-                return L10n.text("\(what): błąd Core Audio \(status) (\(Self.describe(status)))",
-                                 "\(what): Core Audio error \(status) (\(Self.describe(status)))")
+                return L10n.text("\(what): Core Audio error \(status) (\(Self.describe(status)))",
+                                 pl: "\(what): błąd Core Audio \(status) (\(Self.describe(status)))")
             case let .unsupportedFormat(desc):
-                return L10n.text("Nieobsługiwany format tapu: \(desc)", "Unsupported audio-tap format: \(desc)")
+                return L10n.text("Unsupported audio-tap format: \(desc)", pl: "Nieobsługiwany format tapu: \(desc)")
             }
         }
 
         private static func describe(_ s: OSStatus) -> String {
             switch s {
             case kAudioHardwareIllegalOperationError:
-                return L10n.text("illegal operation – sprawdź zgodę na nagrywanie dźwięku systemowego",
-                                 "illegal operation — check System Audio Recording permission")
+                return L10n.text("illegal operation — check System Audio Recording permission",
+                                 pl: "illegal operation – sprawdź zgodę na nagrywanie dźwięku systemowego")
             case kAudioHardwareNotRunningError: return "not running"
             case kAudioHardwareUnknownPropertyError: return "unknown property"
             case kAudioHardwareBadDeviceError: return "bad device"
@@ -97,7 +97,7 @@ final class SystemAudioTap {
 
         var tap = AudioObjectID(kAudioObjectUnknown)
         var err = AudioHardwareCreateProcessTap(description, &tap)
-        guard err == noErr else { throw TapError.osStatus(err, L10n.text("Tworzenie tapu", "Creating audio tap")) }
+        guard err == noErr else { throw TapError.osStatus(err, L10n.text("Creating audio tap", pl: "Tworzenie tapu")) }
         tapID = tap
 
         do {
@@ -118,7 +118,7 @@ final class SystemAudioTap {
             ]
             var agg = AudioObjectID(kAudioObjectUnknown)
             err = AudioHardwareCreateAggregateDevice(aggregateDescription as CFDictionary, &agg)
-            guard err == noErr else { throw TapError.osStatus(err, L10n.text("Tworzenie urządzenia zbiorczego", "Creating aggregate audio device")) }
+            guard err == noErr else { throw TapError.osStatus(err, L10n.text("Creating aggregate audio device", pl: "Tworzenie urządzenia zbiorczego")) }
             aggregateID = agg
 
             // mniejszy bufor = mniejsze opóźnienie
@@ -139,10 +139,10 @@ final class SystemAudioTap {
             err = AudioDeviceCreateIOProcIDWithBlock(&proc, aggregateID, queue) { [weak self] _, inputData, _, _, _ in
                 self?.process(inputData)
             }
-            guard err == noErr, let proc else { throw TapError.osStatus(err, L10n.text("Tworzenie IOProc", "Creating IOProc")) }
+            guard err == noErr, let proc else { throw TapError.osStatus(err, L10n.text("Creating IOProc", pl: "Tworzenie IOProc")) }
             procID = proc
             err = AudioDeviceStart(aggregateID, proc)
-            guard err == noErr else { throw TapError.osStatus(err, L10n.text("Start urządzenia", "Starting audio device")) }
+            guard err == noErr else { throw TapError.osStatus(err, L10n.text("Starting audio device", pl: "Start urządzenia")) }
             isRunning = true
             installDefaultDeviceListener()
         } catch {
@@ -263,7 +263,7 @@ final class SystemAudioTap {
         var asbd = AudioStreamBasicDescription()
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         let err = AudioObjectGetPropertyData(tap, &addr, 0, nil, &size, &asbd)
-        guard err == noErr else { throw TapError.osStatus(err, L10n.text("Odczyt formatu tapu", "Reading audio-tap format")) }
+        guard err == noErr else { throw TapError.osStatus(err, L10n.text("Reading audio-tap format", pl: "Odczyt formatu tapu")) }
         return asbd
     }
 
@@ -274,7 +274,7 @@ final class SystemAudioTap {
         var device = AudioObjectID(kAudioObjectUnknown)
         var size = UInt32(MemoryLayout<AudioObjectID>.size)
         var err = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &device)
-        guard err == noErr, device != kAudioObjectUnknown else { throw TapError.osStatus(err, L10n.text("Domyślne wyjście audio", "Default audio output")) }
+        guard err == noErr, device != kAudioObjectUnknown else { throw TapError.osStatus(err, L10n.text("Default audio output", pl: "Domyślne wyjście audio")) }
 
         var uidAddr = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyDeviceUID,
                                                  mScope: kAudioObjectPropertyScopeGlobal,
@@ -282,7 +282,7 @@ final class SystemAudioTap {
         var uid: Unmanaged<CFString>?
         var uidSize = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
         err = AudioObjectGetPropertyData(device, &uidAddr, 0, nil, &uidSize, &uid)
-        guard err == noErr, let value = uid?.takeRetainedValue() else { throw TapError.osStatus(err, L10n.text("UID urządzenia", "Audio device UID")) }
+        guard err == noErr, let value = uid?.takeRetainedValue() else { throw TapError.osStatus(err, L10n.text("Audio device UID", pl: "UID urządzenia")) }
         return value as String
     }
 

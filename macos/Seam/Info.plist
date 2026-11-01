@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>pl</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Seam</string>
 	<key>CFBundleIconFile</key>
@@ -29,9 +29,9 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Seam przechwytuje dźwięk systemowy Maca, aby przesłać go do komputera z Windows.</string>
+	<string>Seam captures Mac system audio to stream it to your paired Windows PC.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Seam komunikuje się z komputerem z Windows w sieci lokalnej (klawiatura, mysz, dźwięk).</string>
+	<string>Seam connects to your paired Windows PC over the local network for input, clipboard and audio.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>

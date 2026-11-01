@@ -71,7 +71,7 @@ public sealed class WinViewStreamer : IDisposable
     {
         Stop();
         if (key.Length != VideoStream.KeyBytes || token.Length != VideoStream.TokenBytes)
-            throw new ArgumentException(T("Nieprawidłowe klucze strumienia okien.", "Invalid window stream keys."));
+            throw new ArgumentException(T("Invalid window stream keys.", pl: "Nieprawidłowe klucze strumienia okien."));
         var keyCopy = key.ToArray();
         var tokenCopy = token.ToArray();
         Interlocked.Exchange(ref _framesSent, 0);
@@ -148,7 +148,7 @@ public sealed class WinViewStreamer : IDisposable
             tcp = new TcpClient(mac.AddressFamily) { NoDelay = true, SendBufferSize = 4 * 1024 * 1024 };
             _tcp = tcp;
             if (!tcp.ConnectAsync(mac, port).Wait(TimeSpan.FromSeconds(4)))
-                throw new IOException(T("Mac nie przyjął połączenia strumienia okien.", "The Mac did not accept the window stream connection."));
+                throw new IOException(T("The Mac did not accept the window stream connection.", pl: "Mac nie przyjął połączenia strumienia okien."));
             tcp.Client.SendTimeout = 5000;
             stream = tcp.GetStream();
             stream.Write(token);
@@ -156,8 +156,8 @@ public sealed class WinViewStreamer : IDisposable
             device = CreateDevice(deviceName);
             if (!WindowCapture.IsSupported)
             {
-                failure = T("Ten system nie obsługuje nagrywania pojedynczych okien (Windows.Graphics.Capture).",
-                    "This system does not support capturing individual windows (Windows.Graphics.Capture).");
+                failure = T("This system does not support capturing individual windows (Windows.Graphics.Capture).",
+                    pl: "Ten system nie obsługuje nagrywania pojedynczych okien (Windows.Graphics.Capture).");
             }
             else
             {
@@ -167,13 +167,13 @@ public sealed class WinViewStreamer : IDisposable
         catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException or AggregateException
                                        or SharpGenException or InvalidOperationException or COMException)
         {
-            if (_running) failure = T("Strumień okien: ", "Window stream: ") + (ex.InnerException ?? ex).Message;
+            if (_running) failure = T("Window stream: ", pl: "Strumień okien: ") + (ex.InnerException ?? ex).Message;
         }
         catch (Exception ex)
         {
             // Nieoczekiwany błąd kończy strumień (z opisem w Dzienniku), a nie całą aplikację.
             CrashLog.Write(ex);
-            if (_running) failure = T("Strumień okien – nieoczekiwany błąd: ", "Window stream — unexpected error: ") + ex.GetType().Name + ": " + ex.Message;
+            if (_running) failure = T("Window stream — unexpected error: ", pl: "Strumień okien – nieoczekiwany błąd: ") + ex.GetType().Name + ": " + ex.Message;
         }
         finally
         {
@@ -191,7 +191,7 @@ public sealed class WinViewStreamer : IDisposable
         if (_running)
         {
             _running = false;
-            Failed?.Invoke(failure ?? T("Strumień okien zakończony.", "The window stream ended."));
+            Failed?.Invoke(failure ?? T("The window stream ended.", pl: "Strumień okien zakończony."));
         }
     }
 
@@ -457,7 +457,7 @@ public sealed class WinViewStreamer : IDisposable
                 }
             }
         }
-        throw new InvalidOperationException(T("Nie znaleziono monitora wirtualnego w DXGI.", "The virtual monitor was not found in DXGI."));
+        throw new InvalidOperationException(T("The virtual monitor was not found in DXGI.", pl: "Nie znaleziono monitora wirtualnego w DXGI."));
     }
 }
 

@@ -16,8 +16,8 @@ internal static class UpdateSignatureVerifier
     {
         if (sha256.Length != 32 || signature.Length is < 64 or > 80 || !IsValid(sha256, signature))
             throw new InvalidDataException(T(
-                "Podpis kryptograficzny pliku aktualizacji jest nieprawidłowy. Dotychczasowa aplikacja pozostaje bez zmian.",
-                "The update artifact signature is invalid. The installed app was not changed."));
+                "The update artifact signature is invalid. The installed app was not changed.",
+                pl: "Podpis kryptograficzny pliku aktualizacji jest nieprawidłowy. Dotychczasowa aplikacja pozostaje bez zmian."));
     }
 
     internal static bool VerifyData(ReadOnlySpan<byte> data, ReadOnlySpan<byte> signature)

@@ -18,8 +18,8 @@ public sealed class ClipboardContent
     public ReadOnlyMemory<byte> Data { get; }
     public string? Text => Format == ClipboardFormat.Utf8Text ? StrictUtf8.GetString(Data.Span) : null;
     public string Summary => Text is { } text
-        ? T($"{text.Length} zn.", $"{text.Length} characters")
-        : T($"obraz PNG ({(Data.Length + 1023) / 1024} KiB)", $"PNG image ({(Data.Length + 1023) / 1024} KiB)");
+        ? T($"{text.Length} characters", pl: $"{text.Length} zn.")
+        : T($"PNG image ({(Data.Length + 1023) / 1024} KiB)", pl: $"obraz PNG ({(Data.Length + 1023) / 1024} KiB)");
 
     private ClipboardContent(ClipboardFormat format, byte[] data)
     {

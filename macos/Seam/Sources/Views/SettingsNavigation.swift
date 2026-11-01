@@ -2,21 +2,23 @@ import SwiftUI
 
 /// Pages of the settings view that takes over the main window.
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, updates, advanced
+    case general, license, updates, advanced
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .general: return L10n.text("Ogólne", "General")
-        case .updates: return L10n.text("Aktualizacje", "Updates")
-        case .advanced: return L10n.text("Zaawansowane", "Advanced")
+        case .general: return L10n.text("General", pl: "Ogólne")
+        case .license: return L10n.text("License", pl: "Licencja")
+        case .updates: return L10n.text("Updates", pl: "Aktualizacje")
+        case .advanced: return L10n.text("Advanced", pl: "Zaawansowane")
         }
     }
 
     var symbol: String {
         switch self {
         case .general: return "gearshape.fill"
+        case .license: return "checkmark.seal.fill"
         case .updates: return "arrow.down.circle.fill"
         case .advanced: return "slider.horizontal.3"
         }
@@ -25,7 +27,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     /// Extra words the sidebar search matches, in both languages.
     private var keywords: [String] {
         switch self {
-        case .general: return ["nazwa", "name", "mac", "logowanie", "login", "autostart", "okno", "window", "menu"]
+        case .general: return ["nazwa", "name", "mac", "logowanie", "login", "autostart", "okno", "window", "menu", "język", "language"]
+        case .license: return ["pro", "licencja", "license", "klucz", "key", "trial", "próbny", "kup", "buy", "zakup", "purchase"]
         case .updates: return ["wersja", "version", "aktualizacja", "update", "kanał", "channel", "github", "restart"]
         case .advanced: return ["port", "tcp", "sieć", "network", "certyfikat", "certificate", "podpis", "signing", "codesign"]
         }
@@ -67,7 +70,7 @@ struct SettingsCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .appSettings) {
-            Button(L10n.text("Ustawienia…", "Settings…")) {
+            Button(L10n.text("Settings…", pl: "Ustawienia…")) {
                 openWindow(id: "main")
                 SettingsNavigation.shared.toggle()
             }

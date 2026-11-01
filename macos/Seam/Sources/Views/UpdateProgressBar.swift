@@ -29,7 +29,7 @@ struct UpdateProgressBar: View {
         }
         .frame(height: trackHeight + 6)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L10n.text("Postęp aktualizacji", "Update progress"))
+        .accessibilityLabel(L10n.text("Update progress", pl: "Postęp aktualizacji"))
         .accessibilityValue(Text(progress.value, format: .percent.precision(.fractionLength(0))))
     }
 }

@@ -67,11 +67,11 @@ final class PairingKeyStore {
     private var storedKey: Data
 
     private init() {
-        if let existing = Self.read(service: service, account: account), existing.count == 16 {
+        if let existing = Keychain.read(service: service, account: account), existing.count == 16 {
             storedKey = existing
         } else {
             storedKey = Self.randomKey()
-            storageError = Self.write(storedKey, service: service, account: account)
+            storageError = Keychain.write(storedKey, service: service, account: account)
         }
     }
 
@@ -81,7 +81,7 @@ final class PairingKeyStore {
     @discardableResult
     func regenerate() -> String? {
         let next = Self.randomKey()
-        if let error = Self.write(next, service: service, account: account) {
+        if let error = Keychain.write(next, service: service, account: account) {
             storageError = error
             return error
         }
@@ -100,37 +100,6 @@ final class PairingKeyStore {
         return data
     }
 
-    private static func read(service: String, account: String) -> Data? {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { return nil }
-        return item as? Data
-    }
-
-    private static func write(_ data: Data, service: String, account: String) -> String? {
-        let identity: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecAttrAccount: account,
-        ]
-        let update: [CFString: Any] = [
-            kSecValueData: data,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-        ]
-        let updateStatus = SecItemUpdate(identity as CFDictionary, update as CFDictionary)
-        if updateStatus == errSecSuccess { return nil }
-        guard updateStatus == errSecItemNotFound else { return "Keychain: błąd \(updateStatus)" }
-        var item = identity
-        item.merge(update) { _, new in new }
-        let status = SecItemAdd(item as CFDictionary, nil)
-        return status == errSecSuccess ? nil : "Keychain: błąd \(status)"
-    }
 }
 
 enum ControlCrypto {
@@ -260,5 +229,49 @@ final class SecureSession {
     private static func littleEndian(_ value: UInt64) -> Data {
         var v = value.littleEndian
         return withUnsafeBytes(of: &v) { Data($0) }
+    }
+}
+
+/// Elementy Pęku kluczy dostępne tylko na tym Macu (sekret parowania, licencja).
+enum Keychain {
+    static func read(service: String, account: String) -> Data? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { return nil }
+        return item as? Data
+    }
+
+    static func write(_ data: Data, service: String, account: String) -> String? {
+        let identity: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+        ]
+        let update: [CFString: Any] = [
+            kSecValueData: data,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+        let updateStatus = SecItemUpdate(identity as CFDictionary, update as CFDictionary)
+        if updateStatus == errSecSuccess { return nil }
+        guard updateStatus == errSecItemNotFound else { return L10n.text("Keychain error \(updateStatus)", pl: "Keychain: błąd \(updateStatus)") }
+        var item = identity
+        item.merge(update) { _, new in new }
+        let status = SecItemAdd(item as CFDictionary, nil)
+        return status == errSecSuccess ? nil : L10n.text("Keychain error \(status)", pl: "Keychain: błąd \(status)")
+    }
+
+    static func delete(service: String, account: String) {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+        ]
+        SecItemDelete(query as CFDictionary)
     }
 }

@@ -5,7 +5,7 @@ struct ClipboardPage: View {
     @Environment(AppState.self) private var state
 
     private var status: String {
-        state.settings.clipboardSyncEnabled ? state.clipboardStatus : L10n.text("Wyłączone", "Off")
+        state.settings.clipboardSyncEnabled ? state.clipboardStatus : L10n.text("Off", pl: "Wyłączone")
     }
 
     var body: some View {
@@ -22,7 +22,7 @@ struct ClipboardPage: View {
                                     .blur(radius: 70)
                                     .allowsHitTesting(false)
                             }
-                        Text(L10n.text("Kopiuj na Macu, wklejaj na Windowsie.", "Copy on the Mac, paste on Windows."))
+                        Text(L10n.text("Copy on the Mac, paste on Windows.", pl: "Kopiuj na Macu, wklejaj na Windowsie."))
                             .font(.title3).foregroundStyle(ClipboardTokens.mutedText.opacity(0.8))
                     }
                     .frame(maxWidth: .infinity)
@@ -42,10 +42,10 @@ struct ClipboardPage: View {
         @Bindable var state = state
         return VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("Schowek", "Clipboard"))
+                Text(L10n.text("Clipboard", pl: "Schowek"))
                     .font(.system(size: 40, weight: .semibold)).tracking(-1)
                     .accessibilityAddTraits(.isHeader)
-                Text(L10n.text("Kopiuj na jednym komputerze, wklejaj na drugim.", "Copy on one computer, paste on the other."))
+                Text(L10n.text("Copy on one computer, paste on the other.", pl: "Kopiuj na jednym komputerze, wklejaj na drugim."))
                     .font(.system(size: 16)).foregroundStyle(ClipboardTokens.mutedText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -55,7 +55,7 @@ struct ClipboardPage: View {
                     SeamArtwork(name: "tile-clipboard-amber").frame(width: 46, height: 46)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(L10n.text("Synchronizuj schowek", "Sync clipboard")).font(.title3.weight(.semibold))
+                        Text(L10n.text("Sync clipboard", pl: "Synchronizuj schowek")).font(.title3.weight(.semibold))
                         HStack(spacing: 7) {
                             StatusDot(ok: state.settings.clipboardSyncEnabled ? (state.peer != nil ? true : nil) : nil)
                             Text(status).font(.callout).foregroundStyle(ClipboardTokens.mutedText)
@@ -63,34 +63,39 @@ struct ClipboardPage: View {
                         }
                     }
                     Spacer(minLength: 8)
-                    Toggle(L10n.text("Synchronizuj schowek", "Sync clipboard"), isOn: $state.settings.clipboardSyncEnabled)
+                    Toggle(L10n.text("Sync clipboard", pl: "Synchronizuj schowek"), isOn: $state.settings.clipboardSyncEnabled)
                         .labelsHidden().toggleStyle(.switch)
                 }
             }
             TintedGlassCard(border: ClipboardTokens.cardBorder) {
-                Text(L10n.text("Co jest przesyłane", "What is sent")).font(.title3.weight(.semibold))
+                Text(L10n.text("What is sent", pl: "Co jest przesyłane")).font(.title3.weight(.semibold))
                 VStack(spacing: 0) {
-                    let items = [("textformat", L10n.text("Tekst", "Text")),
-                                 ("photo", L10n.text("Zdjęcia i zrzuty ekranu", "Photos and screenshots")),
-                                 ("doc.richtext", L10n.text("Obrazy do 32 MiB", "Images up to 32 MiB"))]
+                    // Tekst jest darmowy, obrazy to Seam Pro.
+                    let items = [("textformat", L10n.text("Text", pl: "Tekst"), false),
+                                 ("photo", L10n.text("Photos and screenshots", pl: "Zdjęcia i zrzuty ekranu"), true),
+                                 ("doc.richtext", L10n.text("Images up to 32 MiB", pl: "Obrazy do 32 MiB"), true)]
                     ForEach(items.indices, id: \.self) { index in
                         if index > 0 { Divider().overlay(ClipboardTokens.cardBorder).padding(.leading, 50) }
                         HStack(spacing: 14) {
                             ClipboardTypeIcon(symbol: items[index].0)
                             Text(items[index].1).font(.body)
                             Spacer(minLength: 0)
+                            if items[index].2 && !state.proUnlocked { ProBadge() }
                         }
                         .padding(.vertical, 8)
                     }
                 }
+            }
+            if !state.proUnlocked {
+                ProGateCard(border: ClipboardTokens.cardBorder, mutedText: ClipboardTokens.mutedText)
             }
             TintedGlassCard(border: ClipboardTokens.cardBorder) {
                 HStack(spacing: 12) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 18)).foregroundStyle(ClipboardTokens.light)
                         .accessibilityHidden(true)
-                    Text(L10n.text("W obie strony, tylko w sieci lokalnej, szyfrowane jak całe połączenie.",
-                                   "Both ways, on the local network only, encrypted like the whole connection."))
+                    Text(L10n.text("Both ways, on the local network only, encrypted like the whole connection.",
+                                   pl: "W obie strony, tylko w sieci lokalnej, szyfrowane jak całe połączenie."))
                         .font(.callout).foregroundStyle(ClipboardTokens.mutedText)
                         .fixedSize(horizontal: false, vertical: true)
                 }

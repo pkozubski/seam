@@ -54,7 +54,7 @@ public partial class DisplaysPage : UserControl
     private void Refresh()
     {
         var current = _vm?.SelectedMacSide.Value ?? MacSide.Left;
-        var macName = string.IsNullOrWhiteSpace(_vm?.PeerName) ? L10n.T("Twój Mac", "Your Mac") : _vm!.PeerName;
+        var macName = string.IsNullOrWhiteSpace(_vm?.PeerName) ? L10n.T("Your Mac", pl: "Twój Mac") : _vm!.PeerName;
         foreach (var (slot, side) in Slots)
         {
             var selected = side == current;
@@ -71,7 +71,7 @@ public partial class DisplaysPage : UserControl
                         new TextBlock { Text = "Mac", FontSize = 11, Opacity = 0.75, HorizontalAlignment = HorizontalAlignment.Center },
                     },
                 }
-                : new TextBlock { Text = L10n.T("Mac tutaj", "Mac here"), FontSize = 12, Opacity = 0.6 };
+                : new TextBlock { Text = L10n.T("Mac here", pl: "Mac tutaj"), FontSize = 12, Opacity = 0.6 };
             ToolTip.SetTip(slot, SideLabel(side));
             AutomationProperties.SetName(slot, SideLabel(side));
         }
@@ -80,9 +80,9 @@ public partial class DisplaysPage : UserControl
 
     private static string SideLabel(MacSide side) => side switch
     {
-        MacSide.Left => L10n.T("Mac stoi po lewej od tego ekranu", "The Mac is to the left of this screen"),
-        MacSide.Right => L10n.T("Mac stoi po prawej od tego ekranu", "The Mac is to the right of this screen"),
-        MacSide.Top => L10n.T("Mac stoi nad tym ekranem", "The Mac is above this screen"),
-        _ => L10n.T("Mac stoi pod tym ekranem", "The Mac is below this screen"),
+        MacSide.Left => L10n.T("The Mac is to the left of this screen", pl: "Mac stoi po lewej od tego ekranu"),
+        MacSide.Right => L10n.T("The Mac is to the right of this screen", pl: "Mac stoi po prawej od tego ekranu"),
+        MacSide.Top => L10n.T("The Mac is above this screen", pl: "Mac stoi nad tym ekranem"),
+        _ => L10n.T("The Mac is below this screen", pl: "Mac stoi pod tym ekranem"),
     };
 }

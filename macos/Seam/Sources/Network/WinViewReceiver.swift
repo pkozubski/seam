@@ -12,7 +12,7 @@ final class WinViewReceiver {
         var errorDescription: String? {
             switch self {
             case let .listener(message):
-                return L10n.text("Odbiornik obrazu Windows: \(message)", "Windows view receiver: \(message)")
+                return L10n.text("Windows view receiver: \(message)", pl: "Odbiornik obrazu Windows: \(message)")
             }
         }
     }
@@ -97,8 +97,8 @@ final class WinViewReceiver {
                 if connection === self.pending { self.readToken(connection) }
             case .failed(let error):
                 if connection === self.pending { self.pending = nil }
-                if connection === self.client { self.close(L10n.text("Błąd połączenia: \(error.localizedDescription)",
-                                                                     "Connection error: \(error.localizedDescription)")) }
+                if connection === self.client { self.close(L10n.text("Connection error: \(error.localizedDescription)",
+                                                                     pl: "Błąd połączenia: \(error.localizedDescription)")) }
             case .cancelled:
                 if connection === self.pending { self.pending = nil }
             default:
@@ -135,13 +135,13 @@ final class WinViewReceiver {
                            maximumLength: VideoStream.lengthBytes) { [weak self, weak connection] data, _, complete, error in
             guard let self, let connection, connection === self.client else { return }
             guard error == nil, let data, data.count == VideoStream.lengthBytes else {
-                self.close(complete ? L10n.text("Windows zamknął strumień okien.", "Windows closed the window stream.")
-                                    : L10n.text("Przerwane połączenie strumienia okien.", "The window stream connection was interrupted."))
+                self.close(complete ? L10n.text("Windows closed the window stream.", pl: "Windows zamknął strumień okien.")
+                                    : L10n.text("The window stream connection was interrupted.", pl: "Przerwane połączenie strumienia okien."))
                 return
             }
             let length = data.withUnsafeBytes { Int(UInt32(littleEndian: $0.loadUnaligned(as: UInt32.self))) }
             guard length >= VideoStream.counterBytes + VideoStream.tagBytes, length <= VideoStream.maxRecordBytes else {
-                self.close(L10n.text("Nieprawidłowy rekord strumienia okien.", "Invalid window stream record."))
+                self.close(L10n.text("Invalid window stream record.", pl: "Nieprawidłowy rekord strumienia okien."))
                 return
             }
             self.readBody(connection, length: length)
@@ -152,11 +152,11 @@ final class WinViewReceiver {
         connection.receive(minimumIncompleteLength: length, maximumLength: length) { [weak self, weak connection] data, _, _, error in
             guard let self, let connection, connection === self.client else { return }
             guard error == nil, let data, data.count == length else {
-                self.close(L10n.text("Przerwane połączenie strumienia okien.", "The window stream connection was interrupted."))
+                self.close(L10n.text("The window stream connection was interrupted.", pl: "Przerwane połączenie strumienia okien."))
                 return
             }
             guard let clear = self.opener.open(data) else {
-                self.close(L10n.text("Błąd integralności strumienia okien.", "Window stream integrity check failed."))
+                self.close(L10n.text("Window stream integrity check failed.", pl: "Błąd integralności strumienia okien."))
                 return
             }
             self.framesReceived &+= 1

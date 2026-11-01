@@ -116,7 +116,7 @@ final class ControlServer {
     private func accept(_ newConnection: NWConnection) {
         guard connection == nil, DispatchTime.now() >= blockedUntil else {
             newConnection.start(queue: queue)
-            newConnection.send(content: Frame.reject("Serwer jest zajęty lub chwilowo zablokowany"),
+            newConnection.send(content: Frame.reject(RejectReason.busy),
                                completion: .contentProcessed { _ in newConnection.cancel() })
             return
         }
@@ -170,7 +170,7 @@ final class ControlServer {
             if let data, !data.isEmpty {
                 self.inbox.append(contentsOf: data)
                 if self.inbox.count > ProtocolConstants.maxWireFrame + 6 {
-                    self.failAuthentication(on: connection, reason: "Przekroczono limit ramki")
+                    self.failAuthentication(on: connection, reason: RejectReason.frameTooLarge)
                     return
                 }
                 self.drainInbox(connection)
@@ -197,7 +197,7 @@ final class ControlServer {
                     | (UInt32(inbox[cursor + 5]) << 24)
                 guard rawLength <= UInt32(ProtocolConstants.maxWireFrame) else {
                     flushMessages()
-                    failAuthentication(on: connection, reason: "Nieprawidłowa długość ramki")
+                    failAuthentication(on: connection, reason: RejectReason.badFrameLength)
                     return
                 }
                 length = Int(rawLength)
@@ -227,7 +227,7 @@ final class ControlServer {
 
     private func handle(typeByte: UInt8, payload: [UInt8], connection: NWConnection) {
         guard let type = MessageType(rawValue: typeByte) else {
-            failAuthentication(on: connection, reason: "Nieznany typ wiadomości")
+            failAuthentication(on: connection, reason: RejectReason.unknownMessage)
             return
         }
         if let session = secureSession, peer != nil {
@@ -235,7 +235,7 @@ final class ControlServer {
                   let clear = session.open(Data(payload)),
                   let (innerType, innerPayload) = Frame.parseSingle(clear),
                   !Self.isHandshake(innerType) else {
-                failAuthentication(on: connection, reason: "Błąd integralności sesji")
+                failAuthentication(on: connection, reason: RejectReason.integrity)
                 return
             }
             handleAuthenticated(innerType, payload: innerPayload, connection: connection, session: session)
@@ -250,13 +250,13 @@ final class ControlServer {
             guard type == .hello,
                   payload.count >= 1 + ControlCrypto.nonceBytes,
                   payload[0] == ProtocolConstants.version else {
-                failAuthentication(on: connection, reason: "Wymagany jest bezpieczny protokół v2")
+                failAuthentication(on: connection, reason: RejectReason.secureProtocolRequired)
                 return
             }
             let clientNonce = Data(payload[1..<(1 + ControlCrypto.nonceBytes)])
             let nameBytes = payload.dropFirst(1 + ControlCrypto.nonceBytes)
             guard nameBytes.count <= 200 else {
-                failAuthentication(on: connection, reason: "Nieprawidłowa nazwa urządzenia")
+                failAuthentication(on: connection, reason: RejectReason.badDeviceName)
                 return
             }
             let address = peerAddress(connection)
@@ -265,7 +265,7 @@ final class ControlServer {
             let serverNonce = ControlCrypto.randomNonce()
             let secret = pairingKey()
             guard secret.count == 16 else {
-                failAuthentication(on: connection, reason: "Brak kodu parowania na Macu")
+                failAuthentication(on: connection, reason: RejectReason.noPairingCode)
                 return
             }
             let proof = ControlCrypto.proof(secret: secret, role: "server", clientNonce: clientNonce, serverNonce: serverNonce)
@@ -283,7 +283,7 @@ final class ControlServer {
             guard type == .authenticate,
                   payload.count == ControlCrypto.proofBytes,
                   ControlCrypto.constantTimeEqual(Data(payload), expected) else {
-                failAuthentication(on: connection, reason: "Kod parowania jest nieprawidłowy")
+                failAuthentication(on: connection, reason: RejectReason.wrongPairingCode)
                 return
             }
             handshakeTimeout?.cancel()

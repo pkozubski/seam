@@ -51,6 +51,8 @@ enum MessageType: UInt8 {
     case ping = 0x50
     case pong = 0x51
     case status = 0x60
+    /// Windows → Mac, tylko gdy Mac ma bit `peerStatus` w STATUS.
+    case peerStatus = 0x61
     case clipboard = 0x70
     case displayStart = 0x80
     case displayStop = 0x81
@@ -116,15 +118,20 @@ enum ScreenEdge: UInt8, CaseIterable {
         case .bottom: return .top
         }
     }
+}
 
-    var localizedName: String {
-        switch self {
-        case .left: return "lewej"
-        case .right: return "prawej"
-        case .top: return "górnej"
-        case .bottom: return "dolnej"
-        }
-    }
+/// Powody w ramce REJECT. To wartości protokołu, nie napisy interfejsu: Windows rozpoznaje je
+/// po dokładnym tekście (`ControlClient.Handle`), więc zostają po polsku i nie idą przez `L10n`.
+enum RejectReason {
+    static let busy = "Serwer jest zajęty lub chwilowo zablokowany"
+    static let frameTooLarge = "Przekroczono limit ramki"
+    static let badFrameLength = "Nieprawidłowa długość ramki"
+    static let unknownMessage = "Nieznany typ wiadomości"
+    static let integrity = "Błąd integralności sesji"
+    static let secureProtocolRequired = "Wymagany jest bezpieczny protokół v2"
+    static let badDeviceName = "Nieprawidłowa nazwa urządzenia"
+    static let noPairingCode = "Brak kodu parowania na Macu"
+    static let wrongPairingCode = "Kod parowania jest nieprawidłowy"
 }
 
 enum AudioSampleFormat: UInt8 {
@@ -153,6 +160,17 @@ struct ExtendedStatusFlags: OptionSet {
     let rawValue: UInt8
     /// Mac pokazuje aplikacje Windows jako osobne aplikacje w Docku (WINVIEW_APP, numer aplikacji przy oknie).
     static let winViewApps = ExtendedStatusFlags(rawValue: 1 << 0)
+    /// Mac ma licencję Pro albo trwający trial.
+    static let proEntitled = ExtendedStatusFlags(rawValue: 1 << 1)
+    /// Mac rozumie `PEER_STATUS` – starsza wersja zerwałaby sesję na nieznanej ramce.
+    static let peerStatus = ExtendedStatusFlags(rawValue: 1 << 2)
+}
+
+/// Flagi `PEER_STATUS` (Windows → Mac).
+struct PeerStatusFlags: OptionSet {
+    let rawValue: UInt8
+    /// Komputer z Windows ma licencję Pro albo trwający trial.
+    static let proEntitled = PeerStatusFlags(rawValue: 1 << 0)
 }
 
 /// Okno Windows leżące na wirtualnym monitorze Windows (sterownik Virtual Display Driver),
@@ -508,6 +526,10 @@ enum Frame {
     /// Drugi bajt jest opcjonalny – starsze wersje Windows czytają tylko pierwszy.
     static func status(_ flags: StatusFlags, extended: ExtendedStatusFlags = []) -> Data {
         make(.status, [flags.rawValue, extended.rawValue])
+    }
+
+    static func peerStatus(_ flags: PeerStatusFlags) -> Data {
+        make(.peerStatus, [flags.rawValue])
     }
 
     /// Użytkownik wybrał aplikację Windows w Docku albo Cmd+Tab – Windows aktywuje to okno.

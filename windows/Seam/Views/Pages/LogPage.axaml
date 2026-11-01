@@ -5,8 +5,8 @@
              x:DataType="vm:MainViewModel">
     <Grid RowDefinitions="Auto,*" Margin="24,20,24,20">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-            <TextBlock Classes="pageTitle" Text="Dziennik" />
-            <Button Grid.Column="1" Content="Wyczyść" Command="{Binding ClearLogCommand}" VerticalAlignment="Center" />
+            <TextBlock Classes="pageTitle" Text="Diagnostics" />
+            <Button Grid.Column="1" Content="Clear" Command="{Binding ClearLogCommand}" VerticalAlignment="Center" />
         </Grid>
         <Border Grid.Row="1" Classes="card">
             <ScrollViewer>

@@ -13,7 +13,7 @@ public partial class WindowsPage : UserControl
     private static readonly string[] Watched =
     {
         nameof(MainViewModel.SelectedMacSide), nameof(MainViewModel.IsConnected), nameof(MainViewModel.IsConnecting),
-        nameof(MainViewModel.PeerName), nameof(MainViewModel.WindowSharingEnabled),
+        nameof(MainViewModel.PeerName), nameof(MainViewModel.WindowSharingEnabled), nameof(MainViewModel.WindowSharingSwitch),
     };
 
     internal Control FullGuide => GuideContent;
@@ -55,29 +55,29 @@ public partial class WindowsPage : UserControl
         var mac = string.IsNullOrWhiteSpace(_vm?.PeerName) ? "Mac" : _vm!.PeerName;
         var pc = Environment.MachineName;
 
-        MasterLabel.Text = _vm?.WindowSharingEnabled ?? false
-            ? L10n.T("Przenoszenie okien włączone", "Window moving is on")
-            : L10n.T("Przenoszenie okien wyłączone", "Window moving is off");
+        MasterLabel.Text = _vm?.WindowSharingSwitch ?? false
+            ? L10n.T("Window moving is on", pl: "Przenoszenie okien włączone")
+            : L10n.T("Window moving is off", pl: "Przenoszenie okien wyłączone");
 
         MacName.Text = mac;
         PcName.Text = pc;
         (ConnectionTitle.Text, ConnectionSubtitle.Text) = (_vm?.IsConnected, _vm?.IsConnecting) switch
         {
-            (true, _) => (L10n.T("Urządzenia są połączone", "Your devices are connected"),
-                          L10n.T($"{mac} i {pc} są gotowe.", $"{mac} and {pc} are ready.")),
-            (_, true) => (L10n.T("Łączenie z Makiem…", "Connecting to the Mac…"),
-                          L10n.T("Za chwilę oba komputery będą gotowe.", "Both computers will be ready in a moment.")),
-            _ => (L10n.T("Urządzenia nie są połączone", "Your devices are not connected"),
-                  L10n.T("Uruchom Seam na Macu albo sprawdź adres w ustawieniach połączenia.",
-                         "Start Seam on the Mac or check the address in connection settings.")),
+            (true, _) => (L10n.T("Your devices are connected", pl: "Urządzenia są połączone"),
+                          L10n.T($"{mac} and {pc} are ready.", pl: $"{mac} i {pc} są gotowe.")),
+            (_, true) => (L10n.T("Connecting to the Mac…", pl: "Łączenie z Makiem…"),
+                          L10n.T("Both computers will be ready in a moment.", pl: "Za chwilę oba komputery będą gotowe.")),
+            _ => (L10n.T("Your devices are not connected", pl: "Urządzenia nie są połączone"),
+                  L10n.T("Start Seam on the Mac or check the address in connection settings.",
+                         pl: "Uruchom Seam na Macu albo sprawdź adres w ustawieniach połączenia.")),
         };
 
         ArrangementLabel.Text = side switch
         {
-            MacSide.Left => L10n.T("Mac stoi po lewej od tego ekranu", "The Mac is to the left of this screen"),
-            MacSide.Right => L10n.T("Mac stoi po prawej od tego ekranu", "The Mac is to the right of this screen"),
-            MacSide.Top => L10n.T("Mac stoi nad tym ekranem", "The Mac is above this screen"),
-            _ => L10n.T("Mac stoi pod tym ekranem", "The Mac is below this screen"),
+            MacSide.Left => L10n.T("The Mac is to the left of this screen", pl: "Mac stoi po lewej od tego ekranu"),
+            MacSide.Right => L10n.T("The Mac is to the right of this screen", pl: "Mac stoi po prawej od tego ekranu"),
+            MacSide.Top => L10n.T("The Mac is above this screen", pl: "Mac stoi nad tym ekranem"),
+            _ => L10n.T("The Mac is below this screen", pl: "Mac stoi pod tym ekranem"),
         };
         BuildLayoutTiles(side);
     }

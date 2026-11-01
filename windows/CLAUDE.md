@@ -20,7 +20,8 @@ Agent nie widzi ekranu, ale może czytać pliki PNG. Są dwa sposoby:
    ```
    Strony: `connection, displays, control, audio, clipboard, windows, settings, log`
    (`MainWindow.PageTags`). Skrypt wypisuje ścieżki PNG; obejrzyj je narzędziem Read.
-   Pod spodem: `Seam.exe --screenshot plik.png [--screenshot-section tag] [--screenshot-full-page]`
+   Pod spodem: `Seam.exe --screenshot plik.png [--screenshot-section tag] [--screenshot-full-page]
+   [--screenshot-license free|trial|expired|pro]` (domyślnie `pro`)
    (`App.axaml.cs`, `HandleScreenshotFlag`), uruchamia `StartOffline()`: bez wykrywania, połączenia i dźwięku.
    Gdy dodajesz nową stronę lub stan, który ma być widoczny w podglądzie, dodaj dane demo w `StartOffline()`.
 2. **Zrzut działającej aplikacji** (prawdziwe połączenie z Makiem):
@@ -76,7 +77,7 @@ windows/Seam/
   Audio/               AudioPlayer (NAudio WASAPI), JitterBufferProvider
   Security/            PairingSecurity (DPAPI, HMAC/HKDF, AES-GCM), UpdateSignatureVerifier (ECDSA)
   Models/              Settings (%APPDATA%\BorderlessMouse\settings.json), Autostart (klucz Run)
-  Localization/L10n.cs T("pl","en") + słownik tekstów XAML
+  Localization/L10n.cs T("en", pl: "pl") + słownik tekstów XAML (angielski → polski)
 ```
 
 ## Zasady specyficzne dla Windows

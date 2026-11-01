@@ -26,6 +26,8 @@ jobs:
         run: bash macos/tests/update-check.sh
       - name: Verify pairing, encrypted sessions and signed update artifacts
         run: bash macos/tests/security-check.sh
+      - name: License checks
+        run: bash macos/tests/license-check.sh
       - uses: actions/upload-artifact@v4
         with:
           name: Seam-macOS-ci

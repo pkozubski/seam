@@ -18,9 +18,9 @@ struct SidebarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
                     row(.connection)
-                    header(L10n.text("Funkcje", "Features"))
+                    header(L10n.text("Features", pl: "Funkcje"))
                     ForEach([SidebarSection.control, .audio, .clipboard, .windows]) { row($0) }
-                    header(L10n.text("System", "System"))
+                    header(L10n.text("System", pl: "System"))
                     row(.permissions, attention: missingPermissions > 0)
                     row(.log)
                 }
@@ -39,13 +39,13 @@ struct SidebarView: View {
                         .overlay(alignment: .trailing) { UpdateBadge(updater: state.updater).padding(.trailing, 6) }
                 }
                 .buttonStyle(.plain)
-                .help(L10n.text("Ustawienia (⌘,)", "Settings (⌘,)"))
+                .help(L10n.text("Settings (⌘,)", pl: "Ustawienia (⌘,)"))
                 VStack(alignment: .leading, spacing: 10) {
                     Divider()
                     Label(state.settings.deviceName, systemImage: "laptopcomputer")
                         .font(.callout.weight(.medium))
                         .lineLimit(1)
-                    Label("Tylko w sieci lokalnej", systemImage: "lock.fill")
+                    Label("Only on your local network", systemImage: "lock.fill")
                         .font(.caption).foregroundStyle(.secondary)
                     Text("seam · \(Updater.currentVersion)")
                         .font(.caption).foregroundStyle(.tertiary)

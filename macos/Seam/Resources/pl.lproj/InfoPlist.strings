@@ -1,0 +1,2 @@
+"NSAudioCaptureUsageDescription" = "Seam przechwytuje dźwięk systemowy Maca, aby przesłać go do komputera z Windows.";
+"NSLocalNetworkUsageDescription" = "Seam komunikuje się z komputerem z Windows w sieci lokalnej (klawiatura, mysz, dźwięk).";

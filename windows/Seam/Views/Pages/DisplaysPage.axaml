@@ -6,14 +6,14 @@
     <ScrollViewer>
         <StackPanel Classes="page">
             <StackPanel Spacing="4">
-                <TextBlock Classes="pageTitle" Text="Ustaw ekrany tak, jak stoją na biurku" />
-                <TextBlock Classes="pageSubtitle" Text="Kliknij miejsce obok tego monitora, w którym stoi Mac. Kursor przechodzi na Maca przez tę krawędź." />
+                <TextBlock Classes="pageTitle" Text="Arrange the screens the way they sit on your desk" />
+                <TextBlock Classes="pageSubtitle" Text="Click the spot next to this monitor where the Mac sits. The pointer moves to the Mac across that edge." />
             </StackPanel>
 
             <Border Classes="card">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="UKŁAD EKRANÓW" />
+                        <TextBlock Text="SCREEN LAYOUT" />
                     </StackPanel>
                     <Border Classes="stage" Padding="24">
                         <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto,Auto"
@@ -24,7 +24,7 @@
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
                                     <TextBlock x:Name="ThisPcName" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                     <Border Classes="pill" HorizontalAlignment="Center">
-                                        <TextBlock Text="Ten komputer" FontSize="11" />
+                                        <TextBlock Text="This PC" FontSize="11" />
                                     </Border>
                                 </StackPanel>
                             </Border>
@@ -33,14 +33,14 @@
                         </Grid>
                     </Border>
                     <TextBlock Classes="subtitle" HorizontalAlignment="Center"
-                               Text="Przy kilku monitorach przejście prowadzi przez ten, który jest najdalej po wybranej stronie." />
+                               Text="With several monitors, the handoff uses the one furthest towards the chosen side." />
                 </StackPanel>
             </Border>
 
             <Border Classes="card">
                 <StackPanel Spacing="12">
                     <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="PRZEJŚCIE KURSORA" />
+                        <TextBlock Text="POINTER HANDOFF" />
                     </StackPanel>
                     <Grid ColumnDefinitions="*,Auto" MinHeight="44">
                         <StackPanel VerticalAlignment="Center" Spacing="2" Margin="0,0,12,0">

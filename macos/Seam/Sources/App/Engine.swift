@@ -26,6 +26,8 @@ final class Engine {
         case listening(Bool, String?)
         case peerConnected(ControlServer.PeerInfo)
         case peerDisconnected
+        /// Połączony PC ma Seam Pro albo trial (`PEER_STATUS`).
+        case peerPro(Bool)
         case cursorOnMac(Bool)
         case audioStarted(String)
         case audioStopped
@@ -62,6 +64,11 @@ final class Engine {
     private var peer: ControlServer.PeerInfo?
     private var statsTimer: DispatchSourceTimer?
     private var accessibilityGranted = false
+    /// Ten Mac ma licencję Pro albo trial (`LicenseManager`).
+    private var localPro = false
+    /// Połączony PC ma licencję Pro albo trial (`PEER_STATUS`); jedna licencja wystarcza parze.
+    private var peerPro = false
+    private var sessionPro: Bool { localPro || peerPro }
     private var audioGeneration: UInt64 = 0
     private let audioQueue = DispatchQueue(label: "blm.audio.control", qos: .userInitiated)
     private let display = DisplayStreamer()
@@ -124,11 +131,11 @@ final class Engine {
             self.server.start(port: self.config.controlPort)
             do {
                 try self.discovery.start()
-                self.emit(.log(L10n.text("Discovery UDP nasłuchuje na porcie \(ProtocolConstants.discoveryPort)",
-                                         "Discovery is listening on UDP port \(ProtocolConstants.discoveryPort)")))
+                self.emit(.log(L10n.text("Discovery is listening on UDP port \(ProtocolConstants.discoveryPort)",
+                                         pl: "Discovery UDP nasłuchuje na porcie \(ProtocolConstants.discoveryPort)")))
             } catch {
-                self.emit(.log(L10n.text("Discovery UDP nie wystartował: \(error.localizedDescription)",
-                                         "Discovery could not start: \(error.localizedDescription)")))
+                self.emit(.log(L10n.text("Discovery could not start: \(error.localizedDescription)",
+                                         pl: "Discovery UDP nie wystartował: \(error.localizedDescription)")))
             }
         }
     }
@@ -178,8 +185,8 @@ final class Engine {
                 self.restartAudio()
             }
             if old.displayEnabled && !newConfig.displayEnabled, self.displayRunning != nil {
-                self.stopDisplayLocked(notify: true, reason: L10n.text("Ekran wirtualny wyłączono na Macu.",
-                                                                      "The virtual display was turned off on the Mac."))
+                self.stopDisplayLocked(notify: true, reason: L10n.text("The virtual display was turned off on the Mac.",
+                                                                      pl: "Ekran wirtualny wyłączono na Macu."))
             }
             if old.clipboardSync != newConfig.clipboardSync {
                 if newConfig.clipboardSync, self.peer != nil { self.clipboard.start() } else { self.clipboard.stop() }
@@ -187,6 +194,30 @@ final class Engine {
             self.sendStatus()
         }
     }
+
+    func setProEntitled(_ entitled: Bool) {
+        eventsQueue.async {
+            guard self.localPro != entitled else { return }
+            let wasPro = self.sessionPro
+            self.localPro = entitled
+            self.applySessionPro(wasPro: wasPro)
+            self.sendStatus()
+        }
+    }
+
+    /// Koniec Pro w trakcie sesji (koniec trialu, zwrot) zatrzymuje funkcje Pro; tekst w schowku działa dalej.
+    private func applySessionPro(wasPro: Bool) {
+        guard wasPro, !sessionPro else { return }
+        let reason = Self.proRequiredMessage
+        stopAudioLocked(notify: true)
+        if displayRunning != nil { stopDisplayLocked(notify: true, reason: reason) }
+        stopWinViewLocked(reason: winView == nil ? nil : reason)
+        emit(.log(L10n.text("Seam Pro ended: audio, windows and images in the clipboard are paused",
+                            pl: "Seam Pro wygasł: dźwięk, okna i obrazy w schowku są wstrzymane")))
+    }
+
+    static let proRequiredMessage = L10n.text("This feature needs Seam Pro. Start a free trial or buy Pro in Seam on either computer.",
+                                              pl: "Ta funkcja wymaga Seam Pro. Rozpocznij darmowy okres próbny albo kup Pro w Seam na dowolnym komputerze.")
 
     func setAccessibilityGranted(_ granted: Bool) {
         eventsQueue.async {
@@ -206,7 +237,7 @@ final class Engine {
 
     func stopDisplay() {
         eventsQueue.async {
-            self.stopDisplayLocked(notify: true, reason: L10n.text("Zatrzymano na Macu.", "Stopped on the Mac."))
+            self.stopDisplayLocked(notify: true, reason: L10n.text("Stopped on the Mac.", pl: "Zatrzymano na Macu."))
         }
     }
 
@@ -229,29 +260,30 @@ final class Engine {
 
         server.onListeningChanged = { [weak self] ok, error in
             self?.emit(.listening(ok, error))
-            if ok { self?.emit(.log(L10n.text("Nasłuchiwanie TCP na porcie \(self?.config.controlPort ?? 0)",
-                                               "Listening on TCP port \(self?.config.controlPort ?? 0)"))) }
-            if let error { self?.emit(.log(L10n.text("Błąd nasłuchiwania: \(error)", "Listener error: \(error)"))) }
+            if ok { self?.emit(.log(L10n.text("Listening on TCP port \(self?.config.controlPort ?? 0)",
+                                               pl: "Nasłuchiwanie TCP na porcie \(self?.config.controlPort ?? 0)"))) }
+            if let error { self?.emit(.log(L10n.text("Listener error: \(error)", pl: "Błąd nasłuchiwania: \(error)"))) }
         }
         server.onPeerConnected = { [weak self] info in
             guard let self else { return }
             self.peer = info
             if self.config.clipboardSync { self.clipboard.start() }
             self.emit(.peerConnected(info))
-            self.emit(.log(L10n.text("Połączono: \(info.name) (\(info.address))",
-                                     "Connected: \(info.name) (\(info.address))")))
+            self.emit(.log(L10n.text("Connected: \(info.name) (\(info.address))",
+                                     pl: "Połączono: \(info.name) (\(info.address))")))
             self.sendStatus()
         }
         server.onPeerDisconnected = { [weak self] in
             guard let self else { return }
             self.peer = nil
+            self.peerPro = false
             self.clipboard.stop()
             self.injector.deactivate()
             self.stopAudioLocked(notify: true)
             self.stopDisplayLocked(notify: true, reason: nil)
             self.stopWinViewLocked(reason: nil)
             self.emit(.peerDisconnected)
-            self.emit(.log(L10n.text("Rozłączono", "Disconnected")))
+            self.emit(.log(L10n.text("Disconnected", pl: "Rozłączono")))
         }
         server.onMessage = { [weak self] type, payload, sessionKeys in
             self?.handle(type, payload, sessionKeys: sessionKeys)
@@ -295,6 +327,7 @@ final class Engine {
             guard let self else { return }
             self.eventsQueue.async {
                 guard self.config.clipboardSync, self.peer != nil else { return }
+                guard content.format == .utf8Text || self.sessionPro else { return }
                 self.server.send(Frame.clipboard(content))
                 self.emit(.clipboardSent(summary: content.summary))
             }
@@ -328,7 +361,9 @@ final class Engine {
         if VirtualDisplay.isSupported { flags.insert(.windowModeSupported) }
         flags.insert(.winViewSupported)
         // Bez programu pomocnika w pakiecie okna Windows zostają w Seam (jedna ikona w Docku).
-        let extended: ExtendedStatusFlags = WinAppBundles.isAvailable ? [.winViewApps] : []
+        var extended: ExtendedStatusFlags = [.peerStatus]
+        if WinAppBundles.isAvailable { extended.insert(.winViewApps) }
+        if localPro { extended.insert(.proEntitled) }
         server.send(Frame.status(flags, extended: extended))
     }
 
@@ -361,8 +396,8 @@ final class Engine {
                 // natychmiast oddaj sterowanie
                 server.send(Frame.leave(edge: edge, ratio: ratio))
                 emit(.log(config.inputEnabled
-                          ? L10n.text("Odrzucono wejście – brak uprawnienia Dostępność", "Input rejected — Accessibility permission is missing")
-                          : L10n.text("Odrzucono wejście – odbiór wyłączony w ustawieniach", "Input rejected — receiving is disabled in settings")))
+                          ? L10n.text("Input rejected — Accessibility permission is missing", pl: "Odrzucono wejście – brak uprawnienia Dostępność")
+                          : L10n.text("Input rejected — receiving is disabled in settings", pl: "Odrzucono wejście – odbiór wyłączony w ustawieniach")))
                 return
             }
             injector.enter(edge: edge, ratio: ratio)
@@ -372,7 +407,11 @@ final class Engine {
             guard let peer else { return }
             guard config.audioEnabled else {
                 server.send(Frame.audioFormat(sampleRate: 0, channels: 0, format: .int16, status: 1,
-                                              message: L10n.text("Udostępnianie dźwięku jest wyłączone na Macu", "Audio sharing is disabled on the Mac")))
+                                              message: L10n.text("Audio sharing is disabled on the Mac", pl: "Udostępnianie dźwięku jest wyłączone na Macu")))
+                return
+            }
+            guard sessionPro else {
+                server.send(Frame.audioFormat(sampleRate: 0, channels: 0, format: .int16, status: 1, message: Self.proRequiredMessage))
                 return
             }
             audioRequest = (peer.address, port, sessionKeys.audioKey, sessionKeys.audioSessionID)
@@ -381,11 +420,24 @@ final class Engine {
             stopAudioLocked(notify: true)
         case .clipboard:
             guard config.clipboardSync, let content = ClipboardContent(payload: payload) else { return }
+            // Obrazy to funkcja Pro; tekst działa zawsze.
+            guard content.format == .utf8Text || sessionPro else { return }
             clipboard.apply(content)
+        case .peerStatus:
+            let wasPro = sessionPro
+            let entitled = PeerStatusFlags(rawValue: r.u8() ?? 0).contains(.proEntitled)
+            guard entitled != peerPro else { return }
+            peerPro = entitled
+            emit(.peerPro(entitled))
+            applySessionPro(wasPro: wasPro)
         case .displayStart:
+            guard sessionPro else {
+                server.send(Frame.displayFailed(Self.proRequiredMessage))
+                return
+            }
             guard let request = DisplayStartRequest(payload: payload) else {
-                server.send(Frame.displayFailed(L10n.text("Nieprawidłowa prośba o ekran wirtualny.",
-                                                          "Invalid virtual display request.")))
+                server.send(Frame.displayFailed(L10n.text("Invalid virtual display request.",
+                                                          pl: "Nieprawidłowa prośba o ekran wirtualny.")))
                 return
             }
             startDisplay(request)
@@ -442,6 +494,10 @@ final class Engine {
             DispatchQueue.main.async { [cursorTracker] in cursorTracker.stop() }
         case .winViewStart:
             guard let raw = r.u8(), let edge = ScreenEdge(rawValue: raw) else { return }
+            guard sessionPro else {
+                server.send(Frame.winViewFailed(Self.proRequiredMessage))
+                return
+            }
             startWinView(edge: edge)
         case .winViewStop:
             stopWinViewLocked(reason: nil)
@@ -481,8 +537,8 @@ final class Engine {
 
     private func startDisplay(_ request: DisplayStartRequest) {
         guard config.displayEnabled else {
-            server.send(Frame.displayFailed(L10n.text("Ekran wirtualny jest wyłączony na Macu.",
-                                                      "The virtual display is turned off on the Mac.")))
+            server.send(Frame.displayFailed(L10n.text("The virtual display is turned off on the Mac.",
+                                                      pl: "Ekran wirtualny jest wyłączony na Macu.")))
             return
         }
         guard VirtualDisplay.isSupported else {
@@ -496,7 +552,7 @@ final class Engine {
             let message = DisplayCapture.CaptureError.permissionDenied.localizedDescription
             server.send(Frame.displayFailed(message))
             emit(.displayError(message))
-            emit(.log(L10n.text("Ekran wirtualny: \(message)", "Virtual display: \(message)")))
+            emit(.log(L10n.text("Virtual display: \(message)", pl: "Ekran wirtualny: \(message)")))
             return
         }
         displayGeneration &+= 1
@@ -504,9 +560,9 @@ final class Engine {
         displayRunning = false
         displayMode = request.mode
         displayEdge = request.edge
-        let name = L10n.text("Seam (\(peer?.name ?? "Windows"))", "Seam (\(peer?.name ?? "Windows"))")
-        emit(.log(L10n.text("Tworzenie ekranu wirtualnego \(request.pixelWidth)×\(request.pixelHeight) (skala \(request.scalePercent)%)",
-                            "Creating a \(request.pixelWidth)×\(request.pixelHeight) virtual display (\(request.scalePercent)% scale)")))
+        let name = L10n.text("Seam (\(peer?.name ?? "Windows"))", pl: "Seam (\(peer?.name ?? "Windows"))")
+        emit(.log(L10n.text("Creating a \(request.pixelWidth)×\(request.pixelHeight) virtual display (\(request.scalePercent)% scale)",
+                            pl: "Tworzenie ekranu wirtualnego \(request.pixelWidth)×\(request.pixelHeight) (skala \(request.scalePercent)%)")))
         display.start(request, name: name) { [weak self] result in
             self?.eventsQueue.async {
                 guard let self, self.displayGeneration == generation, self.peer != nil else {
@@ -524,14 +580,14 @@ final class Engine {
                                                         pixelWidth: ready.width, pixelHeight: ready.height, message: ""))
                     let desc = "\(ready.width)×\(ready.height) · H.264 \(ready.bitrate / 1_000_000) Mb/s"
                     self.emit(.displayStarted(desc, request.edge))
-                    self.emit(.log(L10n.text("Ekran wirtualny gotowy: \(desc), port \(ready.port)",
-                                             "Virtual display ready: \(desc), port \(ready.port)")))
+                    self.emit(.log(L10n.text("Virtual display ready: \(desc), port \(ready.port)",
+                                             pl: "Ekran wirtualny gotowy: \(desc), port \(ready.port)")))
                 case let .failure(error):
                     self.displayRunning = nil
                     let message = error.localizedDescription
                     self.server.send(Frame.displayFailed(message))
                     self.emit(.displayError(message))
-                    self.emit(.log(L10n.text("Ekran wirtualny: \(message)", "Virtual display: \(message)")))
+                    self.emit(.log(L10n.text("Virtual display: \(message)", pl: "Ekran wirtualny: \(message)")))
                 }
                 self.sendStatus()
             }
@@ -549,8 +605,8 @@ final class Engine {
                 let moved = WindowEvacuator.evacuate(from: displayID)
                 guard moved > 0 else { return }
                 self.eventsQueue.async {
-                    self.emit(.log(L10n.text("Przeniesiono na ekran Maca okna przywrócone przez macOS: \(moved)",
-                                             "Moved windows restored by macOS back to the Mac screen: \(moved)")))
+                    self.emit(.log(L10n.text("Moved windows restored by macOS back to the Mac screen: \(moved)",
+                                             pl: "Przeniesiono na ekran Maca okna przywrócone przez macOS: \(moved)")))
                 }
             }
         }
@@ -578,8 +634,8 @@ final class Engine {
             injector.windowLeave(keepKeyboard: false)
         }
         emit(.log(mode == .windows
-                  ? L10n.text("Ekran wirtualny: tryb okien", "Virtual display: window mode")
-                  : L10n.text("Ekran wirtualny: pełny pulpit", "Virtual display: full desktop")))
+                  ? L10n.text("Virtual display: window mode", pl: "Ekran wirtualny: tryb okien")
+                  : L10n.text("Virtual display: full desktop", pl: "Ekran wirtualny: pełny pulpit")))
     }
 
     /// Kolejka trackera: strumienie okien, lista dla Windowsa i ikony nowych aplikacji.
@@ -637,10 +693,10 @@ final class Engine {
         guard notify else { return }
         if let reason {
             emit(.displayError(reason))
-            emit(.log(L10n.text("Ekran wirtualny zatrzymany: \(reason)", "Virtual display stopped: \(reason)")))
+            emit(.log(L10n.text("Virtual display stopped: \(reason)", pl: "Ekran wirtualny zatrzymany: \(reason)")))
         } else {
             emit(.displayStopped)
-            emit(.log(L10n.text("Ekran wirtualny zatrzymany", "Virtual display stopped")))
+            emit(.log(L10n.text("Virtual display stopped", pl: "Ekran wirtualny zatrzymany")))
         }
         sendStatus()
     }
@@ -707,8 +763,8 @@ final class Engine {
                     self.server.send(Frame.winViewReady(status: 0, port: port, key: key, token: token,
                                                         screenWidth: Int(bounds.width), screenHeight: Int(bounds.height),
                                                         scalePercent: scalePercent, message: ""))
-                    self.emit(.log(L10n.text("Okna Windows: ekran \(Int(bounds.width))×\(Int(bounds.height)) pt, port \(port)",
-                                             "Windows apps: \(Int(bounds.width))×\(Int(bounds.height)) pt screen, port \(port)")))
+                    self.emit(.log(L10n.text("Windows apps: \(Int(bounds.width))×\(Int(bounds.height)) pt screen, port \(port)",
+                                             pl: "Okna Windows: ekran \(Int(bounds.width))×\(Int(bounds.height)) pt, port \(port)")))
                 case let .failure(error):
                     self.stopWinViewLocked(reason: error.localizedDescription)
                 }
@@ -724,7 +780,7 @@ final class Engine {
         session.stop()
         if let reason, peer != nil {
             server.send(Frame.winViewFailed(reason))
-            if !reason.isEmpty { emit(.log(L10n.text("Okna Windows: \(reason)", "Windows apps: \(reason)"))) }
+            if !reason.isEmpty { emit(.log(L10n.text("Windows apps: \(reason)", pl: "Okna Windows: \(reason)"))) }
         }
     }
 
@@ -738,13 +794,13 @@ final class Engine {
         audioGeneration &+= 1
         let generation = audioGeneration
         let cfg = config
-        emit(.log(L10n.text("Uruchamianie przechwytywania audio → \(host):\(port)",
-                            "Starting audio capture → \(host):\(port)")))
+        emit(.log(L10n.text("Starting audio capture → \(host):\(port)",
+                            pl: "Uruchamianie przechwytywania audio → \(host):\(port)")))
         audioQueue.async { [weak self] in
             let tap = SystemAudioTap()
             do {
                 try tap.start(muteLocal: cfg.muteLocalAudio, bufferFrames: cfg.audioBufferFrames)
-                guard let format = tap.format else { throw SystemAudioTap.TapError.unsupportedFormat(L10n.text("brak formatu", "missing format")) }
+                guard let format = tap.format else { throw SystemAudioTap.TapError.unsupportedFormat(L10n.text("missing format", pl: "brak formatu")) }
                 let sender = try AudioSender(host: host, port: port, channels: format.channels,
                                              format: .int16, key: key, sessionID: sessionID)
                 self?.eventsQueue.async {
@@ -762,14 +818,14 @@ final class Engine {
                     self.sender = sender
                     let channelDescription = format.channels == 2
                         ? "stereo"
-                        : L10n.text("\(format.channels) kan.", "\(format.channels) ch.")
+                        : L10n.text("\(format.channels) ch.", pl: "\(format.channels) kan.")
                     let desc = "\(Int(format.sampleRate)) Hz · \(channelDescription) · 16-bit → \(host):\(port)"
                     self.server.send(Frame.audioFormat(sampleRate: UInt32(format.sampleRate), channels: UInt8(format.channels),
                                                        format: .int16, status: 0, message: ""))
                     self.emit(.audioPermission(.granted))
                     self.emit(.audioStarted(desc))
-                    self.emit(.log(L10n.text("Audio: \(desc), bufor \(cfg.audioBufferFrames) ramek",
-                                             "Audio: \(desc), \(cfg.audioBufferFrames)-frame buffer")))
+                    self.emit(.log(L10n.text("Audio: \(desc), \(cfg.audioBufferFrames)-frame buffer",
+                                             pl: "Audio: \(desc), bufor \(cfg.audioBufferFrames) ramek")))
                     self.startStatsTimer()
                     self.sendStatus()
                 }
@@ -782,7 +838,7 @@ final class Engine {
                     self.server.send(Frame.audioFormat(sampleRate: 0, channels: 0, format: .int16, status: 1, message: message))
                     self.emit(.audioPermission(permission))
                     self.emit(.audioError(message))
-                    self.emit(.log(L10n.text("Błąd audio: \(message)", "Audio error: \(message)")))
+                    self.emit(.log(L10n.text("Audio error: \(message)", pl: "Błąd audio: \(message)")))
                     self.sendStatus()
                 }
             }
@@ -791,8 +847,8 @@ final class Engine {
 
     private func restartAudio() {
         guard let req = audioRequest, tap != nil else { return }
-        emit(.log(L10n.text("Restart przechwytywania audio (zmiana urządzenia/ustawień)",
-                            "Restarting audio capture after an output or setting change")))
+        emit(.log(L10n.text("Restarting audio capture after an output or setting change",
+                            pl: "Restart przechwytywania audio (zmiana urządzenia/ustawień)")))
         startAudio(host: req.host, port: req.port, key: req.key, sessionID: req.sessionID)
     }
 
@@ -810,7 +866,7 @@ final class Engine {
             sender = nil
             if notify {
                 emit(.audioStopped)
-                emit(.log(L10n.text("Audio zatrzymane", "Audio stopped")))
+                emit(.log(L10n.text("Audio stopped", pl: "Audio zatrzymane")))
                 sendStatus()
             }
         }

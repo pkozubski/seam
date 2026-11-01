@@ -41,6 +41,7 @@ dotnet run --project windows/ClipboardChecks/Seam.ClipboardChecks.csproj -c Rele
 cd macos && ./build.sh            # → macos/build/Seam.app
 bash macos/tests/clipboard-check.sh; bash macos/tests/window-check.sh
 bash macos/tests/update-check.sh;    bash macos/tests/security-check.sh
+bash macos/tests/license-check.sh
 ```
 
 CI (`.github/workflows/ci.yml`) robi to samo na `windows-latest` i `macos-26`.
@@ -70,8 +71,12 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
 
 ## Konwencje
 
-- Interfejs po polsku z angielskim tłumaczeniem: Swift `L10n.text("pl", "en")`, C# `T("pl", "en")`; teksty
-  w XAML są po polsku, a ich angielskie odpowiedniki są w słowniku w `windows/Seam/Localization/L10n.cs`.
+- Angielski jest językiem źródłowym, polski tłumaczeniem. Swift: `L10n.text("English", pl: "Polski")`, a literały
+  w `Text`/`Button`/komponentach z `LocalizedStringKey` po angielsku z tłumaczeniem w
+  `macos/Seam/Resources/pl.lproj/Localizable.strings`; język wybiera się w Ustawieniach → Ogólne (`L10n.language`).
+  Windows: C# `T("English", pl: "Polski")`, XAML po angielsku z polskim odpowiednikiem w słowniku
+  `windows/Seam/Localization/L10n.cs` (ClipboardChecks pilnuje, by żadnego nie brakowało); język w Ustawieniach
+  (`Settings.Language`). Powody w ramce REJECT to stałe protokołu (`RejectReason`), nie tłumaczymy ich.
 - Komentarze w kodzie po polsku, zwięzłe; nazwy typów i API po angielsku.
 - Wygląd obu aplikacji jest wspólny (ciemny grafit, srebrne ikony z `assets/seam/`, marka „seam” małymi literami).
   Windows (inspiracja: CleanMyMac): jedno tło pod paskiem tytułu, paskiem bocznym i treścią, szklane karty, pasek
@@ -86,3 +91,9 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
   Pasek boczny: jedna strona na sekcję, każda strona funkcji zaczyna się kartą z głównym przełącznikiem.
   Użytkownik odrzucił: podzakładki na stronach i `SettingsExpander` (Windows).
 - Najpierw makieta/zrzut do akceptacji przy większych zmianach UI; użytkownik ocenia wygląd ze zrzutów.
+- **Seam Pro** (płatne funkcje): dźwięk, okna w obie strony, obrazy w schowku; za darmo klawiatura, mysz i tekst.
+  Logika uprawnień `Licensing/Entitlement.swift` ↔ `Licensing/Entitlement.cs` (wspólne wektory
+  `tests/fixtures/entitlement.json`), licencja w Lemon Squeezy (`LicenseConfig`: dopóki `storeID`/`productID` = 0,
+  blokady są wyłączone). Pro działa, gdy uprawniona jest którakolwiek strona pary (STATUS bajt 1 bit 1 i `PEER_STATUS`).
+  Nową funkcję płatną blokuj po obu stronach (nadawca i odbiorca) i pokaż na jej stronie `ProGateCard`.
+  Podgląd stanów: Mac `--ui-license free|trial|expired|pro`, Windows `--screenshot-license …`.

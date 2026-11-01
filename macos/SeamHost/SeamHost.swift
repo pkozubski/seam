@@ -157,15 +157,15 @@ final class HostDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu(title: appName)
-        appMenu.addItem(withTitle: L10n.text("Ukryj \(appName)", "Hide \(appName)"),
+        appMenu.addItem(withTitle: L10n.text("Hide \(appName)", pl: "Ukryj \(appName)"),
                         action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        let others = appMenu.addItem(withTitle: L10n.text("Ukryj pozostałe", "Hide Others"),
+        let others = appMenu.addItem(withTitle: L10n.text("Hide Others", pl: "Ukryj pozostałe"),
                                      action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
         others.keyEquivalentModifierMask = [.command, .option]
-        appMenu.addItem(withTitle: L10n.text("Pokaż wszystkie", "Show All"),
+        appMenu.addItem(withTitle: L10n.text("Show All", pl: "Pokaż wszystkie"),
                         action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: L10n.text("Zakończ \(appName)", "Quit \(appName)"),
+        appMenu.addItem(withTitle: L10n.text("Quit \(appName)", pl: "Zakończ \(appName)"),
                         action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)

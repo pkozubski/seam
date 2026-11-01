@@ -52,8 +52,8 @@ enum ArtifactSignature {
 
         var errorDescription: String? {
             L10n.text(
-                "Podpis kryptograficzny pliku aktualizacji jest nieprawidłowy. Dotychczasowa aplikacja pozostaje bez zmian.",
-                "The update artifact signature is invalid. The installed app was not changed.")
+                "The update artifact signature is invalid. The installed app was not changed.",
+                pl: "Podpis kryptograficzny pliku aktualizacji jest nieprawidłowy. Dotychczasowa aplikacja pozostaje bez zmian.")
         }
     }
 }

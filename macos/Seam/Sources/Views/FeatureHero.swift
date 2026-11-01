@@ -70,9 +70,9 @@ struct PermissionBanner: View {
             }
             Spacer(minLength: 8)
             if let openSettings {
-                Button("Ustawienia systemowe", action: openSettings)
+                Button("System Settings", action: openSettings)
             }
-            Button("Nadaj", action: grant).buttonStyle(.borderedProminent)
+            Button("Grant", action: grant).buttonStyle(.borderedProminent)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

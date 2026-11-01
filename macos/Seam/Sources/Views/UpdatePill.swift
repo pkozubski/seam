@@ -26,7 +26,7 @@ struct UpdatePill: View {
             switch face {
             case .ready:
                 Button(action: install) {
-                    Label(L10n.text("Zaktualizuj i uruchom ponownie", "Update & restart"), systemImage: "arrow.down.circle.fill")
+                    Label(L10n.text("Update & restart", pl: "Zaktualizuj i uruchom ponownie"), systemImage: "arrow.down.circle.fill")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(DesignTokens.accent)
                         .padding(.horizontal, 12)
@@ -60,16 +60,16 @@ struct UpdatePill: View {
         case .checking:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.mini)
-                Text(L10n.text("Sprawdzanie…", "Checking…"))
+                Text(L10n.text("Checking…", pl: "Sprawdzanie…"))
             }
         case .upToDate:
-            pillLabel(L10n.text("Aktualna", "Up to date"), symbol: "checkmark.seal.fill", tint: .green)
+            pillLabel(L10n.text("Up to date", pl: "Aktualna"), symbol: "checkmark.seal.fill", tint: .green)
         case .updated:
-            pillLabel(L10n.text("Zaktualizowano", "Updated"), symbol: "checkmark.seal.fill", tint: DesignTokens.accent)
+            pillLabel(L10n.text("Updated", pl: "Zaktualizowano"), symbol: "checkmark.seal.fill", tint: DesignTokens.accent)
         case .failed:
-            pillLabel(L10n.text("Błąd sprawdzania", "Check failed"), symbol: "exclamationmark.triangle.fill", tint: .orange)
+            pillLabel(L10n.text("Check failed", pl: "Błąd sprawdzania"), symbol: "exclamationmark.triangle.fill", tint: .orange)
         default:
-            pillLabel(L10n.text("Nie sprawdzono", "Not checked"), symbol: "clock", tint: .secondary)
+            pillLabel(L10n.text("Not checked", pl: "Nie sprawdzono"), symbol: "clock", tint: .secondary)
         }
     }
 
@@ -83,7 +83,7 @@ struct UpdatePill: View {
     private var help: String {
         switch updater.state {
         case .failed(let msg): return msg
-        case .upToDate(let when): return L10n.text("Sprawdzono \(when)", "Checked \(when)")
+        case .upToDate(let when): return L10n.text("Checked \(when)", pl: "Sprawdzono \(when)")
         default: return "seam \(Updater.versionDescription)"
         }
     }
@@ -98,7 +98,7 @@ struct UpdateBadge: View {
             Circle()
                 .fill(DesignTokens.accent)
                 .frame(width: 7, height: 7)
-                .accessibilityLabel(L10n.text("Dostępna aktualizacja", "Update available"))
+                .accessibilityLabel(L10n.text("Update available", pl: "Dostępna aktualizacja"))
         }
     }
 }

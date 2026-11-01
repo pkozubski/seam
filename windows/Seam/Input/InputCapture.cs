@@ -105,8 +105,8 @@ public sealed class InputCapture : IDisposable
         var raw = RawInputSupported;
         if (IsRemote) StartRawInput();
         Dispatcher.UIThread.Post(() => Log?.Invoke(raw
-            ? T("Hooki aktywne, ruch myszy z Raw Input (kursor zostaje przy krawędzi)", "Hooks active with Raw Input; the pointer remains at the edge")
-            : T("Hooki aktywne, Raw Input niedostępny – tryb awaryjny z parkowaniem kursora", "Hooks active; Raw Input unavailable, using pointer parking fallback")));
+            ? T("Hooks active with Raw Input; the pointer remains at the edge", pl: "Hooki aktywne, ruch myszy z Raw Input (kursor zostaje przy krawędzi)")
+            : T("Hooks active; Raw Input unavailable, using pointer parking fallback", pl: "Hooki aktywne, Raw Input niedostępny – tryb awaryjny z parkowaniem kursora")));
     }
 
     public void UninstallHooks()
@@ -120,7 +120,7 @@ public sealed class InputCapture : IDisposable
         StopRawInput();
         _keysDown.Clear();
         RestoreCursor();
-        Dispatcher.UIThread.Post(() => Log?.Invoke(T("Hooki klawiatury i myszy wyłączone", "Keyboard and pointer hooks disabled")));
+        Dispatcher.UIThread.Post(() => Log?.Invoke(T("Keyboard and pointer hooks disabled", pl: "Hooki klawiatury i myszy wyłączone")));
     }
 
     private void EnsureNativeWindow()
@@ -133,7 +133,7 @@ public sealed class InputCapture : IDisposable
         }
         catch (Exception ex)
         {
-            Dispatcher.UIThread.Post(() => Log?.Invoke(T("Nie udało się uruchomić Raw Input: ", "Could not start Raw Input: ") + ex.Message));
+            Dispatcher.UIThread.Post(() => Log?.Invoke(T("Could not start Raw Input: ", pl: "Nie udało się uruchomić Raw Input: ") + ex.Message));
         }
     }
 
@@ -638,8 +638,8 @@ public sealed class InputCapture : IDisposable
             RemoteChanged?.Invoke(true);
             if (HideCursorWhileRemote) HideCursor();
             Log?.Invoke(T(
-                $"Kursor przeszedł na Maca (krawędź {Side}, pozycja {ratio:0.00}, {(raw ? "Raw Input" : "tryb awaryjny")})",
-                $"Pointer moved to Mac (edge {Side}, position {ratio:0.00}, {(raw ? "Raw Input" : "fallback")})"));
+                $"Pointer moved to Mac (edge {Side}, position {ratio:0.00}, {(raw ? "Raw Input" : "fallback")})",
+                pl: $"Kursor przeszedł na Maca (krawędź {Side}, pozycja {ratio:0.00}, {(raw ? "Raw Input" : "tryb awaryjny")})"));
         });
     }
 
@@ -709,8 +709,8 @@ public sealed class InputCapture : IDisposable
             RemoteChanged?.Invoke(false);
             SetCursorPos(x, y);
             Log?.Invoke(rejected
-                ? T("Mac natychmiast oddał sterowanie – sprawdź uprawnienie Dostępność i przełącznik przyjmowania klawiatury i myszy.", "Mac returned control immediately. Check Accessibility permission and the keyboard and mouse control toggle on the Mac.")
-                : T($"Kursor wrócił na Windows (wysłano {moves} ruchów myszy)", $"Pointer returned to Windows ({moves} pointer events sent)"));
+                ? T("Mac returned control immediately. Check Accessibility permission and the keyboard and mouse control toggle on the Mac.", pl: "Mac natychmiast oddał sterowanie – sprawdź uprawnienie Dostępność i przełącznik przyjmowania klawiatury i myszy.")
+                : T($"Pointer returned to Windows ({moves} pointer events sent)", pl: $"Kursor wrócił na Windows (wysłano {moves} ruchów myszy)"));
         });
     }
 

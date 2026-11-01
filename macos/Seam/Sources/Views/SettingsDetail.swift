@@ -21,6 +21,7 @@ struct SettingsDetail: View {
                 .frame(minHeight: SettingsChrome.capsuleHeight + 4)
                 switch navigation.pane {
                 case .general: GeneralSettingsPane()
+                case .license: LicenseSettingsPane()
                 case .updates: UpdatesSettingsPane(updater: state.updater)
                 case .advanced: AdvancedSettingsPane()
                 }
@@ -33,7 +34,7 @@ struct SettingsDetail: View {
             .frame(maxWidth: .infinity)
         }
         .id(navigation.pane)
-        .navigationTitle(L10n.localized("Ustawienia"))
+        .navigationTitle(L10n.localized("Settings"))
         .background {
             // Esc leaves settings, like the Back row.
             Button("", action: navigation.close)

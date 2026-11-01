@@ -99,8 +99,8 @@ public sealed class Updater
             var title = root.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
             tag = title.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? tag;
         }
-        if (checksums is null) throw new InvalidDataException(T("Wydanie nie zawiera wymaganego pliku SHA256SUMS.txt.", "The release does not include the required SHA256SUMS.txt file."));
-        if (signature is null) throw new InvalidDataException(T("Wydanie nie zawiera podpisu kryptograficznego aplikacji Windows.", "The release does not include a cryptographic signature for the Windows app."));
+        if (checksums is null) throw new InvalidDataException(T("The release does not include the required SHA256SUMS.txt file.", pl: "Wydanie nie zawiera wymaganego pliku SHA256SUMS.txt."));
+        if (signature is null) throw new InvalidDataException(T("The release does not include a cryptographic signature for the Windows app.", pl: "Wydanie nie zawiera podpisu kryptograficznego aplikacji Windows."));
         return new ReleaseInfo(tag.TrimStart('v'), tag, notes, page, asset, checksums, signature);
     }
 
@@ -108,10 +108,10 @@ public sealed class Updater
     public async Task<bool> DownloadAndInstallAsync(ReleaseInfo release, IProgress<double> progress, CancellationToken ct,
         Func<bool>? mayRestart = null)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException(T("Aktualizacja w miejscu działa tylko na Windows.", "In-place updates are available only on Windows."));
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException(T("In-place updates are available only on Windows.", pl: "Aktualizacja w miejscu działa tylko na Windows."));
         var target = Environment.ProcessPath;
         if (string.IsNullOrEmpty(target) || !target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(T("Nie można ustalić ścieżki pliku exe.", "Cannot determine the executable path."));
+            throw new InvalidOperationException(T("Cannot determine the executable path.", pl: "Nie można ustalić ścieżki pliku exe."));
 
         var dir = Path.Combine(Path.GetTempPath(), "Seam-update-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -122,14 +122,14 @@ public sealed class Updater
             .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             .FirstOrDefault(parts => parts.Length == 2 && parts[1].TrimStart('*') == AssetName);
         if (checksumEntry is null || checksumEntry[0].Length != 64 || !checksumEntry[0].All(Uri.IsHexDigit))
-            throw new InvalidDataException(T("Wydanie nie zawiera prawidłowej sumy SHA-256 dla aplikacji Windows.", "The release does not contain a valid SHA-256 checksum for the Windows app."));
+            throw new InvalidDataException(T("The release does not contain a valid SHA-256 checksum for the Windows app.", pl: "Wydanie nie zawiera prawidłowej sumy SHA-256 dla aplikacji Windows."));
         var expectedChecksum = checksumEntry[0].ToLowerInvariant();
 
         using (var response = await Http.GetAsync(release.AssetUrl, HttpCompletionOption.ResponseHeadersRead, ct))
         {
             response.EnsureSuccessStatusCode();
             var total = response.Content.Headers.ContentLength ?? -1L;
-            if (total > MaximumDownloadBytes) throw new InvalidDataException(T("Plik aktualizacji przekracza limit 300 MiB.", "The update exceeds the 300 MiB limit."));
+            if (total > MaximumDownloadBytes) throw new InvalidDataException(T("The update exceeds the 300 MiB limit.", pl: "Plik aktualizacji przekracza limit 300 MiB."));
             await using var src = await response.Content.ReadAsStreamAsync(ct);
             await using var dst = new FileStream(newExe, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16);
             var buffer = new byte[1 << 16];
@@ -139,7 +139,7 @@ public sealed class Updater
             {
                 await dst.WriteAsync(buffer.AsMemory(0, n), ct);
                 read += n;
-                if (read > MaximumDownloadBytes) throw new InvalidDataException(T("Plik aktualizacji przekracza limit 300 MiB.", "The update exceeds the 300 MiB limit."));
+                if (read > MaximumDownloadBytes) throw new InvalidDataException(T("The update exceeds the 300 MiB limit.", pl: "Plik aktualizacji przekracza limit 300 MiB."));
                 if (total > 0) progress.Report((double)read / total);
             }
         }
@@ -151,7 +151,7 @@ public sealed class Updater
             actualHash = await SHA256.HashDataAsync(stream, ct);
             var actual = Convert.ToHexString(actualHash).ToLowerInvariant();
             if (!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(actual), Convert.FromHexString(expectedChecksum)))
-                throw new InvalidOperationException(T("Suma SHA-256 pobranego pliku nie zgadza się z wydaniem.", "The downloaded file does not match the release SHA-256 checksum."));
+                throw new InvalidOperationException(T("The downloaded file does not match the release SHA-256 checksum.", pl: "Suma SHA-256 pobranego pliku nie zgadza się z wydaniem."));
         }
         var signature = await DownloadSignatureAsync(release.SignatureUrl, ct);
         UpdateSignatureVerifier.VerifyHash(actualHash, signature);
@@ -221,7 +221,7 @@ public sealed class Updater
         using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength is > 256)
-            throw new InvalidDataException(T("Plik podpisu aktualizacji jest za duży.", "The update signature file is too large."));
+            throw new InvalidDataException(T("The update signature file is too large.", pl: "Plik podpisu aktualizacji jest za duży."));
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         var buffer = new byte[257];
         var total = 0;
@@ -232,7 +232,7 @@ public sealed class Updater
             total += count;
         }
         if (total > 256)
-            throw new InvalidDataException(T("Plik podpisu aktualizacji jest za duży.", "The update signature file is too large."));
+            throw new InvalidDataException(T("The update signature file is too large.", pl: "Plik podpisu aktualizacji jest za duży."));
         return buffer[..total];
     }
 }

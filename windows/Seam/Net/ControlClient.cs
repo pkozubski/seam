@@ -41,7 +41,7 @@ public sealed class ControlClient : IDisposable
 
     public async Task ConnectAsync(string host, int port, string localName, ReadOnlyMemory<byte> pairingKey, CancellationToken ct)
     {
-        if (pairingKey.Length != 16) throw new InvalidOperationException(T("Najpierw wpisz kod parowania wyświetlany na Macu.", "Enter the pairing code shown on the Mac first."));
+        if (pairingKey.Length != 16) throw new InvalidOperationException(T("Enter the pairing code shown on the Mac first.", pl: "Najpierw wpisz kod parowania wyświetlany na Macu."));
         Disconnect(null);
         var tcp = new TcpClient { NoDelay = true, ReceiveBufferSize = 65536, SendBufferSize = 65536 };
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -133,7 +133,7 @@ public sealed class ControlClient : IDisposable
             envelope = session.Seal(frame);
             if (envelope is not null) SendRaw(Frame.Secure(envelope));
         }
-        if (envelope is null) Disconnect(T("Wyczerpano licznik bezpiecznej sesji.", "The secure-session counter was exhausted."));
+        if (envelope is null) Disconnect(T("The secure-session counter was exhausted.", pl: "Wyczerpano licznik bezpiecznej sesji."));
     }
 
     public void SendMouseMove(int dx, int dy) => Send(Frame.MouseMove(dx, dy));
@@ -150,7 +150,7 @@ public sealed class ControlClient : IDisposable
     {
         var outbox = _outbox;
         if (outbox is not null && !outbox.Writer.TryWrite(frame))
-            Disconnect(T("Połączenie jest zbyt wolne; zatrzymano kolejkę wejścia.", "The connection is too slow; the input queue was stopped."));
+            Disconnect(T("The connection is too slow; the input queue was stopped.", pl: "Połączenie jest zbyt wolne; zatrzymano kolejkę wejścia."));
     }
 
     private async Task WriterLoop(NetworkStream stream, ChannelReader<byte[]> reader, CancellationToken ct)
@@ -172,7 +172,7 @@ public sealed class ControlClient : IDisposable
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }
-        catch (Exception ex) { Disconnect(T("Błąd zapisu: ", "Write error: ") + ex.Message); }
+        catch (Exception ex) { Disconnect(T("Write error: ", pl: "Błąd zapisu: ") + ex.Message); }
     }
 
     private async Task ReaderLoop(NetworkStream stream, CancellationToken ct)
@@ -186,13 +186,13 @@ public sealed class ControlClient : IDisposable
                 var count = await stream.ReadAsync(buffer, ct).ConfigureAwait(false);
                 if (count <= 0)
                 {
-                    Disconnect(T("Mac zamknął połączenie.", "The Mac closed the connection."));
+                    Disconnect(T("The Mac closed the connection.", pl: "Mac zamknął połączenie."));
                     return;
                 }
                 inbox.AddRange(new ArraySegment<byte>(buffer, 0, count));
                 if (inbox.Count > ProtocolConstants.MaxWireFrame + 6)
                 {
-                    Disconnect(T("Przekroczono limit ramki z Maca.", "A frame from the Mac exceeded the size limit."));
+                    Disconnect(T("A frame from the Mac exceeded the size limit.", pl: "Przekroczono limit ramki z Maca."));
                     return;
                 }
                 var cursor = 0;
@@ -210,7 +210,7 @@ public sealed class ControlClient : IDisposable
                             | ((uint)inbox[cursor + 5] << 24);
                         if (rawLength > ProtocolConstants.MaxWireFrame)
                         {
-                            Disconnect(T("Nieprawidłowa długość ramki z Maca.", "A frame from the Mac has an invalid length."));
+                            Disconnect(T("A frame from the Mac has an invalid length.", pl: "Nieprawidłowa długość ramki z Maca."));
                             return;
                         }
                         length = (int)rawLength;
@@ -227,7 +227,7 @@ public sealed class ControlClient : IDisposable
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }
-        catch (Exception ex) { Disconnect(T("Błąd odczytu: ", "Read error: ") + ex.Message); }
+        catch (Exception ex) { Disconnect(T("Read error: ", pl: "Błąd odczytu: ") + ex.Message); }
     }
 
     private void Handle(MessageType type, byte[] payload)
@@ -237,11 +237,15 @@ public sealed class ControlClient : IDisposable
             var reason = payload.Length == 0 ? "" : Encoding.UTF8.GetString(payload);
             Disconnect(reason switch
             {
-                "Serwer jest zajęty lub chwilowo zablokowany" => T("Serwer jest zajęty lub chwilowo zablokowany.", "The Mac is busy or temporarily rate-limited."),
-                "Wymagany jest bezpieczny protokół v2" => T("Mac wymaga bezpiecznego protokołu v2.", "The Mac requires secure protocol v2."),
-                "Brak kodu parowania na Macu" => T("Na Macu brakuje kodu parowania.", "The Mac has no pairing code."),
-                "Kod parowania jest nieprawidłowy" => T("Kod parowania jest nieprawidłowy.", "The pairing code is incorrect."),
-                _ => string.IsNullOrWhiteSpace(reason) ? T("Mac odrzucił połączenie.", "The Mac rejected the connection.") : reason,
+                RejectReason.Busy => T("The Mac is busy or temporarily rate-limited.", pl: "Serwer jest zajęty lub chwilowo zablokowany."),
+                RejectReason.SecureProtocolRequired => T("The Mac requires secure protocol v2.", pl: "Mac wymaga bezpiecznego protokołu v2."),
+                RejectReason.NoPairingCode => T("The Mac has no pairing code.", pl: "Na Macu brakuje kodu parowania."),
+                RejectReason.WrongPairingCode => T("The pairing code is incorrect.", pl: "Kod parowania jest nieprawidłowy."),
+                RejectReason.FrameTooLarge or RejectReason.BadFrameLength or RejectReason.UnknownMessage
+                    => T("The Mac couldn't read a message. Update Seam on both computers.", pl: "Mac nie odczytał wiadomości. Zaktualizuj Seam na obu komputerach."),
+                RejectReason.Integrity => T("The secure session failed its integrity check.", pl: "Błąd integralności sesji."),
+                RejectReason.BadDeviceName => T("The Mac rejected this PC's name.", pl: "Mac odrzucił nazwę tego komputera."),
+                _ => string.IsNullOrWhiteSpace(reason) ? T("The Mac rejected the connection.", pl: "Mac odrzucił połączenie.") : reason,
             });
             return;
         }
@@ -250,13 +254,13 @@ public sealed class ControlClient : IDisposable
         {
             if (type == MessageType.Challenge && _session is null) HandleChallenge(payload);
             else if (type == MessageType.Secure) HandleSecure(payload);
-            else Disconnect(T("Nieprawidłowa kolejność bezpiecznego handshake.", "Invalid secure-handshake sequence."));
+            else Disconnect(T("Invalid secure-handshake sequence.", pl: "Nieprawidłowa kolejność bezpiecznego handshake."));
             return;
         }
 
         if (type != MessageType.Secure)
         {
-            Disconnect(T("Odebrano niezabezpieczoną wiadomość po zestawieniu sesji.", "An unprotected message was received after the session was established."));
+            Disconnect(T("An unprotected message was received after the session was established.", pl: "Odebrano niezabezpieczoną wiadomość po zestawieniu sesji."));
             return;
         }
         HandleSecure(payload);
@@ -270,7 +274,7 @@ public sealed class ControlClient : IDisposable
         if (payload.Length < fixedBytes || payload.Length > fixedBytes + 200
             || payload[0] != ProtocolConstants.Version || key is null || clientNonce is null)
         {
-            Disconnect(T("Mac nie obsługuje bezpiecznego protokołu v2.", "The Mac does not support secure protocol v2."));
+            Disconnect(T("The Mac does not support secure protocol v2.", pl: "Mac nie obsługuje bezpiecznego protokołu v2."));
             return;
         }
         var serverNonce = payload.Slice(1, ControlCrypto.NonceBytes).ToArray();
@@ -280,7 +284,7 @@ public sealed class ControlClient : IDisposable
         CryptographicOperations.ZeroMemory(expectedProof);
         if (!proofIsValid)
         {
-            Disconnect(T("Kod parowania nie pasuje do tego Maca.", "The pairing code does not match this Mac."));
+            Disconnect(T("The pairing code does not match this Mac.", pl: "Kod parowania nie pasuje do tego Maca."));
             return;
         }
         _session = new SecureSession(key, clientNonce, serverNonce, SecureSession.SessionRole.Client);
@@ -295,14 +299,14 @@ public sealed class ControlClient : IDisposable
         var clear = session?.Open(payload);
         if (clear is null || !Frame.TryParseSingle(clear, out var innerType, out var innerPayload))
         {
-            Disconnect(T("Błąd integralności bezpiecznej sesji.", "Secure-session integrity check failed."));
+            Disconnect(T("Secure-session integrity check failed.", pl: "Błąd integralności bezpiecznej sesji."));
             return;
         }
         if (!_connected)
         {
             if (innerType != MessageType.Ready || innerPayload.Length < 1 || innerPayload[0] != ProtocolConstants.Version)
             {
-                Disconnect(T("Mac nie potwierdził bezpiecznej sesji.", "The Mac did not confirm the secure session."));
+                Disconnect(T("The Mac did not confirm the secure session.", pl: "Mac nie potwierdził bezpiecznej sesji."));
                 return;
             }
             _connected = true;
@@ -312,7 +316,7 @@ public sealed class ControlClient : IDisposable
         }
         if (IsHandshake(innerType))
         {
-            Disconnect(T("Nieprawidłowa wiadomość handshake w aktywnej sesji.", "Invalid handshake message in an active session."));
+            Disconnect(T("Invalid handshake message in an active session.", pl: "Nieprawidłowa wiadomość handshake w aktywnej sesji."));
             return;
         }
         switch (innerType)
@@ -356,7 +360,7 @@ public sealed class ControlClient : IDisposable
         {
             await Task.Delay(TimeSpan.FromSeconds(5), ct).ConfigureAwait(false);
             if (!_connected)
-                Disconnect(T("Mac nie zakończył bezpiecznego parowania w wymaganym czasie.", "The Mac did not finish secure pairing in time."));
+                Disconnect(T("The Mac did not finish secure pairing in time.", pl: "Mac nie zakończył bezpiecznego parowania w wymaganym czasie."));
         }
         catch (OperationCanceledException) { }
     }

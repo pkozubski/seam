@@ -35,8 +35,8 @@ struct ClipboardContent: Equatable {
     }
 
     var summary: String {
-        if let text { return L10n.text("\(text.count) zn.", "\(text.count) characters") }
-        return L10n.text("obraz PNG (\((data.count + 1023) / 1024) KiB)",
-                         "PNG image (\((data.count + 1023) / 1024) KiB)")
+        if let text { return L10n.text("\(text.count) characters", pl: "\(text.count) zn.") }
+        return L10n.text("PNG image (\((data.count + 1023) / 1024) KiB)",
+                         pl: "obraz PNG (\((data.count + 1023) / 1024) KiB)")
     }
 }

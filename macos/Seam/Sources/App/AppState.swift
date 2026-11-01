@@ -41,12 +41,16 @@ final class AppState {
     private(set) var audioPermission: SystemAudioTap.Permission = .unknown
     private(set) var accessibilityGranted = false
     private(set) var screenCaptureGranted = false
+    /// Połączony PC ma Seam Pro albo trial: jedna licencja wystarcza parze.
+    private(set) var peerPro = false
+    /// Funkcje Pro są dostępne (licencja albo trial na Macu lub na połączonym PC).
+    var proUnlocked: Bool { license.isEntitled || peerPro }
     private(set) var displayStreaming = false
     private(set) var displayEdge: ScreenEdge?
     private(set) var displayDescription = ""
     private(set) var displayError: String?
     private(set) var displayStats: DisplayStreamer.Stats?
-    private(set) var clipboardStatus = L10n.text("Brak synchronizacji w tej sesji", "No synchronization in this session")
+    private(set) var clipboardStatus = L10n.text("No synchronization in this session", pl: "Brak synchronizacji w tej sesji")
     private(set) var loginItemStatus = LoginItem.statusDescription
     var loginItemError: String?
     private(set) var pairingCode = PairingKeyStore.shared.displayCode
@@ -55,6 +59,10 @@ final class AppState {
 
     @ObservationIgnored let engine: Engine
     @ObservationIgnored let updater = Updater()
+    /// Sam jest `@Observable`, więc widoki śledzą stan licencji bezpośrednio.
+    @ObservationIgnored let license: LicenseManager
+    /// `--ui-license <stan>` w podglądzie UI.
+    static var previewLicenseState = "pro"
     @ObservationIgnored private var permissionTimer: Timer?
     @ObservationIgnored private var activityObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var audioPermissionInFlight = false
@@ -88,14 +96,19 @@ final class AppState {
         // Jedno przypisanie: przy @Observable każde kolejne w init wywołałoby już didSet (zapis i autostart).
         settings = s
         engine = Engine(config: s.engineConfig)
+        license = preview ? LicenseManager(preview: Self.previewLicenseState) : LicenseManager()
         engine.onEvent = { [weak self] event in
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.apply(event) } }
         }
         accessibilityGranted = InputInjector.isAccessibilityTrusted
         screenCaptureGranted = DisplayCapture.hasPermission
         guard !preview else { return }
-        appendLog(L10n.text("Wersja \(Updater.versionDescription)", "Version \(Updater.versionDescription)"))
+        appendLog(L10n.text("Version \(Updater.versionDescription)", pl: "Wersja \(Updater.versionDescription)"))
         engine.setAccessibilityGranted(accessibilityGranted)
+        license.grantTesterTrialIfNeeded(existingUser: s.hasCompletedOnboarding)
+        license.onEntitlementChanged = { [weak self] entitled in self?.engine.setProEntitled(entitled) }
+        engine.setProEntitled(license.isEntitled)
+        license.start()
         engine.start()
         watchPermissions()
         if let finished = Updater.consumeRelaunchMarker() {
@@ -107,11 +120,11 @@ final class AppState {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 switch state {
-                case .available(let r): self?.appendLog(L10n.text("Dostępna aktualizacja \(r.version) (\(r.tag))", "Update \(r.version) is available (\(r.tag))"))
-                case .upToDate: self?.appendLog(L10n.text("Aktualizacje: masz najnowszą wersję \(Updater.currentVersion)", "Updates: version \(Updater.currentVersion) is current"))
-                case .failed(let msg): self?.appendLog(L10n.text("Aktualizacje: \(msg)", "Updates: \(msg)"))
-                case .installing: self?.appendLog(L10n.text("Aktualizacja pobrana, podmiana i restart…", "Update downloaded; replacing and restarting…"))
-                case .updated(let version): self?.appendLog(L10n.text("Zaktualizowano do \(version)", "Updated to \(version)"))
+                case .available(let r): self?.appendLog(L10n.text("Update \(r.version) is available (\(r.tag))", pl: "Dostępna aktualizacja \(r.version) (\(r.tag))"))
+                case .upToDate: self?.appendLog(L10n.text("Updates: version \(Updater.currentVersion) is current", pl: "Aktualizacje: masz najnowszą wersję \(Updater.currentVersion)"))
+                case .failed(let msg): self?.appendLog(L10n.text("Updates: \(msg)", pl: "Aktualizacje: \(msg)"))
+                case .installing: self?.appendLog(L10n.text("Update downloaded; replacing and restarting…", pl: "Aktualizacja pobrana, podmiana i restart…"))
+                case .updated(let version): self?.appendLog(L10n.text("Updated to \(version)", pl: "Zaktualizowano do \(version)"))
                 default: break
                 }
             }
@@ -187,27 +200,29 @@ final class AppState {
         pairingCode = "DEMO1-DEMO2-DEMO3-DEMO4-DEMO5-0"
         pairingStorageError = nil
         isListening = true
-        peer = ControlServer.PeerInfo(name: L10n.text("PC-BIURO", "PC-DESK"), address: "192.168.1.42")
+        peer = ControlServer.PeerInfo(name: L10n.text("PC-DESK", pl: "PC-BIURO"), address: "192.168.1.42")
         cursorOnMac = true
         accessibilityGranted = true
-        audioStreaming = true
+        // Bez Pro (podgląd `--ui-license free|expired`) strumienie stoją, jak w aplikacji.
+        let pro = license.isEntitled
+        audioStreaming = pro
         audioPermission = .granted
         audioDescription = "48000 Hz · stereo · 16-bit → 192.168.1.42:47802"
-        demoAudioLevel = 0.42
+        demoAudioLevel = pro ? 0.42 : 0
         audioPackets = 18_432
         screenCaptureGranted = true
-        displayStreaming = true
+        displayStreaming = pro
         displayEdge = .right
         displayDescription = "2560×1440 · H.264 22 Mb/s"
         displayStats = DisplayStreamer.Stats(framesPerSecond: 58, kilobitsPerSecond: 6_420, dropped: 0, width: 2560, height: 1440)
-        clipboardStatus = L10n.text("Wysłano 128 zn. do Windowsa · 21:40:12", "Sent 128 characters to Windows · 21:40:12")
+        clipboardStatus = L10n.text("Sent 128 characters to Windows · 21:40:12", pl: "Wysłano 128 zn. do Windowsa · 21:40:12")
         loginItemStatus = LoginItem.statusDescription
         log = [
-            LogEntry(time: Date().addingTimeInterval(-95), text: L10n.text("Nasłuchiwanie TCP na porcie 47800", "Listening on TCP port 47800")),
-            LogEntry(time: Date().addingTimeInterval(-80), text: L10n.text("Discovery UDP nasłuchuje na porcie 47801", "Discovery is listening on UDP port 47801")),
-            LogEntry(time: Date().addingTimeInterval(-42), text: L10n.text("Połączono: PC-BIURO (192.168.1.42)", "Connected: PC-DESK (192.168.1.42)")),
-            LogEntry(time: Date().addingTimeInterval(-20), text: L10n.text("Audio: 48000 Hz · stereo · 16-bit, bufor 256 ramek", "Audio: 48000 Hz · stereo · 16-bit, 256-frame buffer")),
-            LogEntry(time: Date().addingTimeInterval(-4), text: L10n.text("Kursor przeszedł na Maca", "Pointer moved to Mac")),
+            LogEntry(time: Date().addingTimeInterval(-95), text: L10n.text("Listening on TCP port 47800", pl: "Nasłuchiwanie TCP na porcie 47800")),
+            LogEntry(time: Date().addingTimeInterval(-80), text: L10n.text("Discovery is listening on UDP port 47801", pl: "Discovery UDP nasłuchuje na porcie 47801")),
+            LogEntry(time: Date().addingTimeInterval(-42), text: L10n.text("Connected: PC-DESK (192.168.1.42)", pl: "Połączono: PC-BIURO (192.168.1.42)")),
+            LogEntry(time: Date().addingTimeInterval(-20), text: L10n.text("Audio: 48000 Hz · stereo · 16-bit, 256-frame buffer", pl: "Audio: 48000 Hz · stereo · 16-bit, bufor 256 ramek")),
+            LogEntry(time: Date().addingTimeInterval(-4), text: L10n.text("Pointer moved to Mac", pl: "Kursor przeszedł na Maca")),
         ]
         let args = CommandLine.arguments
         if let index = args.firstIndex(of: "--ui-display-edge"), index + 1 < args.count {
@@ -246,9 +261,9 @@ final class AppState {
             let mechanism = try LoginItem.setEnabled(enabled)
             loginItemError = nil
             appendLog(enabled
-                      ? L10n.text("Autostart włączony (\(mechanism == .service ? "element logowania" : "LaunchAgent"))",
-                                  "Launch at login enabled (\(mechanism == .service ? "login item" : "LaunchAgent"))")
-                      : L10n.text("Autostart wyłączony", "Launch at login disabled"))
+                      ? L10n.text("Launch at login enabled (\(mechanism == .service ? "login item" : "LaunchAgent"))",
+                                  pl: "Autostart włączony (\(mechanism == .service ? "element logowania" : "LaunchAgent"))")
+                      : L10n.text("Launch at login disabled", pl: "Autostart wyłączony"))
         } catch {
             loginItemError = error.localizedDescription
             appendLog("Autostart: \(error.localizedDescription)")
@@ -265,11 +280,11 @@ final class AppState {
     }
 
     var statusSummary: (text: String, color: Color) {
-        if !isListening { return (L10n.text("Nie nasłuchuje", "Unavailable"), .red) }
+        if !isListening { return (L10n.text("Unavailable", pl: "Nie nasłuchuje"), .red) }
         if let peer {
-            if cursorOnMac { return (L10n.text("Sterowanie z \(peer.name)", "Controlled by \(peer.name)"), .green) }
-            return (L10n.text("Połączono z \(peer.name)", "Connected to \(peer.name)"), .green) }
-        return (L10n.text("Czeka na Windows", "Waiting for Windows"), .orange)
+            if cursorOnMac { return (L10n.text("Controlled by \(peer.name)", pl: "Sterowanie z \(peer.name)"), .green) }
+            return (L10n.text("Connected to \(peer.name)", pl: "Połączono z \(peer.name)"), .green) }
+        return (L10n.text("Waiting for Windows", pl: "Czeka na Windows"), .orange)
     }
 
     // MARK: - Akcje
@@ -279,16 +294,16 @@ final class AppState {
         if screen != screenCaptureGranted {
             screenCaptureGranted = screen
             appendLog(screen
-                      ? L10n.text("Zgoda na nagrywanie ekranu nadana", "Screen Recording permission granted")
-                      : L10n.text("Brak zgody na nagrywanie ekranu", "Screen Recording permission missing"))
+                      ? L10n.text("Screen Recording permission granted", pl: "Zgoda na nagrywanie ekranu nadana")
+                      : L10n.text("Screen Recording permission missing", pl: "Brak zgody na nagrywanie ekranu"))
         }
         let granted = InputInjector.isAccessibilityTrusted
         if granted != accessibilityGranted {
             accessibilityGranted = granted
             engine.setAccessibilityGranted(granted)
             appendLog(granted
-                      ? L10n.text("Uprawnienie Dostępność nadane", "Accessibility permission granted")
-                      : L10n.text("Brak uprawnienia Dostępność", "Accessibility permission missing"))
+                      ? L10n.text("Accessibility permission granted", pl: "Uprawnienie Dostępność nadane")
+                      : L10n.text("Accessibility permission missing", pl: "Brak uprawnienia Dostępność"))
         }
     }
 
@@ -317,20 +332,20 @@ final class AppState {
 
     var displayStatusText: String {
         if displayStreaming {
-            var text = L10n.text("Działa: \(displayDescription)", "Running: \(displayDescription)")
+            var text = L10n.text("Running: \(displayDescription)", pl: "Działa: \(displayDescription)")
             if let stats = displayStats {
-                text += L10n.text(" · \(stats.framesPerSecond) kl./s · \(stats.kilobitsPerSecond / 1000) Mb/s",
-                                  " · \(stats.framesPerSecond) fps · \(stats.kilobitsPerSecond / 1000) Mb/s")
+                text += L10n.text(" · \(stats.framesPerSecond) fps · \(stats.kilobitsPerSecond / 1000) Mb/s",
+                                  pl: " · \(stats.framesPerSecond) kl./s · \(stats.kilobitsPerSecond / 1000) Mb/s")
             }
             return text
         }
         if let displayError { return displayError }
         if !VirtualDisplay.isSupported {
-            return L10n.text("Ta wersja macOS nie udostępnia wirtualnych monitorów.",
-                             "This macOS version does not provide virtual displays.")
+            return L10n.text("This macOS version does not provide virtual displays.",
+                             pl: "Ta wersja macOS nie udostępnia wirtualnych monitorów.")
         }
-        return L10n.text("Nieaktywny – Windows tworzy go po połączeniu, jeśli ma włączony ekran Maca.",
-                         "Inactive — Windows starts it after connecting when the Mac display is enabled there.")
+        return L10n.text("Inactive — Windows starts it after connecting when the Mac display is enabled there.",
+                         pl: "Nieaktywny – Windows tworzy go po połączeniu, jeśli ma włączony ekran Maca.")
     }
 
     func stopDisplay() { engine.stopDisplay() }
@@ -349,19 +364,19 @@ final class AppState {
     var audioPermissionSubtitle: String {
         switch audioPermission {
         case .granted:
-            return L10n.text("Nadane – Mac może wysyłać dźwięk systemowy.",
-                             "Granted — the Mac can stream system audio.")
+            return L10n.text("Granted — the Mac can stream system audio.",
+                             pl: "Nadane – Mac może wysyłać dźwięk systemowy.")
         case .checking:
-            return L10n.text("Sprawdzanie… jeśli macOS zapyta, potwierdź zgodę.",
-                             "Checking… confirm the macOS prompt if it appears.")
+            return L10n.text("Checking… confirm the macOS prompt if it appears.",
+                             pl: "Sprawdzanie… jeśli macOS zapyta, potwierdź zgodę.")
         case .unknown:
-            return L10n.text("Kliknij „Poproś”, żeby sprawdzić zgodę i w razie potrzeby wywołać pytanie macOS.",
-                             "Press “Request” to check the permission and trigger the macOS prompt if needed.")
+            return L10n.text("Press “Request” to check the permission and trigger the macOS prompt if needed.",
+                             pl: "Kliknij „Poproś”, żeby sprawdzić zgodę i w razie potrzeby wywołać pytanie macOS.")
         case let .denied(message):
-            return L10n.text("Brak zgody: \(message) Jeśli w Ustawieniach systemowych przełącznik jest włączony, użyj „Napraw zgodę” – po zmianie podpisu aplikacji macOS trzyma stary wpis.",
-                             "Not granted: \(message) If the switch is already on in System Settings, use “Repair” — macOS keeps a stale entry after the app signature changes.")
+            return L10n.text("Not granted: \(message) If the switch is already on in System Settings, use “Repair” — macOS keeps a stale entry after the app signature changes.",
+                             pl: "Brak zgody: \(message) Jeśli w Ustawieniach systemowych przełącznik jest włączony, użyj „Napraw zgodę” – po zmianie podpisu aplikacji macOS trzyma stary wpis.")
         case let .failed(message):
-            return L10n.text("Nie udało się sprawdzić: \(message)", "Could not verify: \(message)")
+            return L10n.text("Could not verify: \(message)", pl: "Nie udało się sprawdzić: \(message)")
         }
     }
 
@@ -399,8 +414,8 @@ final class AppState {
     func repairAudioPermission() {
         guard !isPreview, !audioPermissionInFlight else { return }
         let bundleID = Bundle.main.bundleIdentifier ?? "com.borderlessmouse.mac"
-        appendLog(L10n.text("Kasowanie wpisu zgody na dźwięk (tccutil reset AudioCapture \(bundleID))",
-                            "Resetting the audio permission entry (tccutil reset AudioCapture \(bundleID))"))
+        appendLog(L10n.text("Resetting the audio permission entry (tccutil reset AudioCapture \(bundleID))",
+                            pl: "Kasowanie wpisu zgody na dźwięk (tccutil reset AudioCapture \(bundleID))"))
         audioPermissionInFlight = true
         audioPermission = .checking
         DispatchQueue.global(qos: .userInitiated).async {
@@ -429,11 +444,11 @@ final class AppState {
             task.waitUntilExit()
             guard task.terminationStatus != 0 else { return nil }
             let text = String(decoding: output, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            return L10n.text("tccutil zakończył się kodem \(task.terminationStatus): \(text)",
-                             "tccutil exited with code \(task.terminationStatus): \(text)")
+            return L10n.text("tccutil exited with code \(task.terminationStatus): \(text)",
+                             pl: "tccutil zakończył się kodem \(task.terminationStatus): \(text)")
         } catch {
-            return L10n.text("Nie udało się uruchomić tccutil: \(error.localizedDescription)",
-                             "Could not run tccutil: \(error.localizedDescription)")
+            return L10n.text("Could not run tccutil: \(error.localizedDescription)",
+                             pl: "Nie udało się uruchomić tccutil: \(error.localizedDescription)")
         }
     }
 
@@ -443,14 +458,14 @@ final class AppState {
         audioPermission = value
         switch value {
         case .granted where !wasGranted:
-            appendLog(L10n.text("Zgoda na nagrywanie dźwięku systemowego nadana",
-                                "System audio recording permission granted"))
+            appendLog(L10n.text("System audio recording permission granted",
+                                pl: "Zgoda na nagrywanie dźwięku systemowego nadana"))
         case let .denied(message):
-            appendLog(L10n.text("Brak zgody na nagrywanie dźwięku systemowego: \(message)",
-                                "System audio recording permission missing: \(message)"))
+            appendLog(L10n.text("System audio recording permission missing: \(message)",
+                                pl: "Brak zgody na nagrywanie dźwięku systemowego: \(message)"))
         case let .failed(message):
-            appendLog(L10n.text("Test dźwięku nie powiódł się: \(message)",
-                                "Audio permission test failed: \(message)"))
+            appendLog(L10n.text("Audio permission test failed: \(message)",
+                                pl: "Test dźwięku nie powiódł się: \(message)"))
         default:
             break
         }
@@ -463,7 +478,7 @@ final class AppState {
     func copyPairingCode() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(pairingCode, forType: .string)
-        appendLog(L10n.text("Skopiowano kod parowania", "Pairing code copied"))
+        appendLog(L10n.text("Pairing code copied", pl: "Skopiowano kod parowania"))
     }
 
     func regeneratePairingCode() {
@@ -476,8 +491,8 @@ final class AppState {
         pairingCode = store.displayCode
         pairingStorageError = nil
         engine.update(config: settings.engineConfig)
-        appendLog(L10n.text("Wygenerowano nowy kod parowania; poprzednie połączenia zostały unieważnione",
-                            "Generated a new pairing code; previous connections were revoked"))
+        appendLog(L10n.text("Generated a new pairing code; previous connections were revoked",
+                            pl: "Wygenerowano nowy kod parowania; poprzednie połączenia zostały unieważnione"))
     }
 
     func completeOnboarding() {
@@ -505,8 +520,11 @@ final class AppState {
             listenError = error
         case let .peerConnected(info):
             peer = info
+        case .peerPro(let entitled):
+            peerPro = entitled
         case .peerDisconnected:
             peer = nil
+            peerPro = false
             displayEdge = nil
             cursorOnMac = false
             displayStreaming = false
@@ -533,11 +551,11 @@ final class AppState {
             if audioPackets != packets { audioPackets = packets }
             if audioSendErrors != errors { audioSendErrors = errors }
         case let .clipboardSent(summary):
-            clipboardStatus = L10n.text("Wysłano \(summary) do Windowsa · \(Self.timeFormatter.string(from: Date()))",
-                                        "Sent \(summary) to Windows · \(Self.timeFormatter.string(from: Date()))")
+            clipboardStatus = L10n.text("Sent \(summary) to Windows · \(Self.timeFormatter.string(from: Date()))",
+                                        pl: "Wysłano \(summary) do Windowsa · \(Self.timeFormatter.string(from: Date()))")
         case let .clipboardReceived(summary):
-            clipboardStatus = L10n.text("Odebrano \(summary) z Windowsa · \(Self.timeFormatter.string(from: Date()))",
-                                        "Received \(summary) from Windows · \(Self.timeFormatter.string(from: Date()))")
+            clipboardStatus = L10n.text("Received \(summary) from Windows · \(Self.timeFormatter.string(from: Date()))",
+                                        pl: "Odebrano \(summary) z Windowsa · \(Self.timeFormatter.string(from: Date()))")
         case let .clipboardError(message):
             clipboardStatus = message
         case let .displayStarted(desc, edge):

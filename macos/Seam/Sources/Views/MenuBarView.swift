@@ -23,12 +23,15 @@ struct MenuBarView: View {
                     .font(.callout).foregroundStyle(.secondary)
             }
             VStack(spacing: 14) {
-                QuickToggleRow(title: "Klawiatura i mysz", symbol: "keyboard", isOn: $state.settings.inputEnabled)
-                QuickToggleRow(title: "Udostępniaj dźwięk", symbol: "speaker.wave.2", isOn: $state.settings.audioEnabled)
-                QuickToggleRow(title: "Wycisz Maca podczas streamu", symbol: "speaker.slash", isOn: $state.settings.muteLocalAudio)
-                QuickToggleRow(title: "Synchronizuj schowek", symbol: "doc.on.clipboard", isOn: $state.settings.clipboardSyncEnabled)
+                QuickToggleRow(title: "Keyboard and mouse", symbol: "keyboard", isOn: $state.settings.inputEnabled)
+                // Dźwięk to Seam Pro: bez niego przełącznik jest wyłączony, a zapisana wartość czeka na zakup.
+                QuickToggleRow(title: "Share audio", symbol: "speaker.wave.2",
+                               isOn: state.proUnlocked ? $state.settings.audioEnabled : .constant(false))
+                    .disabled(!state.proUnlocked)
+                QuickToggleRow(title: "Mute Mac while streaming", symbol: "speaker.slash", isOn: $state.settings.muteLocalAudio)
+                QuickToggleRow(title: "Sync clipboard", symbol: "doc.on.clipboard", isOn: $state.settings.clipboardSyncEnabled)
                 Divider()
-                QuickToggleRow(title: "Uruchamiaj przy logowaniu", symbol: "power", isOn: $state.settings.launchAtLogin)
+                QuickToggleRow(title: "Launch at login", symbol: "power", isOn: $state.settings.launchAtLogin)
             }
             .toggleStyle(.switch)
             .controlSize(.small)
@@ -37,23 +40,23 @@ struct MenuBarView: View {
             .modifier(SurfaceStyle())
 
             HStack {
-                Button("Otwórz aplikację", action: openMainWindow)
+                Button("Open app", action: openMainWindow)
                     .modifier(NativeActionStyle(prominent: true))
                     .keyboardShortcut("o")
                 Spacer()
                 Menu {
                     if state.peer != nil {
-                        Button("Rozłącz", action: state.disconnectPeer)
+                        Button("Disconnect", action: state.disconnectPeer)
                     }
-                    Button("Sprawdź aktualizacje…") {
+                    Button("Check for updates…") {
                         state.checkForUpdates()
                         openMainWindow()
                     }
                     Divider()
-                    Button("Zakończ") { NSApp.terminate(nil) }
+                    Button("Quit") { NSApp.terminate(nil) }
                         .keyboardShortcut("q")
                 } label: {
-                    Label("Więcej", systemImage: "ellipsis")
+                    Label("More", systemImage: "ellipsis")
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()

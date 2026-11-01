@@ -21,8 +21,17 @@ public enum EmergencyHotkey
     CtrlAltShiftB,
 }
 
+/// <summary>Język interfejsu; <see cref="System"/> idzie za językiem Windows.</summary>
+public enum AppLanguage
+{
+    System,
+    English,
+    Polish,
+}
+
 public sealed class Settings
 {
+    public AppLanguage Language { get; set; } = AppLanguage.System;
     public string HostAddress { get; set; } = string.Empty;
     public int ControlPort { get; set; } = ProtocolConstants.DefaultControlPort;
     public int AudioPort { get; set; } = ProtocolConstants.DefaultAudioPort;
@@ -58,6 +67,8 @@ public sealed class Settings
 
     public bool StartMinimized { get; set; } = true;
     public bool HasCompletedOnboarding { get; set; }
+    /// <summary>Trial dla osób sprzed płatnej wersji już przyznany (raz, przy pierwszym starcie z Pro).</summary>
+    public bool TesterTrialGranted { get; set; }
 
     private static readonly JsonSerializerOptions Options = new()
     {

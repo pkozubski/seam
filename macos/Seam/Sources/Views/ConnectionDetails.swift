@@ -6,16 +6,16 @@ struct ConnectionDetails: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            Text(L10n.text("Połączenie", "Connection")).font(.title2)
+            Text(L10n.text("Connection", pl: "Połączenie")).font(.title2)
             Text(state.statusSummary.text).foregroundStyle(state.statusSummary.color)
             if state.peer != nil {
-                Button(L10n.text("Rozłącz komputery", "Disconnect computers"), action: state.disconnectPeer)
+                Button(L10n.text("Disconnect computers", pl: "Rozłącz komputery"), action: state.disconnectPeer)
             }
             PairingCodeView()
             PairingResetRow()
             Divider()
             LabeledContent("TCP", value: "\(state.settings.controlPort) · AES-256-GCM")
-            HStack { Spacer(); Button(L10n.text("Gotowe", "Done")) { dismiss() }.keyboardShortcut(.defaultAction) }
+            HStack { Spacer(); Button(L10n.text("Done", pl: "Gotowe")) { dismiss() }.keyboardShortcut(.defaultAction) }
         }.padding(28).frame(width: 520)
     }
 }

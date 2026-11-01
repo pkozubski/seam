@@ -34,6 +34,7 @@ jobs:
           bash macos/tests/window-check.sh
           bash macos/tests/update-check.sh
           bash macos/tests/security-check.sh
+          bash macos/tests/license-check.sh
           bash macos/tests/signature-check.sh
       - name: Package
         run: ditto -c -k --keepParent macos/build/Seam.app macos/Seam-macOS.zip

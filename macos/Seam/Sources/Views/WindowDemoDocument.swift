@@ -22,7 +22,7 @@ struct WindowDemoDocument: View {
                 }
                 Spacer(minLength: 2)
                 if !compact {
-                    Text(L10n.text("Plan projektu", "Project plan"))
+                    Text(L10n.text("Project plan", pl: "Plan projektu"))
                         .font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.85))
                 }
                 Spacer(minLength: 2)

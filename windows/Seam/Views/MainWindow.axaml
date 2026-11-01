@@ -44,20 +44,20 @@
             </ui:NavigationView.PaneHeader>
 
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="Połączenie" Tag="connection" />
-                <ui:NavigationViewItem Content="Ekrany" Tag="displays" />
-                <ui:NavigationViewItemHeader Content="Funkcje" />
-                <ui:NavigationViewItem Content="Klawiatura i mysz" Tag="control" />
-                <ui:NavigationViewItem Content="Dźwięk" Tag="audio" />
-                <ui:NavigationViewItem Content="Schowek" Tag="clipboard" />
-                <ui:NavigationViewItem Content="Okna" Tag="windows" />
+                <ui:NavigationViewItem Content="Connection" Tag="connection" />
+                <ui:NavigationViewItem Content="Displays" Tag="displays" />
+                <ui:NavigationViewItemHeader Content="Features" />
+                <ui:NavigationViewItem Content="Keyboard &amp; mouse" Tag="control" />
+                <ui:NavigationViewItem Content="Audio" Tag="audio" />
+                <ui:NavigationViewItem Content="Clipboard" Tag="clipboard" />
+                <ui:NavigationViewItem Content="Windows" Tag="windows" />
                 <ui:NavigationViewItemHeader Content="System" />
-                <ui:NavigationViewItem Content="Dziennik" Tag="log" />
+                <ui:NavigationViewItem Content="Diagnostics" Tag="log" />
             </ui:NavigationView.MenuItems>
 
             <ui:NavigationView.FooterMenuItems>
                 <!-- dolny margines robi miejsce na stopkę z tym komputerem (PaneFooter byłby nad Ustawieniami) -->
-                <ui:NavigationViewItem Content="Ustawienia" Tag="settings" Margin="0,0,0,104" />
+                <ui:NavigationViewItem Content="Settings" Tag="settings" Margin="0,0,0,104" />
             </ui:NavigationView.FooterMenuItems>
 
             <Grid RowDefinitions="Auto,Auto,*">
@@ -65,18 +65,18 @@
                 <ui:InfoBar Grid.Row="0" Margin="24,8,24,0"
                             IsOpen="{Binding UpdateAvailable}"
                             Severity="Informational"
-                            Title="Dostępna aktualizacja"
+                            Title="Update available"
                             Message="{Binding UpdateMessage}"
                             IsClosable="True">
                     <ui:InfoBar.ActionButton>
-                        <Button Content="Zainstaluj i uruchom ponownie" Command="{Binding InstallUpdateCommand}" />
+                        <Button Content="Install and restart" Command="{Binding InstallUpdateCommand}" />
                     </ui:InfoBar.ActionButton>
                 </ui:InfoBar>
                 <ui:InfoBar Grid.Row="1" Margin="24,8,24,0"
                             IsOpen="{Binding MacAccessibilityMissing}"
                             Severity="Warning"
-                            Title="Mac nie ma uprawnienia Dostępność"
-                            Message="Sterowanie nie zadziała, dopóki na Macu nie nadasz Seam uprawnienia w Ustawieniach systemowych (Prywatność i ochrona, sekcja Dostępność)."
+                            Title="Mac accessibility permission is missing"
+                            Message="Control will not work until Seam has Accessibility permission in Mac System Settings (Privacy &amp; Security, Accessibility)."
                             IsClosable="False" />
 
                 <ContentControl Grid.Row="2" x:Name="PageHost" />
@@ -96,7 +96,7 @@
             <StackPanel Orientation="Horizontal" Spacing="9" Margin="20,0">
                 <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE72E;" FontSize="12"
                            Foreground="#80FFFFFF" VerticalAlignment="Center" Margin="2,0,1,0" />
-                <TextBlock Text="Tylko w sieci lokalnej" FontSize="12" Foreground="#99FFFFFF" />
+                <TextBlock Text="Local network only" FontSize="12" Foreground="#99FFFFFF" />
             </StackPanel>
             <TextBlock x:Name="VersionText" FontSize="11.5" Foreground="#61FFFFFF" Margin="20,0" />
         </StackPanel>

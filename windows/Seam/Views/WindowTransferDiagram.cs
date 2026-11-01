@@ -67,7 +67,7 @@ public sealed class WindowTransferDiagram : Control
             for (var i = 0; i < 3; i++)
                 context.DrawEllipse(Brush.Parse(new[] { "#F26960", "#F5C347", "#5BC668" }[i]), null,
                     new Point(window.X + (large ? 12 : 7) + i * radius * 3, window.Y + (large ? 13 : 6.5)), radius, radius);
-            if (large) Text(context, L10n.T("Plan projektu", "Project plan"), new Point(window.X + ww * 0.4, window.Y + 7), 10, Brushes.White);
+            if (large) Text(context, L10n.T("Project plan", pl: "Plan projektu"), new Point(window.X + ww * 0.4, window.Y + 7), 10, Brushes.White);
             for (var i = 0; i < 3; i++)
             {
                 var y = window.Y + wh * (0.4 + 0.19 * i);

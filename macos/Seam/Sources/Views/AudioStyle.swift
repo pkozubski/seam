@@ -85,6 +85,6 @@ struct AudioBarMeter: View {
         }
         .frame(height: 30)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L10n.text("Poziom dźwięku", "Audio level"))
+        .accessibilityLabel(L10n.text("Audio level", pl: "Poziom dźwięku"))
     }
 }
