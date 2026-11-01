@@ -92,12 +92,20 @@ final class SettingsNavigation: ObservableObject {
         pane = next
     }
 
+    /// `openSettings` ze środowiska SwiftUI, zapisany przez okno główne i pasek menu: akcja
+    /// `showSettingsWindow:` przez łańcuch respondentów nie otwiera już sceny Settings w macOS 26.
+    var opener: (() -> Void)?
+
     /// Otwiera okno Ustawień (także z kodu poza widokami) na danej stronie.
     func present(_ pane: SettingsPane? = nil) {
         if let pane { select(pane) }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        if let opener {
+            opener()
+        } else {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        }
     }
 }
 

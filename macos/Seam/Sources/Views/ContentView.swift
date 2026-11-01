@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var showConnectionStatus = false
     @State private var selection: SidebarSection?
     @ObservedObject private var router = MainWindowRouter.shared
+    @Environment(\.openSettings) private var openSettings
 
     init(initialSection: SidebarSection = .connection) {
         // Ustawienia mają osobne okno (scena Settings), nie są stroną paska bocznego.
@@ -64,6 +65,7 @@ struct ContentView: View {
             ConnectionStatusAttachment(state: state, accent: orbAccent) { showConnectionStatus = true }
         }
         .sheet(isPresented: $showConnectionStatus) { ConnectionDetails().environment(state) }
+        .onAppear { SettingsNavigation.shared.opener = { openSettings() } }
         // Okno Ustawień prosi o stronę okna głównego (Uprawnienia, Dziennik).
         .onReceive(router.$requested.compactMap { $0 }) { section in
             selection = section

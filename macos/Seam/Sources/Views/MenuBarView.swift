@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     @Environment(AppState.self) private var state
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         @Bindable var state = state
@@ -64,6 +65,7 @@ struct MenuBarView: View {
         }
         .padding(20)
         .frame(width: 340)
+        .onAppear { SettingsNavigation.shared.opener = { openSettings() } }
     }
 
     private func openMainWindow() {
