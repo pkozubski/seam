@@ -1,0 +1,6 @@
+# Pliki w site/, których wrangler deploy nie publikuje (składnia .gitignore)
+wrangler.jsonc
+README.md
+.assetsignore
+.wrangler
+.DS_Store

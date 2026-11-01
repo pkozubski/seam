@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pl" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polityka prywatności · seam</title>
+  <meta name="description" content="Co Seam przetwarza na Twoich komputerach, co wysyła do GitHuba i Lemon Squeezy oraz co zbiera ta strona.">
+  <meta name="theme-color" content="#0a1fa8">
+  <link rel="canonical" href="https://seam.example/pl/legal/privacy/">
+  <link rel="alternate" hreflang="en" href="https://seam.example/legal/privacy/">
+  <link rel="alternate" hreflang="pl" href="https://seam.example/pl/legal/privacy/">
+  <link rel="alternate" hreflang="x-default" href="https://seam.example/legal/privacy/">
+  <link rel="icon" href="../../../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../../../assets/apple-touch-icon.png">
+  <link rel="preload" as="font" type="font/woff2" href="../../../fonts/inter-latin-wght-normal.woff2" crossorigin>
+  <link rel="stylesheet" href="../../../styles.css">
+  <link rel="stylesheet" href="../../../nav.css">
+  <link rel="stylesheet" href="../../../legal.css">
+</head>
+<body class="legal-page">
+  <a class="skip" href="#content">Przejdź do treści</a>
+
+  <!-- Nawigacja jak na stronie głównej, bez mega menu (nav.css/nav.js) -->
+  <div id="globalheader">
+    <nav id="globalnav" class="globalnav globalnav-scrim" aria-label="Seam">
+      <div class="globalnav-content">
+        <ul class="globalnav-list" id="globalnav-list" role="none">
+          <li class="globalnav-item globalnav-item-seam"><a class="globalnav-link globalnav-link-seam" href="../../../pl/" aria-label="seam, strona główna"><img src="../../../assets/seam-icon.webp" alt="" width="22" height="22"><span class="globalnav-link-text">seam</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../../pl/#funkcje"><span class="globalnav-link-text">Funkcje</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../../pl/#cennik"><span class="globalnav-link-text">Cennik</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../../pl/#pytania"><span class="globalnav-link-text">Pytania</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../../pl/#pobierz"><span class="globalnav-link-text">Pobierz</span></a></li>
+          <li class="globalnav-item globalnav-item-lang"><a class="globalnav-link globalnav-link-lang" href="../../../legal/privacy/" hreflang="en" data-lang-switch="en" aria-label="English: angielska wersja tej strony"><span class="globalnav-link-text"><span lang="en">EN</span><span class="globalnav-lang-sep">/</span><span class="globalnav-lang-on">PL</span></span></a></li>
+        </ul>
+        <div class="globalnav-menutrigger">
+          <button class="globalnav-menutrigger-button" type="button" aria-expanded="false" aria-controls="globalnav-list" aria-label="Menu"><span class="globalnav-menutrigger-bread globalnav-menutrigger-bread-top"></span><span class="globalnav-menutrigger-bread globalnav-menutrigger-bread-bottom"></span></button>
+        </div>
+      </div>
+    </nav>
+    <div class="globalnav-curtain" id="globalnav-curtain"></div>
+  </div>
+
+  <main id="content">
+    <article class="legal">
+      <ul class="legal__tabs" aria-label="Dokumenty prawne">
+        <li><a href="../privacy/" aria-current="page">Prywatność</a></li>
+        <li><a href="../eula/">Umowa licencyjna</a></li>
+        <li><a href="../refunds/">Zwroty</a></li>
+        <li><a href="../imprint/">Dane sprzedawcy</a></li>
+      </ul>
+      <h1>Polityka prywatności</h1>
+      <!-- TODO(launch): usuń ramkę po uzupełnieniu pól [..] przez prawnika -->
+      <p class="legal__draft">Szkic do weryfikacji prawnej. Wyróżnione pola w nawiasach trzeba uzupełnić przed rozpoczęciem sprzedaży Seam Pro.</p>
+      <p class="legal__meta">Obowiązuje od: <mark class="todo">[DATA WYDANIA SEAM 3.0]</mark></p>
+      <div class="legal__summary">
+        <h2>W skrócie</h2>
+        <ul>
+          <li>Seam nie ma konta, reklam, bibliotek analitycznych ani telemetrii użycia.</li>
+          <li>Dane klawiatury, myszy, schowka, dźwięku i obrazu przechodzą tylko między sparowanym Makiem i PC w Twojej sieci lokalnej, zaszyfrowane.</li>
+          <li><strong>Wersja darmowa nie wysyła przez internet nic poza sprawdzaniem aktualizacji</strong> na GitHubie.</li>
+          <li><strong>Seam Pro wysyła do Lemon Squeezy klucz licencji i nazwę urządzenia</strong> przy aktywacji i mniej więcej raz w tygodniu przy sprawdzaniu licencji.</li>
+        </ul>
+      </div>
+
+      <h2>Kto odpowiada za dane</h2>
+      <p>Administratorem opisanych tu danych osobowych jest <mark class="todo">[NAZWA I ADRES SPRZEDAWCY]</mark>, kontakt: <mark class="todo">[E-MAIL DO SPRAW PRYWATNOŚCI]</mark>. Zakupy obsługuje Lemon Squeezy jako sprzedawca (merchant of record), patrz „Zakupy” niżej.</p>
+
+      <h2>Dane przetwarzane na Twoich komputerach</h2>
+      <p>Gdy odpowiednie funkcje są włączone, Seam przetwarza zdarzenia klawiatury i myszy, tekst lub obrazy ze schowka, nazwy urządzeń, lokalne adresy IP, dźwięk systemowy oraz obraz wirtualnego ekranu Maca (tylko wirtualnego, nigdy wbudowanego ani innych fizycznych ekranów Maca) albo wirtualnego monitora Windows. Te dane są przesyłane tylko między sparowanym komputerem z Windowsem i Makiem w sieci lokalnej, szyfrowane AES-256-GCM. Aplikacja nie wysyła ich treści do nas ani do żadnej chmury.</p>
+      <p>Sekret parowania jest przechowywany w Pęku kluczy macOS albo zaszyfrowany dla bieżącego konta Windows przez DPAPI. Ustawienia, data rozpoczęcia okresu próbnego, klucz licencji i ostatnie wpisy dziennika diagnostycznego zostają lokalnie na każdym komputerze.</p>
+
+      <h2>Sprawdzanie aktualizacji</h2>
+      <p>Jeśli sprawdzanie aktualizacji jest włączone (domyślnie; możesz je wyłączyć w Ustawieniach), aplikacja łączy się z API GitHuba i serwerem wydań GitHuba (<code>github.com/pkozubski/seam-releases</code>). GitHub otrzymuje zwykłe dane połączenia, np. publiczny adres IP i identyfikator aplikacji (user agent). Zapytanie nie zawiera danych schowka, sterowania, dźwięku ani licencji. Przetwarzanie przez GitHub opisuje jego polityka prywatności.</p>
+      <p>Jeśli zainstalujesz sterownik wirtualnego monitora dla aplikacji Windows na Macu, aplikacja Windows raz pobiera z GitHuba wydania Virtual Display Driver i nefcon, sprawdza ich sumy SHA-256 i instaluje je za zgodą administratora.</p>
+
+      <h2>Licencja Seam Pro</h2>
+      <p>Okres próbny nie wymaga konta ani danych płatniczych. Data jego rozpoczęcia zostaje tylko na Twoim komputerze.</p>
+      <p>Po aktywacji Seam Pro aplikacja wysyła do License API Lemon Squeezy (<code>api.lemonsqueezy.com</code>):</p>
+      <ul>
+        <li><strong>przy aktywacji:</strong> klucz licencji i nazwę urządzenia (nazwę komputera ustawioną w macOS lub Windows);</li>
+        <li><strong>przy sprawdzaniu</strong>, mniej więcej co 7 dni, gdy komputer jest online: klucz licencji i identyfikator aktywacji otrzymany przy aktywacji;</li>
+        <li><strong>przy dezaktywacji</strong>, gdy wybierzesz Dezaktywuj: klucz licencji i identyfikator aktywacji.</li>
+      </ul>
+      <p>Lemon Squeezy otrzymuje przy każdym zapytaniu także Twój publiczny adres IP. W odpowiedzi podaje stan licencji i adres e-mail z zakupu, który aplikacja pokazuje w Ustawieniach → Licencja i zapisuje lokalnie. Nic więcej, w tym żadne dane z poprzednich punktów, nie jest wysyłane. Gdy sprawdzenie się nie uda, Pro działa do 30 dni od ostatniego udanego sprawdzenia.</p>
+
+      <h2>Zakupy</h2>
+      <p>Seam Pro sprzedaje Lemon Squeezy, który działa jako sprzedawca i merchant of record. Lemon Squeezy zbiera dane potrzebne do płatności, podatków i ochrony przed oszustwami (np. imię i nazwisko, e-mail, kraj rozliczenia, metodę płatności) na zasadach własnej polityki prywatności: <a href="https://www.lemonsqueezy.com/privacy">lemonsqueezy.com/privacy</a>. Od Lemon Squeezy otrzymujemy informacje o zamówieniu, np. imię i nazwisko, adres e-mail, kraj, dane zamówienia i licencji, żeby zapewnić licencję, pomoc i zwroty. <mark class="todo">[PRAWNIK: POTWIERDZIĆ ZAKRES DANYCH, PODSTAWĘ PRAWNĄ I OKRES PRZECHOWYWANIA]</mark></p>
+
+      <h2>Ta strona</h2>
+      <ul>
+        <li>Strona jest hostowana w Cloudflare. Cloudflare przetwarza dane połączenia, np. adres IP i user agent, żeby dostarczyć stronę i chronić ją przed nadużyciami. <mark class="todo">[POTWIERDZIĆ OKRES PRZECHOWYWANIA LOGÓW CLOUDFLARE I CZY WŁĄCZONO CLOUDFLARE WEB ANALYTICS (BEZ COOKIES)]</mark></li>
+        <li>Strona nie ustawia plików cookie i nie ładuje zewnętrznych czcionek ani analityki. Czcionki pochodzą z tej domeny.</li>
+        <li>Pamięć lokalna przeglądarki zapamiętuje tylko wybór języka (angielski lub polski), żeby strona przestała proponować drugą wersję.</li>
+        <li>Skrypt sklepu Lemon Squeezy (<code>app.lemonsqueezy.com</code>) ładuje się dopiero po kliknięciu „Kup Pro”.</li>
+        <li>Przyciski pobierania prowadzą do plików na GitHubie.</li>
+      </ul>
+
+      <h2>Diagnostyka</h2>
+      <p>Dzienniki zostają na urządzeniu, chyba że sam je skopiujesz i wyślesz. Przed wysłaniem raportu usuń nazwy urządzeń, adresy IP i inne dane osobowe.</p>
+
+      <h2>Twoje prawa</h2>
+      <p>W zależności od miejsca zamieszkania, w tym na podstawie RODO, możesz mieć prawo dostępu do swoich danych, ich sprostowania lub usunięcia, ograniczenia przetwarzania, sprzeciwu, przenoszenia danych oraz skargi do organu nadzorczego (w Polsce: Prezesa Urzędu Ochrony Danych Osobowych). W tych sprawach napisz na <mark class="todo">[E-MAIL DO SPRAW PRYWATNOŚCI]</mark>. Sprawy danych płatniczych możesz kierować także do Lemon Squeezy.</p>
+      <p><mark class="todo">[PRAWNIK: POTWIERDZIĆ PODSTAWY PRAWNE (UMOWA, PRAWNIE UZASADNIONY INTERES), OKRESY PRZECHOWYWANIA I PRZEKAZYWANIE DANYCH DO GITHUBA, CLOUDFLARE I LEMON SQUEEZY POZA EOG]</mark></p>
+
+      <h2>Zmiany</h2>
+      <p>Zaktualizujemy tę politykę przed dodaniem telemetrii, kont lub innej usługi zewnętrznej i podamy datę obowiązywania na górze.</p>
+      <p>W razie rozbieżności wiążąca jest <mark class="todo">[WERSJA JĘZYKOWA WIĄŻĄCA: DO DECYZJI PRAWNIKA]</mark>.</p>
+    </article>
+  </main>
+
+  <div class="finale">
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <a class="brand" href="../../../pl/"><img src="../../../assets/seam-icon.webp" alt="" width="40" height="40"><span>seam</span></a>
+        <p>Mac i PC. Jedno biurko.</p>
+      </div>
+      <nav class="footer__cols" aria-label="Stopka">
+        <div>
+          <h4>Produkt</h4>
+          <a href="../../../pl/#funkcje">Funkcje</a>
+          <a href="../../../pl/#cennik">Cennik</a>
+          <a href="../../../pl/#pobierz">Pobierz</a>
+          <a href="https://github.com/pkozubski/seam-releases/releases">Lista zmian</a>
+        </div>
+        <div>
+          <h4>Pomoc</h4>
+          <a href="../../../pl/#pytania">Pytania</a>
+          <a href="mailto:support@seam.example">Zgłoś problem</a>
+        </div>
+        <div>
+          <h4>Informacje prawne</h4>
+          <a href="../privacy/">Prywatność</a>
+          <a href="../eula/">Umowa licencyjna</a>
+          <a href="../refunds/">Zwroty</a>
+          <a href="../imprint/">Dane sprzedawcy</a>
+        </div>
+      </nav>
+    </div>
+    <p class="footer__legal">© 2026 Seam · Działa tylko w Twojej sieci lokalnej. · <a href="../../../legal/privacy/" hreflang="en" lang="en" data-lang-switch="en">English</a> · <span aria-current="true">Polski</span></p>
+    <div class="footer__word" aria-hidden="true">seam</div>
+  </footer>
+  </div>
+
+  <script src="../../../nav.js" defer></script>
+  <script src="../../../lang.js" defer></script>
+</body>
+</html>

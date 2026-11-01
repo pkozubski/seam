@@ -1,0 +1,16 @@
+// Strona seam na Cloudflare Workers: same pliki statyczne z tego katalogu, bez skryptu Workera.
+// Deploy: .github/workflows/site.yml (wrangler deploy przy zmianach w site/). Pomijane pliki: .assetsignore.
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  "name": "seam-site",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": ".",
+    // /legal/eula → /legal/eula/ (pliki legal/eula/index.html)
+    "html_handling": "auto-trailing-slash",
+    // nieznany adres → 404.html ze statusem 404
+    "not_found_handling": "404-page"
+  }
+  // TODO(launch): własna domena po jej wyborze, np.
+  // "routes": [{ "pattern": "seam.example", "custom_domain": true }]
+}
