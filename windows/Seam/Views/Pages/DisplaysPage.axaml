@@ -1,58 +1,37 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Seam.ViewModels"
+             xmlns:views="using:Seam.Views"
              x:Class="Seam.Views.Pages.DisplaysPage"
              x:DataType="vm:MainViewModel">
-    <ScrollViewer>
-        <StackPanel Classes="page">
-            <StackPanel Spacing="4">
-                <TextBlock Classes="pageTitle" Text="Arrange the screens the way they sit on your desk" />
-                <TextBlock Classes="pageSubtitle" Text="Click the spot next to this monitor where the Mac sits. The pointer moves to the Mac across that edge." />
+    <!-- Ekrany: turkusowy motyw (PageTheme.Teal), Mac przeciągany na stronę, po której stoi na biurku. -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="900" Margin="28,24,28,110" Spacing="18">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="featureTitle" HorizontalAlignment="Center" TextAlignment="Center" Text="Arrange your screens" />
+                <TextBlock Classes="featureSubtitle" HorizontalAlignment="Center" TextAlignment="Center"
+                           Text="Drag the Mac to the side where it sits on your desk. The pointer crosses to the Mac over that edge." />
             </StackPanel>
 
-            <Border Classes="card">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="SCREEN LAYOUT" />
-                    </StackPanel>
-                    <Border Classes="stage" Padding="24">
-                        <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto,Auto"
-                              HorizontalAlignment="Center" ColumnSpacing="6" RowSpacing="6">
-                            <Button Grid.Row="0" Grid.Column="1" x:Name="SlotTop" Classes="slot" Width="200" Height="96" HorizontalAlignment="Center" />
-                            <Button Grid.Row="1" Grid.Column="0" x:Name="SlotLeft" Classes="slot" Width="200" Height="140" HorizontalAlignment="Right" />
-                            <Border Grid.Row="1" Grid.Column="1" Classes="screen" Width="250" Height="150">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
-                                    <TextBlock x:Name="ThisPcName" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                    <Border Classes="pill" HorizontalAlignment="Center">
-                                        <TextBlock Text="This PC" FontSize="11" />
-                                    </Border>
-                                </StackPanel>
-                            </Border>
-                            <Button Grid.Row="1" Grid.Column="2" x:Name="SlotRight" Classes="slot" Width="200" Height="140" HorizontalAlignment="Left" />
-                            <Button Grid.Row="2" Grid.Column="1" x:Name="SlotBottom" Classes="slot" Width="200" Height="96" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Border>
-                    <TextBlock Classes="subtitle" HorizontalAlignment="Center"
-                               Text="With several monitors, the handoff uses the one furthest towards the chosen side." />
+            <Border Classes="card glass">
+                <StackPanel Spacing="10">
+                    <views:ScreenArrangement x:Name="Arrangement" />
+                    <TextBlock Classes="glassBody" HorizontalAlignment="Center" TextAlignment="Center"
+                               Text="With several monitors, the handoff uses the one furthest towards the chosen side. Arrow keys move the Mac too." />
                 </StackPanel>
             </Border>
 
-            <Border Classes="card">
-                <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader">
-                        <TextBlock Text="POINTER HANDOFF" />
+            <Border Classes="card glass">
+                <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                    <StackPanel VerticalAlignment="Center" Spacing="3" Margin="0,0,12,0">
+                        <TextBlock Classes="glassTitle" x:Name="SideTitle" />
+                        <TextBlock Classes="glassBody" Text="{Binding EmergencyHotkeyDescription}" />
                     </StackPanel>
-                    <Grid ColumnDefinitions="*,Auto" MinHeight="44">
-                        <StackPanel VerticalAlignment="Center" Spacing="2" Margin="0,0,12,0">
-                            <TextBlock Classes="rowTitle" x:Name="SideTitle" />
-                            <TextBlock Classes="subtitle" Text="{Binding EmergencyHotkeyDescription}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Ellipse Width="8" Height="8" Fill="{Binding CursorStatusBrush}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding CursorStatusText}" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8" Fill="{Binding CursorStatusBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding CursorStatusText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
             </Border>
         </StackPanel>
     </ScrollViewer>

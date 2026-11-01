@@ -95,8 +95,8 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Jedna licencja wystarcza parze: Pro działa, gdy ma je ten PC albo Mac.</summary>
     public bool SessionPro => License.IsEntitled || _macExtendedFlags.HasFlag(ExtendedStatusFlags.ProEntitled);
 
-    private static string ProRequiredText => T("Needs Seam Pro — start a free trial or buy Pro in Settings.",
-                                               pl: "Wymaga Seam Pro – rozpocznij okres próbny albo kup Pro w Ustawieniach.");
+    private static string ProRequiredText => T("Paused — needs Seam Pro",
+                                               pl: "Wstrzymane – wymaga Seam Pro");
     /// <summary>Wysłano DISPLAY_START; po błędzie zostaje true, żeby nie ponawiać w pętli.</summary>
     private bool _displayRequested;
     private bool _displayRunning;
@@ -345,7 +345,7 @@ public partial class MainViewModel : ObservableObject
         nameof(LicenseHeadline), nameof(LicenseDetail), nameof(HasLicense), nameof(LicenseKeyDetail), nameof(LicenseCheckedText),
         nameof(LicenseError), nameof(IsLicenseBusy), nameof(CanStartTrial), nameof(ShowsTesterOffer), nameof(TrialBadgeText),
         nameof(HasTrialBadge), nameof(ProGateTitle), nameof(ProGateMessage), nameof(ProGateNeedsCheck), nameof(ProGateCanBuyOnly),
-        nameof(IsPro),
+        nameof(IsPro), nameof(LicenseAccountSubtitle),
     ];
 
     private void NotifyLicenseTexts()
@@ -393,6 +393,15 @@ public partial class MainViewModel : ObservableObject
                                                  pl: "Połącz się z internetem, żeby Seam sprawdził licencję."),
         EntitlementState.Revoked => T("The license was refunded or disabled.", pl: "Licencja została zwrócona albo wyłączona."),
         _ => T("Keyboard, mouse and text in the clipboard, free forever.", pl: "Klawiatura, mysz i tekst w schowku, za darmo na zawsze."),
+    };
+
+    /// <summary>Podpis karty licencji w oknie Ustawień (jak konto w ustawieniach Droppy).</summary>
+    public string LicenseAccountSubtitle => License.Entitlement.State switch
+    {
+        EntitlementState.Pro => License.License?.CustomerEmail ?? T("License active", pl: "Licencja aktywna"),
+        EntitlementState.Trial => T($"{License.Entitlement.TrialDaysLeft} days left", pl: $"Zostało dni: {License.Entitlement.TrialDaysLeft}"),
+        EntitlementState.Free => T($"Try Pro free for {Entitlement.TrialDays} days", pl: $"Wypróbuj Pro przez {Entitlement.TrialDays} dni"),
+        _ => T("Upgrade to Pro", pl: "Przejdź na Pro"),
     };
 
     public string LicenseKeyDetail => License.License is { } stored

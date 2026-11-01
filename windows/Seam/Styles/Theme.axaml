@@ -107,6 +107,67 @@
                     </ControlTemplate>
                 </Setter>
             </ControlTheme>
+
+            <!-- Przyciski karty Pro (jak ProPrimaryButtonStyle i GlassPillButtonStyle na Macu): własne szablony,
+                 bo motyw FluentAvalonia maluje tło przycisku z zasobów, a nie z właściwości Background. -->
+            <ControlTheme x:Key="ProPrimaryButton" TargetType="Button">
+                <Setter Property="Background" Value="#F2FFFFFF" />
+                <Setter Property="Foreground" Value="#D9000000" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Padding" Value="18,8" />
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Name="PART_Pill" Background="{TemplateBinding Background}" CornerRadius="999"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pointerover /template/ Border#PART_Pill"><Setter Property="Background" Value="#FFFFFFFF" /></Style>
+                <Style Selector="^:pressed /template/ Border#PART_Pill"><Setter Property="Background" Value="#BFFFFFFF" /></Style>
+                <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+            </ControlTheme>
+            <ControlTheme x:Key="ProGlassButton" TargetType="Button">
+                <Setter Property="Background" Value="#1AFFFFFF" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Padding" Value="18,8" />
+                <Setter Property="MinHeight" Value="34" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Name="PART_Pill" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="999" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pointerover /template/ Border#PART_Pill"><Setter Property="Background" Value="#2BFFFFFF" /></Style>
+                <Style Selector="^:pressed /template/ Border#PART_Pill"><Setter Property="Background" Value="#0DFFFFFF" /></Style>
+                <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+            </ControlTheme>
+            <ControlTheme x:Key="LinkButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+                <Setter Property="FontWeight" Value="Medium" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Padding" Value="6,8" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <ContentPresenter Name="PART_Text" Content="{TemplateBinding Content}" Background="Transparent"
+                                          Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}" />
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pointerover /template/ ContentPresenter#PART_Text"><Setter Property="Foreground" Value="White" /></Style>
+            </ControlTheme>
         </ResourceDictionary>
     </Styles.Resources>
 

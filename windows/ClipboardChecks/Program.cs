@@ -70,6 +70,7 @@ internal static class Program
     {
         LocalizationChecks.Run();
         LicenseChecks.Run();
+        DisplayLayoutChecks.Run();
         UpdateChecks.Run();
         RunSecurityChecks();
         RunAudioSessionChecks();

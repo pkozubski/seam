@@ -4,7 +4,7 @@ using Avalonia.Media;
 namespace Seam.Views;
 
 /// <summary>Kolor strony: każda strona funkcji ma własny, reszta aplikacji jest grafitowa (jak na macOS).</summary>
-public enum PageColor { Graphite, Blue, Magenta, Violet, Amber, Green }
+public enum PageColor { Graphite, Blue, Magenta, Violet, Amber, Green, Teal }
 
 /// <summary>
 /// Tokeny kolorowych stron, przepisane z macOS (<c>ConnectionStyle.swift</c>, <c>ControlStyle.swift</c>,
@@ -41,6 +41,12 @@ public sealed record PageTheme(
         Light: C("#C4EC8A"), MutedText: C("#D2E6C2"), CardBorder: C("#33D8F6CA"),
         OrbLight: C("#C4EC8A"), OrbMid: C("#7CC43F"), OrbDeep: C("#2F6416"), OrbGlow: C("#8CC63F"));
 
+    /// <summary>Ekrany (tylko na Windowsie): turkus, jedyny kolor bez własnej strony na macOS.</summary>
+    public static readonly PageTheme Teal = new(
+        Top: C("#06343A"), Edge: C("#031B1F"), Center: C("#0B6A6E"), Glow: C("#2FD9CF"), Accent: C("#2CC4BA"),
+        Light: C("#9FF2EA"), MutedText: C("#BFE6E2"), CardBorder: C("#33A0F2EA"),
+        OrbLight: C("#9FF2EA"), OrbMid: C("#2CC4BA"), OrbDeep: C("#0B6A6E"), OrbGlow: C("#2FD9CF"));
+
     /// <summary>Tokeny koloru; grafit nie ma własnych (strony grafitowe biorą zasoby z Theme.axaml, kula jest niebieska).</summary>
     public static PageTheme? For(PageColor color) => color switch
     {
@@ -49,6 +55,7 @@ public sealed record PageTheme(
         PageColor.Violet => Violet,
         PageColor.Amber => Amber,
         PageColor.Green => Green,
+        PageColor.Teal => Teal,
         _ => null,
     };
 
@@ -60,6 +67,7 @@ public sealed record PageTheme(
         "audio" => PageColor.Violet,
         "clipboard" => PageColor.Amber,
         "windows" => PageColor.Green,
+        "displays" => PageColor.Teal,
         _ => PageColor.Graphite,
     };
 

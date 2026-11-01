@@ -71,9 +71,30 @@ public partial class MainWindow : AppWindow
         UpdateNavIcons();
     }
 
+    private SettingsWindow? _settingsWindow;
+    internal SettingsWindow? SettingsWindowInstance => _settingsWindow;
+
+    /// <summary>Ustawienia mają osobne okno (jak na macOS); jedno na raz, nad oknem głównym.</summary>
+    public void OpenSettings(string pane = "general")
+    {
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow { DataContext = DataContext };
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show(this);
+        }
+        _settingsWindow.Select(pane);
+        _settingsWindow.Activate();
+    }
+
     /// <summary>Wybiera stronę w pasku bocznym po jej znaczniku.</summary>
     public void NavigateTo(string tag)
     {
+        if (tag == "settings")
+        {
+            OpenSettings();
+            return;
+        }
         var item = NavItems.FirstOrDefault(i => (string?)i.Tag == tag);
         if (item is null) return;
         if (!ReferenceEquals(Nav.SelectedItem, item)) Nav.SelectedItem = item;
@@ -118,7 +139,15 @@ public partial class MainWindow : AppWindow
 
     private void Nav_OnSelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
     {
-        if (e.SelectedItem is NavigationViewItem { Tag: string tag }) ShowPage(tag);
+        if (e.SelectedItem is not NavigationViewItem { Tag: string tag }) return;
+        if (tag == "settings")
+        {
+            // Pozycja Ustawienia otwiera okno, a zaznaczenie wraca na bieżącą stronę.
+            OpenSettings();
+            Nav.SelectedItem = NavItems.FirstOrDefault(i => (string?)i.Tag == _currentTag);
+            return;
+        }
+        ShowPage(tag);
     }
 
     private void ShowPage(string tag)

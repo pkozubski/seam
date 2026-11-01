@@ -1,16 +1,15 @@
 using System.ComponentModel;
-using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Seam.Localization;
 using Seam.Models;
 using Seam.ViewModels;
+using Seam.Views;
 
 namespace Seam.Views.Pages;
 
 /// <summary>
-/// Układ ekranów: ten monitor na środku, Mac w jednym z czterech miejsc obok.
-/// Kliknięcie miejsca ustawia <see cref="MainViewModel.SelectedMacSide"/>.
+/// Układ ekranów: ten monitor na środku, Mac przeciągany na jedną z czterech stron
+/// (<see cref="ScreenArrangement"/>). Wybór ustawia <see cref="MainViewModel.SelectedMacSide"/>.
 /// </summary>
 public partial class DisplaysPage : UserControl
 {
@@ -19,17 +18,14 @@ public partial class DisplaysPage : UserControl
     public DisplaysPage()
     {
         InitializeComponent();
-        ThisPcName.Text = Environment.MachineName;
-        foreach (var (slot, side) in Slots)
-            slot.Click += (_, _) => Select(side);
+        Arrangement.PcName = Environment.MachineName;
+        Arrangement.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == ScreenArrangement.MacSideProperty) Select(Arrangement.MacSide);
+        };
         DataContextChanged += (_, _) => Attach(DataContext as MainViewModel);
         Attach(DataContext as MainViewModel);
     }
-
-    private IEnumerable<(Button Slot, MacSide Side)> Slots => new[]
-    {
-        (SlotLeft, MacSide.Left), (SlotRight, MacSide.Right), (SlotTop, MacSide.Top), (SlotBottom, MacSide.Bottom),
-    };
 
     private void Attach(MainViewModel? vm)
     {
@@ -47,42 +43,21 @@ public partial class DisplaysPage : UserControl
 
     private void Select(MacSide side)
     {
-        if (_vm is null) return;
+        if (_vm is null || _vm.SelectedMacSide.Value == side) return;
         _vm.SelectedMacSide = _vm.MacSides.First(o => o.Value == side);
     }
 
     private void Refresh()
     {
         var current = _vm?.SelectedMacSide.Value ?? MacSide.Left;
-        var macName = string.IsNullOrWhiteSpace(_vm?.PeerName) ? L10n.T("Your Mac", pl: "Twój Mac") : _vm!.PeerName;
-        foreach (var (slot, side) in Slots)
+        Arrangement.MacSide = current;
+        Arrangement.MacName = string.IsNullOrWhiteSpace(_vm?.PeerName) ? L10n.T("Your Mac", pl: "Twój Mac") : _vm!.PeerName;
+        SideTitle.Text = current switch
         {
-            var selected = side == current;
-            slot.Classes.Set("selected", selected);
-            slot.Content = selected
-                ? new StackPanel
-                {
-                    Spacing = 4,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Children =
-                    {
-                        new TextBlock { Text = macName, FontSize = 14, FontWeight = Avalonia.Media.FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis },
-                        new TextBlock { Text = "Mac", FontSize = 11, Opacity = 0.75, HorizontalAlignment = HorizontalAlignment.Center },
-                    },
-                }
-                : new TextBlock { Text = L10n.T("Mac here", pl: "Mac tutaj"), FontSize = 12, Opacity = 0.6 };
-            ToolTip.SetTip(slot, SideLabel(side));
-            AutomationProperties.SetName(slot, SideLabel(side));
-        }
-        SideTitle.Text = SideLabel(current);
+            MacSide.Left => L10n.T("The Mac is to the left of this screen", pl: "Mac stoi po lewej od tego ekranu"),
+            MacSide.Right => L10n.T("The Mac is to the right of this screen", pl: "Mac stoi po prawej od tego ekranu"),
+            MacSide.Top => L10n.T("The Mac is above this screen", pl: "Mac stoi nad tym ekranem"),
+            _ => L10n.T("The Mac is below this screen", pl: "Mac stoi pod tym ekranem"),
+        };
     }
-
-    private static string SideLabel(MacSide side) => side switch
-    {
-        MacSide.Left => L10n.T("The Mac is to the left of this screen", pl: "Mac stoi po lewej od tego ekranu"),
-        MacSide.Right => L10n.T("The Mac is to the right of this screen", pl: "Mac stoi po prawej od tego ekranu"),
-        MacSide.Top => L10n.T("The Mac is above this screen", pl: "Mac stoi nad tym ekranem"),
-        _ => L10n.T("The Mac is below this screen", pl: "Mac stoi pod tym ekranem"),
-    };
 }

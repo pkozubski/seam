@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Seam.Views.WindowsHero"
+             IsHitTestVisible="False">
+    <!-- Grafika strony Okna jak WindowsHero na macOS (OknaStyle.swift): laptop i monitor, szew światła między nimi,
+         smugi z laptopa do monitora i szklane okno nad szwem. Płótno 1000×400 skaluje się do szerokości strony. -->
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="1000" Height="400" ClipToBounds="False">
+            <!-- laptop: szer. 36%, środek (24%, 58%) -->
+            <Image Source="avares://Seam/Assets/hero-windows-laptop.png" Width="360" Height="279"
+                   Canvas.Left="60" Canvas.Top="92.5" />
+            <!-- monitor: szer. 34%, środek (77%, 50%) -->
+            <Image Source="avares://Seam/Assets/hero-windows-monitor.png" Width="340" Height="351"
+                   Canvas.Left="600" Canvas.Top="24.5" />
+            <!-- szew światła: poświata, blask i cienka biała linia, wygaszone u góry i u dołu -->
+            <Canvas Canvas.Left="340" Canvas.Top="-20" Width="320" Height="440">
+                <Canvas.OpacityMask>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#00FFFFFF" Offset="0" />
+                        <GradientStop Color="#FFFFFFFF" Offset="0.35" />
+                        <GradientStop Color="#FFFFFFFF" Offset="0.7" />
+                        <GradientStop Color="#00FFFFFF" Offset="1" />
+                    </LinearGradientBrush>
+                </Canvas.OpacityMask>
+                <!-- poziome gradienty zamiast rozmycia: BlurEffect w Avalonii zostawia ostre brzegi szerokiej poświaty -->
+                <Rectangle Canvas.Left="0" Width="320" Height="440">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Color="#008CC63F" Offset="0" />
+                            <GradientStop Color="#408CC63F" Offset="0.3" />
+                            <GradientStop Color="#998CC63F" Offset="0.5" />
+                            <GradientStop Color="#408CC63F" Offset="0.7" />
+                            <GradientStop Color="#008CC63F" Offset="1" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle Canvas.Left="130" Width="60" Height="440">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                            <GradientStop Color="#00C4EC8A" Offset="0" />
+                            <GradientStop Color="#CCC4EC8A" Offset="0.5" />
+                            <GradientStop Color="#00C4EC8A" Offset="1" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle Canvas.Left="158.75" Width="2.5" Height="440" Fill="White" />
+            </Canvas>
+            <!-- smugi z ekranu laptopa przez okno do monitora (łuki nad i pod oknem) -->
+            <Path Data="M340,144 Q500,40 680,120 M370,280 Q500,344 660,264" StrokeThickness="12" StrokeLineCap="Round">
+                <Path.Stroke>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Color="#00C4EC8A" Offset="0" />
+                        <GradientStop Color="#CCC4EC8A" Offset="0.5" />
+                        <GradientStop Color="#00C4EC8A" Offset="1" />
+                    </LinearGradientBrush>
+                </Path.Stroke>
+                <Path.Effect><BlurEffect Radius="18" /></Path.Effect>
+            </Path>
+            <Path Data="M340,144 Q500,40 680,120 M370,280 Q500,344 660,264" StrokeThickness="2" StrokeLineCap="Round">
+                <Path.Stroke>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                        <GradientStop Color="#00C4EC8A" Offset="0" />
+                        <GradientStop Color="#CCC4EC8A" Offset="0.5" />
+                        <GradientStop Color="#00C4EC8A" Offset="1" />
+                    </LinearGradientBrush>
+                </Path.Stroke>
+            </Path>
+            <!-- szklane okno: szer. 22%, środek (51%, 44%), z zieloną poświatą -->
+            <Image Source="avares://Seam/Assets/hero-windows-window.png" Width="220" Height="177"
+                   Canvas.Left="400" Canvas.Top="87.5">
+                <Image.Effect><DropShadowEffect Color="#8CC63F" Opacity="0.6" BlurRadius="48" OffsetX="0" OffsetY="0" /></Image.Effect>
+            </Image>
+        </Canvas>
+    </Viewbox>
+</UserControl>

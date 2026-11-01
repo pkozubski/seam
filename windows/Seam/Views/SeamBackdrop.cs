@@ -57,6 +57,11 @@ public sealed class SeamBackdrop : Panel
             Linear(new RelativePoint(0, 1, RelativeUnit.Relative), (green.Top, 0), (green.Edge, 1)),
             Glow(green.Center, 1, 0.58, 0.2, 0.65, 0.5),
             Glow(green.Glow, 0.45, 0.55, 1.08, 0.5, 0.1));
+        var teal = PageTheme.Teal;
+        AddLayer(PageColor.Teal,
+            Linear(new RelativePoint(0, 1, RelativeUnit.Relative), (teal.Top, 0), (teal.Edge, 1)),
+            Glow(teal.Center, 1, 0.5, 0.45, 0.6),
+            Glow(teal.Glow, 0.45, 0.9, 1.05, 0.5, 0.15));
     }
 
     /// <summary>Kolor tła; <see cref="PageColor.Graphite"/> zostawia sam grafit.</summary>

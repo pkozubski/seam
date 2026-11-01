@@ -87,11 +87,14 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
   tylko Klawiatura i mysz** (`hero-control-mouse` + `hero-control-key`, `tile-input`, `ControlTokens` w `ControlStyle.swift`),
   **fioletowa tylko Dźwięk** (spokojny fiolet jak CleanMyMac: `hero-audio-headphones`, `tile-audio-violet`, `AudioTokens`
   w `AudioStyle.swift`), **bursztynowa tylko Schowek** (`hero-clipboard-board` + `-text` + `-photo` składane w `ClipboardHero`,
-  `tile-clipboard-amber`, `ClipboardTokens` w `ClipboardStyle.swift`); reszta (Ekrany, Ustawienia, Dziennik) grafitowa.
+  `tile-clipboard-amber`, `ClipboardTokens` w `ClipboardStyle.swift`), **turkusowa tylko Ekrany** (tylko Windows: `PageTheme.Teal`,
+  przeciągany układ `ScreenArrangement`); reszta (Ustawienia, Dziennik) grafitowa. Ustawienia na obu platformach są
+  w osobnym oknie (Mac: scena `Settings`, `SettingsWindow.swift`; Windows: `Views/SettingsWindow.axaml` + panele `SettingsPage.Show`).
   Mac: karty `TintedGlassCard`, kula Połączono pod oknem w kolorze strony (`ConnectionStatusButton.Accent`).
   Windows: te same tokeny w `Views/PageTheme.cs` (kolor strony z `PageTheme.ForTag`, `Apply` podmienia zasoby kart, tekstu
   i przełączników strony), tła w `SeamBackdrop.PageColor`, kula `StatusOrb` na dole treści (strony mają pod nią margines 110),
-  grafiki `AudioWave`/`AudioBarMeter` (`AudioArt.cs`) i `ClipboardHero`; strony `ControlPage`, `AudioPage`, `ClipboardPage`.
+  grafiki `AudioWave`/`AudioBarMeter` (`AudioArt.cs`), `ClipboardHero` i `WindowsHero.axaml`; przyciski Pro
+  `ProPrimaryButton`/`ProGlassButton`/`LinkButton` (Theme.axaml); strony `ControlPage`, `AudioPage`, `ClipboardPage`.
   Zmieniając kolor strony, zmień oba pliki (`*Style.swift` i `PageTheme.cs`). Styl kolorowych grafik: błyszczące szkło 3D w gradiencie (prompty w `assets/seam/hero-prompts.txt`).
   Pasek boczny: jedna strona na sekcję, każda strona funkcji zaczyna się kartą z głównym przełącznikiem.
   Użytkownik odrzucił: podzakładki na stronach i `SettingsExpander` (Windows).

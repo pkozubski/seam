@@ -2,202 +2,111 @@
              xmlns:vm="using:Seam.ViewModels" xmlns:views="using:Seam.Views"
              xmlns:conv="using:Avalonia.Data.Converters"
              x:Class="Seam.Views.Pages.WindowsPage" x:DataType="vm:MainViewModel">
-    <!-- Projekt „Your apps, on both computers”: główny przełącznik w pastylce, ilustracja po lewej,
-         połączenie i układ ekranów po prawej. Funkcje szczegółowe są niżej, pod przewinięciem. -->
-    <!-- Zielone tokeny strony (karty, tekst, przełączniki) daje PageTheme.Green, wspólne z zielenią liści na macOS -->
+    <!-- Okna jak na macOS (WindowsPage.swift): grafika z laptopem, monitorem i oknem, jedna karta z głównym
+         przełącznikiem, trzy kroki i linia z układem ekranów. Opcje, które są tylko na Windowsie (oba kierunki,
+         sterownik, tryb całego pulpitu), są w karcie „Oba kierunki”. Zielone tokeny daje PageTheme.Green. -->
     <UserControl.Styles>
-        <Style Selector="TextBlock.cardTitle">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-        <Style Selector="TextBlock.cardBody">
+        <Style Selector="TextBlock.stepText">
             <Setter Property="FontSize" Value="14.5" />
-            <Setter Property="LineHeight" Value="22" />
-            <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Border.switchPill">
-            <Setter Property="Background" Value="{DynamicResource PillBackground}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+        <Style Selector="Border.stepNumber">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PageLight}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="18,4,8,4" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Border.screenTile">
-            <Setter Property="Width" Value="62" />
-            <Setter Property="Height" Value="46" />
-            <Setter Property="CornerRadius" Value="7" />
-            <Setter Property="BorderBrush" Value="#C4EC8A" />
-            <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="Background">
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                    <GradientStop Color="#7CC43F" Offset="0" />
-                    <GradientStop Color="#4A8E22" Offset="0.5" />
+                <RadialGradientBrush Center="35%,30%" GradientOrigin="35%,30%" RadiusX="80%" RadiusY="80%">
+                    <GradientStop Color="#C4EC8A" Offset="0" />
+                    <GradientStop Color="#7CC43F" Offset="0.45" />
                     <GradientStop Color="#2F6416" Offset="1" />
-                </LinearGradientBrush>
+                </RadialGradientBrush>
+            </Setter>
+            <Setter Property="Effect">
+                <DropShadowEffect Color="#8CC63F" Opacity="0.55" BlurRadius="18" OffsetX="0" OffsetY="0" />
             </Setter>
         </Style>
-        <Style Selector="Border.screenTile > TextBlock">
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#ECF8DB" />
+        <Style Selector="Border.stepNumber > TextBlock">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="White" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="Button.link">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="MinHeight" Value="32" />
-        </Style>
-        <Style Selector="TextBlock.stepNumber">
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource PageLight}" />
-        </Style>
     </UserControl.Styles>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel x:Name="GuideContent" Classes="page" MaxWidth="1040" Spacing="18">
-            <StackPanel Spacing="16" Margin="0,10,0,6">
-                <TextBlock FontSize="32" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
-                           Text="Your apps, on both computers." />
-                <Border Classes="switchPill">
-                    <StackPanel Orientation="Horizontal" Spacing="18">
-                        <TextBlock x:Name="MasterLabel" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <ToggleSwitch Classes="compact" IsChecked="{Binding WindowSharingSwitch}" IsEnabled="{Binding SessionPro}" VerticalAlignment="Center"
-                                      AutomationProperties.Name="Window moving" />
-                        <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
-                        <Border Classes="pill" IsVisible="{Binding HasTrialBadge}"><TextBlock Text="{Binding TrialBadgeText}" FontSize="11" /></Border>
+        <StackPanel x:Name="GuideContent" MaxWidth="1000" Margin="28,8,28,110" Spacing="20">
+            <views:WindowsHero MaxWidth="820" />
+            <TextBlock Classes="featureTitle" HorizontalAlignment="Center" TextAlignment="Center" Text="Your apps on both computers" />
+
+            <Border Classes="card glass" MaxWidth="620">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                    <Image Classes="featureTile" Source="avares://Seam/Assets/tile-windows-lime.png" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="glassTitle" Text="Window moving" />
+                            <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                            <Border Classes="pill" IsVisible="{Binding HasTrialBadge}"><TextBlock Text="{Binding TrialBadgeText}" FontSize="11" /></Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <Ellipse Width="8" Height="8" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="MasterStatus" Classes="glassBody" VerticalAlignment="Center" MaxWidth="420" />
+                        </StackPanel>
                     </StackPanel>
-                </Border>
-                <views:ProGateCard MaxWidth="640" />
-            </StackPanel>
+                    <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding WindowSharingSwitch}" IsEnabled="{Binding SessionPro}"
+                                  VerticalAlignment="Center" AutomationProperties.Name="Window moving" />
+                </Grid>
+            </Border>
+            <views:ProGateCard />
 
-            <Grid ColumnDefinitions="5*,9*" RowDefinitions="*,*" ColumnSpacing="18" RowSpacing="18">
-                <!-- Przenieś dowolne okno -->
-                <Border Grid.RowSpan="2" Classes="card" Padding="26,24">
-                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="cardTitle" Text="Move any window" />
-                            <TextBlock Classes="cardBody" Text="Drag an app to the edge of your screen. It appears on your other computer." />
-                        </StackPanel>
-                        <Image Grid.Row="1" Source="avares://Seam/Assets/okna-mirroring.png" MaxWidth="270" MinHeight="150"
-                               Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <Button Grid.Row="2" Classes="accent" HorizontalAlignment="Right" Click="ShowHow">
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <TextBlock Text="See how" VerticalAlignment="Center" />
-                                <Path Data="M0,0 L9,6 L0,12 Z" Fill="{DynamicResource AccentButtonText}" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                </Border>
-
-                <!-- Połączenie -->
-                <Border Grid.Column="1" Classes="card" Padding="26,24">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" RowSpacing="18">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="cardTitle" x:Name="ConnectionTitle" />
-                            <TextBlock Classes="cardBody" x:Name="ConnectionSubtitle" />
-                        </StackPanel>
-                        <Image Grid.Column="1" Source="avares://Seam/Assets/okna-connection.png" Width="92"
-                               VerticalAlignment="Top" Margin="12,-6,0,0" />
-                        <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <!-- Siatka zamiast StackPanel: przy wąskim oknie nazwy skracają się wielokropkiem zamiast nachodzić na przycisk -->
-                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
-                                <Image Source="avares://Seam/Assets/device-laptop.png" Width="40" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" x:Name="MacName" FontSize="14" VerticalAlignment="Center" MaxWidth="140" TextTrimming="CharacterEllipsis" />
-                                <Ellipse Grid.Column="2" Width="9" Height="9" Fill="{Binding StatusBrush}" VerticalAlignment="Center" />
-                                <Rectangle Grid.Column="3" Width="18" Height="1" Fill="#80B9D3AB" VerticalAlignment="Center" />
-                                <Image Grid.Column="4" Source="avares://Seam/Assets/device-monitor.png" Width="34" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="5" x:Name="PcName" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                            </Grid>
-                            <Button Grid.Column="1" Content="Connection settings" Click="OpenConnection" />
-                        </Grid>
-                    </Grid>
-                </Border>
-
-                <!-- Układ ekranów -->
-                <Border Grid.Column="1" Grid.Row="1" Classes="card" Padding="26,24">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" RowSpacing="18">
-                        <StackPanel Spacing="8">
-                            <TextBlock Classes="cardTitle" Text="Choose your screen arrangement" />
-                            <TextBlock Classes="cardBody" Text="Match the layout to the devices on your desk." />
-                        </StackPanel>
-                        <Image Grid.Column="1" Source="avares://Seam/Assets/okna-arrangement.png" Width="110"
-                               VerticalAlignment="Top" Margin="12,-4,0,0" />
-                        <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="18">
-                            <Grid x:Name="LayoutTiles" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" x:Name="ArrangementLabel" FontSize="14" Foreground="{DynamicResource MutedText}"
-                                       VerticalAlignment="Center" TextWrapping="Wrap" />
-                            <Button Grid.Column="2" Content="Arrange screens" Click="OpenDisplays" VerticalAlignment="Bottom" />
-                        </Grid>
-                    </Grid>
-                </Border>
-            </Grid>
-
-            <Button Classes="link" HorizontalAlignment="Right" Click="OpenHelp" Margin="0,-8,0,0">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="Connection help" FontSize="13" VerticalAlignment="Center" />
-                    <TextBlock Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="10" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
-
-            <!-- JAK TO DZIAŁA (cel przycisku „Zobacz jak”) -->
-            <Border x:Name="HowSection" Classes="card">
-                <StackPanel Spacing="14">
-                    <StackPanel Classes="sectionHeader"><TextBlock Text="HOW IT WORKS" /></StackPanel>
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
-                        <StackPanel Spacing="8">
-                            <views:WindowTransferDiagram Height="86" Progress="0" MacSide="{Binding SelectedMacSide.Value}" />
-                            <TextBlock Classes="stepNumber" Text="01" />
-                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Open any window" />
-                            <TextBlock Classes="subtitle" Text="A browser, document or chat — whatever you are working on." />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="8">
-                            <views:WindowTransferDiagram Height="86" Progress="0.5" MacSide="{Binding SelectedMacSide.Value}" />
-                            <TextBlock Classes="stepNumber" Text="02" />
-                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Drag across the edge" />
-                            <TextBlock Classes="subtitle" Text="Grab the title bar and move it towards the other display." />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="8">
-                            <views:WindowTransferDiagram Height="86" Progress="1" MacSide="{Binding SelectedMacSide.Value}" />
-                            <TextBlock Classes="stepNumber" Text="03" />
-                            <TextBlock Classes="rowTitle" FontWeight="SemiBold" Text="Use the other display" />
-                            <TextBlock Classes="subtitle" Text="Your window appears on the other device. Drag it back across the same edge." />
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+            <!-- trzy kroki, jak OknaStepNumber na macOS -->
+            <Border Classes="card glass">
+                <Grid ColumnDefinitions="*,Auto,*,Auto,*" ColumnSpacing="18" Margin="0,4">
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <Border Classes="stepNumber"><TextBlock Text="1" /></Border>
+                        <TextBlock Classes="stepText" Text="Open any window" />
+                    </StackPanel>
+                    <Rectangle Grid.Column="1" Width="1" Height="52" Fill="{DynamicResource CardBorder}" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16">
+                        <Border Classes="stepNumber"><TextBlock Text="2" /></Border>
+                        <TextBlock Classes="stepText" Text="Drag it across the screen edge" MaxWidth="170" />
+                    </StackPanel>
+                    <Rectangle Grid.Column="3" Width="1" Height="52" Fill="{DynamicResource CardBorder}" />
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="16">
+                        <Border Classes="stepNumber"><TextBlock Text="3" /></Border>
+                        <TextBlock Classes="stepText" Text="Work on the other computer" MaxWidth="170" />
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- KIERUNKI I OPCJE -->
-            <Border Classes="card">
+            <!-- oba kierunki i opcje, które są tylko na Windowsie -->
+            <Border Classes="card glass">
                 <StackPanel Spacing="12">
-                    <StackPanel Classes="sectionHeader"><TextBlock Text="DISPLAY OPTIONS" /></StackPanel>
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="44">
-                        <views:IconTile Icon="icon-windows" TileSize="34" IsActive="{Binding DisplayEnabled}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Classes="glassTitle" Text="Both directions" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14" MinHeight="44">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Classes="rowTitle" Text="Mac windows on this computer" />
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="7" Height="7" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
-                                <TextBlock Classes="subtitle" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" />
+                                <TextBlock Classes="glassBody" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
-                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding DisplaySwitch}" IsEnabled="{Binding SessionPro}"
+                        <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding DisplaySwitch}" IsEnabled="{Binding SessionPro}"
                                       AutomationProperties.Name="Mac windows on this computer" />
                     </Grid>
                     <Rectangle Classes="divider" />
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="44">
-                        <views:IconTile Icon="icon-displays" TileSize="34" IsActive="{Binding WinViewEnabled}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14" MinHeight="44">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
                             <TextBlock Classes="rowTitle" Text="Windows apps on the Mac" />
                             <StackPanel Orientation="Horizontal" Spacing="7">
                                 <Ellipse Width="7" Height="7" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
-                                <TextBlock Classes="subtitle" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" />
+                                <TextBlock Classes="glassBody" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" />
                             </StackPanel>
                         </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                             <Button Classes="accent" Content="Install driver"
                                     IsVisible="{Binding WinViewDriverMissing}" Command="{Binding InstallDisplayDriverCommand}"
                                     IsEnabled="{Binding !IsInstallingDriver}"
@@ -220,6 +129,19 @@
                     </views:SettingRow>
                 </StackPanel>
             </Border>
+
+            <!-- układ ekranów, a bez połączenia także droga do jego ustawień -->
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                    <TextBlock x:Name="EdgeText" FontSize="13" Foreground="{DynamicResource MutedText}" VerticalAlignment="Center" />
+                    <Button Theme="{StaticResource LinkButton}" Foreground="{DynamicResource PageLight}" Content="Arrange screens" Click="OpenDisplays" />
+                </StackPanel>
+                <StackPanel x:Name="DisconnectedLinks" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                    <Button Theme="{StaticResource LinkButton}" Foreground="{DynamicResource PageLight}" Content="Connection settings" Click="OpenConnection" />
+                    <Button Theme="{StaticResource LinkButton}" Foreground="{DynamicResource PageLight}" Content="Connection help" Click="OpenHelp" />
+                </StackPanel>
+            </StackPanel>
+
             <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding DisplayStatsText}"
                        IsVisible="{Binding DisplayStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
             <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding WinViewStatsText}"

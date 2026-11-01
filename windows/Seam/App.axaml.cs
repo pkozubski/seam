@@ -63,11 +63,23 @@ public partial class App : Application
         var path = args[idx + 1];
         var sectionIndex = Array.IndexOf(args, "--screenshot-section");
         var section = sectionIndex >= 0 && sectionIndex + 1 < args.Length ? args[sectionIndex + 1] : null;
-        if (section is not null) _mainWindow.NavigateTo(section);
+        // `--screenshot-settings <pane>`: zrzut osobnego okna Ustawień na danej stronie.
+        var settingsIndex = Array.IndexOf(args, "--screenshot-settings");
+        var settingsPane = settingsIndex >= 0 && settingsIndex + 1 < args.Length ? args[settingsIndex + 1] : null;
+        if (settingsPane is not null) _mainWindow.OpenSettings(settingsPane);
+        else if (section is not null) _mainWindow.NavigateTo(section);
         DispatcherTimer.RunOnce(() =>
         {
             try
             {
+                if (_mainWindow.SettingsWindowInstance is { } settingsWindow && settingsPane is not null)
+                {
+                    var settingsSize = new PixelSize((int)settingsWindow.Bounds.Width * 2, (int)settingsWindow.Bounds.Height * 2);
+                    using var settingsBitmap = new RenderTargetBitmap(settingsSize, new Vector(192, 192));
+                    settingsBitmap.Render(settingsWindow);
+                    settingsBitmap.Save(path);
+                    return;
+                }
                 if (section is not null)
                 {
                     if (args.Contains("--screenshot-full-page") && _mainWindow.CurrentPage is Views.Pages.WindowsPage windows)

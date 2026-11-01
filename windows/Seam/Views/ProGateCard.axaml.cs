@@ -12,6 +12,6 @@ public partial class ProGateCard : UserControl
 
     private void OpenLicense(object? sender, RoutedEventArgs e)
     {
-        if (TopLevel.GetTopLevel(this) is MainWindow window) window.NavigateTo("settings");
+        if (TopLevel.GetTopLevel(this) is MainWindow window) window.OpenSettings("license");
     }
 }
