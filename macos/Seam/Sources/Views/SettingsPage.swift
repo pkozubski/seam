@@ -28,9 +28,13 @@ struct GeneralSettingsPane: View {
                 .disabled(!state.settings.launchAtLogin)
                 .opacity(state.settings.launchAtLogin ? 1 : 0.5)
             }
-            LanguageSettingsSection()
         }
     }
+}
+
+/// Ustawienia → Język.
+struct LanguageSettingsPane: View {
+    var body: some View { LanguageSettingsSection() }
 }
 
 /// Język aplikacji; obowiązuje od następnego uruchomienia.
@@ -111,6 +115,13 @@ struct UpdatesSettingsPane: View {
                 SettingsCardRow(title: L10n.text("Check automatically", pl: "Sprawdzaj automatycznie"),
                                 detail: Updater.automaticUpdatesDescription) {
                     SettingsSwitch(isOn: $state.settings.autoCheckUpdates)
+                }
+                SettingsRowDivider()
+                SettingsCardRow(title: L10n.text("Update channel", pl: "Kanał aktualizacji"),
+                                detail: L10n.text("Set by the build you installed.", pl: "Zależy od zainstalowanej wersji.")) {
+                    Label(Updater.isDevChannel ? L10n.text("Test", pl: "Testowy") : L10n.text("Stable", pl: "Stabilny"),
+                          systemImage: Updater.isDevChannel ? "hammer.fill" : "checkmark.shield.fill")
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
             }
             if let notes {

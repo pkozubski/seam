@@ -14,7 +14,7 @@ struct DetailView: View {
             case .audio: AudioPage()
             case .clipboard: ClipboardPage()
             case .windows: WindowsPage(openConnection: openConnection)
-            case .settings: SettingsDetail(navigation: .shared)
+            case .settings: ConnectionPage(openWindows: openWindows) // Ustawienia mają osobne okno
             case .log: LogPage()
             }
         }

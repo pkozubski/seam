@@ -45,7 +45,12 @@ struct SeamApp: App {
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
         .defaultSize(width: 1180, height: 800)
-        .commands { SettingsCommands() }
+
+        // Osobne, natywne okno Ustawień; ⌘, i pozycja „Ustawienia…” w menu aplikacji są systemowe.
+        SwiftUI.Settings {
+            SettingsWindow().environment(state)
+        }
+        .windowResizability(.contentMinSize)
 
         MenuBarExtra {
             MenuBarView().environment(state)

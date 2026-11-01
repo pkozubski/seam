@@ -2,6 +2,7 @@
 
 ## Unreleased — test channel
 
+- macOS: Settings open in their own native window (⌘,) instead of taking over the main window. The sidebar has search, a card with your Seam Pro status, tiles for General, Language, Updates and Advanced, links to Permissions and Diagnostics in the main window, and a new About page with the version, changelog, a way to replay the introduction, help and privacy links. Back and Forward buttons and an Update & restart button sit in the toolbar.
 - Seam Pro (prepared for 3.0, inactive until the store is set up): keyboard, mouse and text in the clipboard stay free; Mac audio, windows in both directions and images in the clipboard become Pro, a one-time $10 purchase with a 7-day free trial and no account. One license or trial on either computer unlocks Pro for the pair. Pro pages show a Pro card with Start trial, Buy and Enter license key; Settings has a new License section (macOS: Settings → License; Windows: Settings → License) to activate, check and deactivate a key. Licenses are checked weekly through Lemon Squeezy and work offline for 30 days.
 - English is now the main language of both apps and Polish their translation. A new language setting (macOS: Settings → General; Windows: Settings → General) picks System, English or Polski, with a button to restart Seam.
 - Windows: messages for every reason the Mac can reject a connection are now translated instead of shown in Polish.

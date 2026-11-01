@@ -20,8 +20,7 @@ struct SettingsSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(verbatim: title)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(.headline)
                 .padding(.leading, 4)
                 .accessibilityAddTraits(.isHeader)
             SettingsCard { content }

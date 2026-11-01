@@ -41,9 +41,9 @@ enum UIPreview {
         }
         // `--ui-settings <general|updates|advanced>` opens settings on that page;
         // `--ui-update <available|downloading|installing|updated|failed>` fakes the updater.
-        if let i = args.firstIndex(of: "--ui-settings"), i + 1 < args.count, let pane = SettingsPane(rawValue: args[i + 1]) {
-            SettingsNavigation.shared.present(pane)
-        }
+        // `--ui-settings <pane>` pokazuje osobne okno Ustawień na tej stronie.
+        let settingsPane = args.firstIndex(of: "--ui-settings").flatMap { $0 + 1 < args.count ? SettingsPane(rawValue: args[$0 + 1]) : nil }
+        if let settingsPane { SettingsNavigation.shared.select(settingsPane) }
         let updateIndex = args.firstIndex(of: "--ui-update")
         state.updater.showPreview(updateIndex.flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "uptodate")
         var section = SidebarSection.connection
@@ -51,7 +51,9 @@ enum UIPreview {
             section = parsed
         }
         let root = Group {
-            if args.contains("--ui-menu") {
+            if settingsPane != nil {
+                SettingsWindow()
+            } else if args.contains("--ui-menu") {
                 MenuBarView()
             } else if args.contains("--ui-onboarding") {
                 // `--ui-onboarding-step <1-3>` otwiera kreator na danym kroku
@@ -62,7 +64,9 @@ enum UIPreview {
             }
         }.environment(state)
         let size: CGSize
-        if args.contains("--ui-menu") {
+        if settingsPane != nil {
+            size = CGSize(width: 840, height: 640)
+        } else if args.contains("--ui-menu") {
             size = CGSize(width: 340, height: 420)
         } else if args.contains("--ui-onboarding") {
             size = CGSize(width: 580, height: 460)

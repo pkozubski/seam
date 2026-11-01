@@ -5,25 +5,23 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showConnectionStatus = false
     @State private var selection: SidebarSection?
-    @ObservedObject private var settingsNavigation = SettingsNavigation.shared
+    @ObservedObject private var router = MainWindowRouter.shared
 
     init(initialSection: SidebarSection = .connection) {
-        // Settings is no longer a page of the main sidebar; it takes over the window.
-        if initialSection == .settings { SettingsNavigation.shared.present() }
+        // Ustawienia mają osobne okno (scena Settings), nie są stroną paska bocznego.
         _selection = State(initialValue: initialSection == .settings ? .connection : initialSection)
     }
 
-    private var slide: Animation { SettingsChrome.slide(reduceMotion: reduceMotion) }
     /// Zakładka Okna ma zielone tło na całe okno, jak na Windowsie.
-    private var greenWindow: Bool { selection == .windows && !settingsNavigation.isPresented }
+    private var greenWindow: Bool { selection == .windows }
     /// Zakładka Połączenie ma niebieskie tło pod grafiką hero.
-    private var blueWindow: Bool { (selection ?? .connection) == .connection && !settingsNavigation.isPresented }
+    private var blueWindow: Bool { (selection ?? .connection) == .connection }
     /// Zakładka Klawiatura i mysz ma magentowe tło.
-    private var magentaWindow: Bool { selection == .control && !settingsNavigation.isPresented }
+    private var magentaWindow: Bool { selection == .control }
     /// Zakładka Dźwięk ma fioletowe tło.
-    private var violetWindow: Bool { selection == .audio && !settingsNavigation.isPresented }
+    private var violetWindow: Bool { selection == .audio }
     /// Zakładka Schowek ma bursztynowe tło.
-    private var amberWindow: Bool { selection == .clipboard && !settingsNavigation.isPresented }
+    private var amberWindow: Bool { selection == .clipboard }
     private var orbAccent: ConnectionStatusButton.Accent {
         magentaWindow ? .magenta : violetWindow ? .violet : amberWindow ? .amber : greenWindow ? .leaf : .blue
     }
@@ -32,34 +30,16 @@ struct ContentView: View {
         // Własny układ kolumn zamiast NavigationSplitView: od macOS 26 system zamyka pasek boczny
         // w jaśniejszym szkle z cieniem i linią podziału, a Seam ma mieć jedno tło na całe okno.
         HStack(spacing: 0) {
-            ZStack {
-                if settingsNavigation.isPresented {
-                    SettingsSidebar(navigation: settingsNavigation)
-                        .transition(.offset(x: -16).combined(with: .opacity))
-                } else {
-                    SidebarView(selection: $selection)
-                        .transition(.offset(x: -16).combined(with: .opacity))
-                }
-            }
-            .animation(slide, value: settingsNavigation.isPresented)
-            .frame(width: 230)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .overlay(alignment: .trailing) { SidebarSeparator().ignoresSafeArea() }
+            SidebarView(selection: $selection)
+                .frame(width: 230)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .overlay(alignment: .trailing) { SidebarSeparator().ignoresSafeArea() }
 
-            ZStack {
-                if settingsNavigation.isPresented {
-                    SettingsDetail(navigation: settingsNavigation)
-                        .transition(.offset(x: 24).combined(with: .opacity))
-                } else {
-                    DetailView(section: selection ?? .connection, openWindows: { selection = .windows },
-                               openConnection: { selection = .connection })
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: selection)
-                        .transition(.offset(x: 24).combined(with: .opacity))
-                }
-            }
-            .animation(slide, value: settingsNavigation.isPresented)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .modifier(SoftToolbarEdge())
+            DetailView(section: selection ?? .connection, openWindows: { selection = .windows },
+                       openConnection: { selection = .connection })
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: selection)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .modifier(SoftToolbarEdge())
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: greenWindow)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: blueWindow)
@@ -84,6 +64,11 @@ struct ContentView: View {
             ConnectionStatusAttachment(state: state, accent: orbAccent) { showConnectionStatus = true }
         }
         .sheet(isPresented: $showConnectionStatus) { ConnectionDetails().environment(state) }
+        // Okno Ustawień prosi o stronę okna głównego (Uprawnienia, Dziennik).
+        .onReceive(router.$requested.compactMap { $0 }) { section in
+            selection = section
+            router.requested = nil
+        }
         .preferredColorScheme(.dark)
         .tint(DesignTokens.accent)
         .sheet(isPresented: Binding(
