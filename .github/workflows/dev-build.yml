@@ -6,6 +6,10 @@ name: Dev build
 on:
   push:
     branches: ["feature/virtual-display"]
+    # Zmiany samej strony nie przebudowują aplikacji (testerzy nie dostają pustej aktualizacji).
+    paths-ignore:
+      - "site/**"
+      - ".github/workflows/site.yml"
 
 permissions:
   contents: write

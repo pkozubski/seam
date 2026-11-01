@@ -3,7 +3,8 @@ name: Site
 # Strona seam (site/) na Cloudflare Workers jako same pliki statyczne; konfiguracja w site/wrangler.jsonc.
 on:
   push:
-    branches: [main]
+    # Gałąź robocza też wdraża, dopóki strona żyje na niej (strona jest już publiczna pod seamdesk.app).
+    branches: [main, "feature/virtual-display"]
     paths:
       - "site/**"
       - ".github/workflows/site.yml"
