@@ -1,6 +1,6 @@
 name: Release
 
-# Wypuszczenie wersji: git tag -a v2.0.0 -m "BorderlessMouse v2.0.0" && git push origin v2.0.0
+# Wypuszczenie wersji: git tag -a v2.0.0 -m "Seam v2.0.0" && git push origin v2.0.0
 # Darmowa beta zachowuje własny podpis ECDSA artefaktów, ale nie ma jeszcze
 # publicznie zaufanego Authenticode ani notarizacji Apple.
 on:
@@ -29,25 +29,25 @@ jobs:
           # SDK 26+ jest wymagany, żeby na macOS 26 aplikacja miała nowy wygląd systemu
           REQUIRE_SDK_MAJOR=26 UNIVERSAL=1 VERSION="${GITHUB_REF_NAME#v}" BUILD_NUMBER="${GITHUB_RUN_NUMBER}" ./build.sh
           echo "Zlinkowane SDK:"
-          otool -l build/BorderlessMouse.app/Contents/MacOS/BorderlessMouse | grep -A5 LC_BUILD_VERSION | grep -E "sdk|minos" || true
+          otool -l build/Seam.app/Contents/MacOS/Seam | grep -A5 LC_BUILD_VERSION | grep -E "sdk|minos" || true
       - name: Verify signature continuity and update validation
         run: bash macos/tests/signature-check.sh
       - name: Package free beta
         run: |
           cd macos
-          ditto -c -k --keepParent build/BorderlessMouse.app BorderlessMouse-macOS.zip
+          ditto -c -k --keepParent build/Seam.app Seam-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: macos/BorderlessMouse-macOS.zip
+          path: macos/Seam-macOS.zip
           if-no-files-found: error
       - name: Remove temporary signing identity
         if: always()
         timeout-minutes: 1
         run: |
           # Zaufanie do publicznego certyfikatu znika wraz z jednorazowym runnerem.
-          security delete-keychain "$RUNNER_TEMP/borderlessmouse-signing.keychain-db" || true
-          rm -f "$RUNNER_TEMP/borderlessmouse-signing.p12"
+          security delete-keychain "$RUNNER_TEMP/seam-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/seam-signing.p12"
 
   windows:
     name: Windows (x64, single file)
@@ -59,20 +59,20 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Restore locked dependencies
-        run: dotnet restore windows/BorderlessMouse/BorderlessMouse.csproj -r win-x64 --locked-mode
+        run: dotnet restore windows/Seam/Seam.csproj -r win-x64 --locked-mode
       - name: Publish
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
-          dotnet publish windows/BorderlessMouse/BorderlessMouse.csproj -c Release -r win-x64 `
+          dotnet publish windows/Seam/Seam.csproj -c Release -r win-x64 `
             --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:Version=$version -p:InformationalVersion=$version --no-restore -o publish
-          Move-Item publish/BorderlessMouse.exe publish/BorderlessMouse-Windows-x64.exe
+          Move-Item publish/Seam.exe publish/Seam-Windows-x64.exe
       - uses: actions/upload-artifact@v4
         with:
           name: windows
           path: |
-            publish/BorderlessMouse-Windows-x64.exe
+            publish/Seam-Windows-x64.exe
             publish/THIRD_PARTY_NOTICES.txt
           if-no-files-found: error
 
@@ -90,7 +90,10 @@ jobs:
       - name: Checksums
         run: |
           cd dist
-          sha256sum BorderlessMouse-macOS.zip BorderlessMouse-Windows-x64.exe THIRD_PARTY_NOTICES.txt > SHA256SUMS.txt
+          # Kopie pod dawnymi nazwami: wersje sprzed zmiany nazwy (BorderlessMouse ≤ 2.1.22) szukają tych plików.
+          cp Seam-macOS.zip BorderlessMouse-macOS.zip
+          cp Seam-Windows-x64.exe BorderlessMouse-Windows-x64.exe
+          sha256sum Seam-macOS.zip Seam-Windows-x64.exe BorderlessMouse-macOS.zip BorderlessMouse-Windows-x64.exe THIRD_PARTY_NOTICES.txt > SHA256SUMS.txt
           cat SHA256SUMS.txt
       - name: Sign update artifacts with project key
         env:
@@ -98,25 +101,29 @@ jobs:
         run: |
           : "${UPDATE_SIGNING_PRIVATE_KEY_PEM:?Brak UPDATE_SIGNING_PRIVATE_KEY_PEM}"
           umask 077
-          key="$RUNNER_TEMP/borderlessmouse-update-signing.pem"
+          key="$RUNNER_TEMP/seam-update-signing.pem"
           trap 'rm -f "$key"' EXIT
           printf '%s' "$UPDATE_SIGNING_PRIVATE_KEY_PEM" > "$key"
           cmp <(openssl pkey -in "$key" -pubout -outform DER) \
             <(openssl pkey -pubin -in security/update-signing-public.pem -outform DER)
-          openssl dgst -sha256 -sign "$key" -out dist/BorderlessMouse-macOS.zip.sig dist/BorderlessMouse-macOS.zip
-          openssl dgst -sha256 -sign "$key" -out dist/BorderlessMouse-Windows-x64.exe.sig dist/BorderlessMouse-Windows-x64.exe
+          openssl dgst -sha256 -sign "$key" -out dist/Seam-macOS.zip.sig dist/Seam-macOS.zip
+          openssl dgst -sha256 -sign "$key" -out dist/Seam-Windows-x64.exe.sig dist/Seam-Windows-x64.exe
           openssl dgst -sha256 -verify security/update-signing-public.pem \
-            -signature dist/BorderlessMouse-macOS.zip.sig dist/BorderlessMouse-macOS.zip
+            -signature dist/Seam-macOS.zip.sig dist/Seam-macOS.zip
           openssl dgst -sha256 -verify security/update-signing-public.pem \
-            -signature dist/BorderlessMouse-Windows-x64.exe.sig dist/BorderlessMouse-Windows-x64.exe
+            -signature dist/Seam-Windows-x64.exe.sig dist/Seam-Windows-x64.exe
+          cp dist/Seam-macOS.zip.sig dist/BorderlessMouse-macOS.zip.sig
+          cp dist/Seam-Windows-x64.exe.sig dist/BorderlessMouse-Windows-x64.exe.sig
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "BorderlessMouse $GITHUB_REF_NAME" \
+            --title "Seam $GITHUB_REF_NAME" \
             --notes "Bezpłatna beta. Windows może przy pierwszym uruchomieniu pokazać Unknown publisher, a macOS wymagać opcji Open Anyway w Privacy & Security. Nie wyłączaj globalnie SmartScreen ani Gatekeepera. Kolejne aktualizacje są chronione SHA-256 i przypiętym podpisem ECDSA." \
-            dist/BorderlessMouse-macOS.zip dist/BorderlessMouse-Windows-x64.exe \
-            dist/BorderlessMouse-macOS.zip.sig dist/BorderlessMouse-Windows-x64.exe.sig \
+            dist/Seam-macOS.zip dist/Seam-Windows-x64.exe \
+            dist/Seam-macOS.zip.sig dist/Seam-Windows-x64.exe.sig \
+            dist/BorderlessMouse-macOS.zip dist/BorderlessMouse-macOS.zip.sig \
+            dist/BorderlessMouse-Windows-x64.exe dist/BorderlessMouse-Windows-x64.exe.sig \
             dist/THIRD_PARTY_NOTICES.txt dist/SHA256SUMS.txt

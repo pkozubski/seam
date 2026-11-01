@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Seam.ViewModels"
+             xmlns:views="using:Seam.Views"
+             x:Class="Seam.Views.Pages.DisplaysPage"
+             x:DataType="vm:MainViewModel">
+    <!-- Ekrany: turkusowy motyw (PageTheme.Teal), Mac przeciągany na stronę, po której stoi na biurku. -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="900" Margin="28,24,28,110" Spacing="18">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="featureTitle" HorizontalAlignment="Center" TextAlignment="Center" Text="Arrange your screens" />
+                <TextBlock Classes="featureSubtitle" HorizontalAlignment="Center" TextAlignment="Center"
+                           Text="Drag the Mac to the side where it sits on your desk. The pointer crosses to the Mac over that edge." />
+            </StackPanel>
+
+            <Border Classes="card glass">
+                <StackPanel Spacing="10">
+                    <views:ScreenArrangement x:Name="Arrangement" />
+                    <TextBlock Classes="glassBody" HorizontalAlignment="Center" TextAlignment="Center"
+                               Text="With several monitors, the handoff uses the one furthest towards the chosen side. Arrow keys move the Mac too." />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card glass">
+                <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                    <StackPanel VerticalAlignment="Center" Spacing="3" Margin="0,0,12,0">
+                        <TextBlock Classes="glassTitle" x:Name="SideTitle" />
+                        <TextBlock Classes="glassBody" Text="{Binding EmergencyHotkeyDescription}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8" Fill="{Binding CursorStatusBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding CursorStatusText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,10 @@
+# Nagłówki Cloudflare dla plików statycznych (plik nie jest publikowany, tylko odczytywany przez Workers)
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *

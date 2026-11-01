@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy policy · seam</title>
+  <meta name="description" content="What Seam processes on your computers, what it sends to GitHub and Lemon Squeezy, and what this website collects.">
+  <meta name="theme-color" content="#0a1fa8">
+  <link rel="canonical" href="https://seamdesk.app/legal/privacy/">
+  <link rel="alternate" hreflang="en" href="https://seamdesk.app/legal/privacy/">
+  <link rel="alternate" hreflang="pl" href="https://seamdesk.app/pl/legal/privacy/">
+  <link rel="alternate" hreflang="x-default" href="https://seamdesk.app/legal/privacy/">
+  <link rel="icon" href="../../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+  <link rel="preload" as="font" type="font/woff2" href="../../fonts/inter-latin-wght-normal.woff2" crossorigin>
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../nav.css">
+  <link rel="stylesheet" href="../../legal.css">
+</head>
+<body class="legal-page">
+  <a class="skip" href="#content">Skip to content</a>
+
+  <!-- Nawigacja jak na stronie głównej, bez mega menu (nav.css/nav.js) -->
+  <div id="globalheader">
+    <nav id="globalnav" class="globalnav globalnav-scrim" aria-label="Seam">
+      <div class="globalnav-content">
+        <ul class="globalnav-list" id="globalnav-list" role="none">
+          <li class="globalnav-item globalnav-item-seam"><a class="globalnav-link globalnav-link-seam" href="../../" aria-label="seam, home page"><img src="../../assets/seam-icon.webp" alt="" width="22" height="22"><span class="globalnav-link-text">seam</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../#features"><span class="globalnav-link-text">Features</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../#pricing"><span class="globalnav-link-text">Pricing</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../#faq"><span class="globalnav-link-text">FAQ</span></a></li>
+          <li class="globalnav-item"><a class="globalnav-link" href="../../#download"><span class="globalnav-link-text">Download</span></a></li>
+          <li class="globalnav-item globalnav-item-lang"><a class="globalnav-link globalnav-link-lang" href="../../pl/legal/privacy/" hreflang="pl" data-lang-switch="pl" aria-label="Polski: polska wersja tej strony"><span class="globalnav-link-text"><span class="globalnav-lang-on">EN</span><span class="globalnav-lang-sep">/</span><span lang="pl">PL</span></span></a></li>
+        </ul>
+        <div class="globalnav-menutrigger">
+          <button class="globalnav-menutrigger-button" type="button" aria-expanded="false" aria-controls="globalnav-list" aria-label="Menu"><span class="globalnav-menutrigger-bread globalnav-menutrigger-bread-top"></span><span class="globalnav-menutrigger-bread globalnav-menutrigger-bread-bottom"></span></button>
+        </div>
+      </div>
+    </nav>
+    <div class="globalnav-curtain" id="globalnav-curtain"></div>
+  </div>
+
+  <main id="content">
+    <article class="legal">
+      <ul class="legal__tabs" aria-label="Legal documents">
+        <li><a href="../privacy/" aria-current="page">Privacy</a></li>
+        <li><a href="../eula/">License agreement</a></li>
+        <li><a href="../refunds/">Refunds</a></li>
+        <li><a href="../imprint/">Imprint</a></li>
+      </ul>
+      <h1>Privacy policy</h1>
+      <p class="legal__meta">Effective date: 1 November 2026</p>
+      <div class="legal__summary">
+        <h2>In short</h2>
+        <ul>
+          <li>Seam has no account, ads, analytics SDKs or usage telemetry.</li>
+          <li>Keyboard, mouse, clipboard, audio and screen data travel only between your paired Mac and PC on your local network, encrypted.</li>
+          <li><strong>The free version sends nothing over the internet except update checks</strong> to GitHub.</li>
+          <li><strong>Seam Pro sends your license key and the device name to Lemon Squeezy</strong> when you activate it and about once a week to validate it.</li>
+        </ul>
+      </div>
+
+      <h2>Who is responsible</h2>
+      <p>The controller of personal data described here is Paweł Kozubski, Aleja Zdobywców Wału Pomorskiego 72E/21, 78-600 Wałcz, Poland, contact: <a href="mailto:support@seamdesk.app">support@seamdesk.app</a>. Purchases are processed by Lemon Squeezy as reseller and merchant of record (see “Purchases” below).</p>
+
+      <h2>Data processed on your computers</h2>
+      <p>When the corresponding features are on, Seam processes keyboard and mouse events, clipboard text or images, device names, local IP addresses, system audio and the picture of the Mac virtual display (only the virtual display, never the built-in or other physical Mac screens) or of the Windows virtual monitor. These data are transmitted only between the paired Windows computer and Mac on the local network, encrypted with AES-256-GCM. The application does not send their contents to us or to any cloud service.</p>
+      <p>The pairing secret is stored in the macOS Keychain or encrypted for the current Windows account with DPAPI. Preferences, the trial start date, the license key and recent diagnostic log entries are stored locally on each computer.</p>
+
+      <h2>Update checks</h2>
+      <p>If update checks are on (the default; you can turn them off in Settings), the application contacts the GitHub API and GitHub release hosting (<code>github.com/pkozubski/seam-releases</code>). GitHub receives ordinary connection metadata such as your public IP address and the user agent. No clipboard, input, audio or license data is included. See GitHub's privacy statement for its processing.</p>
+      <p>If you install the virtual monitor driver for Windows apps on the Mac, the Windows application downloads the Virtual Display Driver and nefcon releases from GitHub once, verifies their SHA-256 checksums and installs them with administrator approval.</p>
+
+      <h2>Seam Pro licensing</h2>
+      <p>The trial needs no account or payment details. Its start date is stored only on your computer.</p>
+      <p>When you activate Seam Pro, the application sends to the Lemon Squeezy License API (<code>api.lemonsqueezy.com</code>):</p>
+      <ul>
+        <li><strong>on activation:</strong> the license key and the device name (the computer name set in macOS or Windows);</li>
+        <li><strong>on validation</strong>, about once every 7 days while the computer is online: the license key and the activation ID returned at activation;</li>
+        <li><strong>on deactivation</strong>, when you choose Deactivate: the license key and the activation ID.</li>
+      </ul>
+      <p>Lemon Squeezy also receives your public IP address with each request. It replies with the license status and the email address of the purchase, which the application shows in Settings → License and stores locally. Nothing else, and none of the data from the previous sections, is sent. If validation is not possible, Pro keeps working for up to 30 days since the last successful check.</p>
+
+      <h2>Purchases</h2>
+      <p>Seam Pro is sold by Lemon Squeezy, which acts as reseller and merchant of record. Lemon Squeezy collects the details needed for payment, tax and fraud prevention (for example your name, email, billing country and payment method) under its own privacy policy: <a href="https://www.lemonsqueezy.com/privacy">lemonsqueezy.com/privacy</a>. We receive order information from Lemon Squeezy, such as your name, email address, country, order and license details, to provide the license, support and refunds. We process this to perform the contract and to meet tax obligations, and keep it as long as your order exists in our Lemon Squeezy account and at least as long as tax law requires (usually 5 years).</p>
+
+      <h2>This website</h2>
+      <ul>
+        <li>The site is hosted on Cloudflare. Cloudflare processes connection data such as your IP address and user agent to deliver the site and protect it from abuse. These logs are kept only briefly for security. The site sets no cookies and uses no analytics.</li>
+        <li>The site sets no cookies and loads no third-party fonts or analytics. Fonts are served from this domain.</li>
+        <li>Your browser's local storage remembers only your language choice (English or Polish) so the site stops suggesting the other version.</li>
+        <li>The Lemon Squeezy checkout script (<code>app.lemonsqueezy.com</code>) loads only when you click “Buy Pro”.</li>
+        <li>Download buttons link to files hosted on GitHub.</li>
+      </ul>
+
+      <h2>Diagnostics</h2>
+      <p>Logs remain on your device unless you choose to copy and send them to us. Please remove device names, IP addresses and other personal information before sharing a diagnostic report.</p>
+
+      <h2>Your rights</h2>
+      <p>Depending on where you live, including under the EU General Data Protection Regulation, you may have the right to access, correct or delete your personal data, to restrict or object to its processing, to data portability, and to lodge a complaint with a supervisory authority (in Poland: the President of the Personal Data Protection Office, UODO). To exercise these rights, write to <a href="mailto:support@seamdesk.app">support@seamdesk.app</a>. Requests about payment data can also be sent to Lemon Squeezy.</p>
+      <p>We process the license key and device name to provide the license you bought (performance of a contract) and website connection data to keep the site secure (legitimate interest). Order and license data stay in our Lemon Squeezy account; the license key and its status are also stored on your own computer. GitHub, Cloudflare and Lemon Squeezy may process data outside the European Economic Area under the European Commission’s standard contractual clauses or the EU–US Data Privacy Framework.</p>
+
+      <h2>Changes</h2>
+      <p>We will update this policy before adding telemetry, accounts or any other external service, and show the effective date at the top.</p>
+    </article>
+  </main>
+
+  <div class="finale">
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <a class="brand" href="../../"><img src="../../assets/seam-icon.webp" alt="" width="40" height="40"><span>seam</span></a>
+        <p>Mac and PC. One desk.</p>
+      </div>
+      <nav class="footer__cols" aria-label="Footer">
+        <div>
+          <h4>Product</h4>
+          <a href="../../#features">Features</a>
+          <a href="../../#pricing">Pricing</a>
+          <a href="../../#download">Download</a>
+          <a href="https://github.com/pkozubski/seam-releases/releases">Release notes</a>
+        </div>
+        <div>
+          <h4>Help</h4>
+          <a href="../../#faq">FAQ</a>
+          <a href="mailto:support@seamdesk.app">Report a problem</a>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <a href="../privacy/">Privacy</a>
+          <a href="../eula/">License agreement</a>
+          <a href="../refunds/">Refunds</a>
+          <a href="../imprint/">Imprint</a>
+        </div>
+      </nav>
+    </div>
+    <p class="footer__legal">© 2026 Seam · Works only on your local network. · <span aria-current="true">English</span> · <a href="../../pl/legal/privacy/" hreflang="pl" lang="pl" data-lang-switch="pl">Polski</a></p>
+    <div class="footer__word" aria-hidden="true">seam</div>
+  </footer>
+  </div>
+
+  <script src="../../nav.js" defer></script>
+  <script src="../../lang.js" defer></script>
+</body>
+</html>

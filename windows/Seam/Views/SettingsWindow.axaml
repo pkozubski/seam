@@ -1,0 +1,99 @@
+<wnd:AppWindow xmlns="https://github.com/avaloniaui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:wnd="using:FluentAvalonia.UI.Windowing"
+               xmlns:vm="using:Seam.ViewModels"
+               xmlns:pages="using:Seam.Views.Pages"
+               xmlns:views="using:Seam.Views"
+               x:Class="Seam.Views.SettingsWindow"
+               x:DataType="vm:MainViewModel"
+               FontFamily="Segoe UI, Helvetica Neue, Arial"
+               Title="Seam Settings"
+               Icon="avares://Seam/Assets/icon.png"
+               Width="900" Height="660" MinWidth="780" MinHeight="560"
+               WindowStartupLocation="CenterOwner">
+    <!-- Osobne okno Ustawień jak na macOS (SettingsWindow.swift, wzór: ustawienia Droppy): po lewej wyszukiwanie,
+         karta licencji, kafelki 2×2, Dziennik w oknie głównym i O programie; po prawej panel wybranej strony. -->
+    <wnd:AppWindow.Styles>
+        <Style Selector="Button.side">
+            <Setter Property="Background" Value="#0FFFFFFF" />
+            <Setter Property="BorderBrush" Value="#0FFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+        <Style Selector="Button.side.selected">
+            <Setter Property="Background" Value="#473A8DFF" />
+            <Setter Property="BorderBrush" Value="#B33A8DFF" />
+        </Style>
+        <Style Selector="Button.row">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="MinHeight" Value="36" />
+        </Style>
+        <Style Selector="Button.row.selected">
+            <Setter Property="Background" Value="#3A8DFF" />
+        </Style>
+        <Style Selector="Border.paneIcon">
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+        </Style>
+        <Style Selector="Border.paneIcon > TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </wnd:AppWindow.Styles>
+
+    <Grid RowDefinitions="32,*" ColumnDefinitions="290,*">
+        <views:SeamBackdrop Grid.RowSpan="2" Grid.ColumnSpan="2" />
+        <Border Grid.RowSpan="2" Background="#14000000" BorderBrush="#14FFFFFF" BorderThickness="0,0,1,0" />
+        <TextBlock Grid.Column="1" x:Name="PaneTitle" FontSize="12.5" FontWeight="SemiBold" Foreground="#E6FFFFFF"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="14,6,14,14" Spacing="14">
+                <TextBox x:Name="Search" Watermark="Search settings" CornerRadius="999" />
+
+                <StackPanel x:Name="Cards" Spacing="14">
+                    <Button x:Name="LicenseButton" Classes="side" Click="SelectPane" Tag="license">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Image Source="avares://Seam/Assets/logo.png" Width="40" Height="40" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding LicenseHeadline}" FontSize="15" FontWeight="SemiBold" />
+                                    <Border Classes="proBadge" IsVisible="{Binding IsPro}"><TextBlock Text="PRO" /></Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding LicenseAccountSubtitle}" FontSize="12" Foreground="{DynamicResource MutedText}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Grid>
+                    </Button>
+
+                    <UniformGrid Columns="2" x:Name="Tiles" ColumnSpacing="10" RowSpacing="10" />
+
+                    <Button Classes="row" Click="OpenDiagnostics">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Border Classes="paneIcon" Background="#8C8C99"><TextBlock Text="&#xE9D9;" /></Border>
+                            <TextBlock Grid.Column="1" Text="Diagnostics" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="&#xE8A7;" FontFamily="{StaticResource IconFont}" FontSize="11"
+                                       Foreground="{DynamicResource MutedText}" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel x:Name="Results" Spacing="2" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <pages:SettingsPage Grid.Row="1" Grid.Column="1" x:Name="Panes" />
+    </Grid>
+</wnd:AppWindow>

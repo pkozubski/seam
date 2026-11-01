@@ -1,0 +1,151 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Seam.ViewModels" xmlns:views="using:Seam.Views"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="Seam.Views.Pages.WindowsPage" x:DataType="vm:MainViewModel">
+    <!-- Okna jak na macOS (WindowsPage.swift): grafika z laptopem, monitorem i oknem, jedna karta z głównym
+         przełącznikiem, trzy kroki i linia z układem ekranów. Opcje, które są tylko na Windowsie (oba kierunki,
+         sterownik, tryb całego pulpitu), są w karcie „Oba kierunki”. Zielone tokeny daje PageTheme.Green. -->
+    <UserControl.Styles>
+        <Style Selector="TextBlock.stepText">
+            <Setter Property="FontSize" Value="14.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.stepNumber">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PageLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background">
+                <RadialGradientBrush Center="35%,30%" GradientOrigin="35%,30%" RadiusX="80%" RadiusY="80%">
+                    <GradientStop Color="#C4EC8A" Offset="0" />
+                    <GradientStop Color="#7CC43F" Offset="0.45" />
+                    <GradientStop Color="#2F6416" Offset="1" />
+                </RadialGradientBrush>
+            </Setter>
+            <Setter Property="Effect">
+                <DropShadowEffect Color="#8CC63F" Opacity="0.55" BlurRadius="18" OffsetX="0" OffsetY="0" />
+            </Setter>
+        </Style>
+        <Style Selector="Border.stepNumber > TextBlock">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="GuideContent" MaxWidth="1000" Margin="28,8,28,110" Spacing="20">
+            <views:WindowsHero MaxWidth="820" />
+            <TextBlock Classes="featureTitle" HorizontalAlignment="Center" TextAlignment="Center" Text="Your apps on both computers" />
+
+            <Border Classes="card glass" MaxWidth="620">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                    <Image Classes="featureTile" Source="avares://Seam/Assets/tile-windows-lime.png" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="glassTitle" Text="Window moving" />
+                            <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                            <Border Classes="pill" IsVisible="{Binding HasTrialBadge}"><TextBlock Text="{Binding TrialBadgeText}" FontSize="11" /></Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <Ellipse Width="8" Height="8" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="MasterStatus" Classes="glassBody" VerticalAlignment="Center" MaxWidth="420" />
+                        </StackPanel>
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding WindowSharingSwitch}" IsEnabled="{Binding SessionPro}"
+                                  VerticalAlignment="Center" AutomationProperties.Name="Window moving" />
+                </Grid>
+            </Border>
+            <views:ProGateCard />
+
+            <!-- trzy kroki, jak OknaStepNumber na macOS -->
+            <Border Classes="card glass">
+                <Grid ColumnDefinitions="*,Auto,*,Auto,*" ColumnSpacing="18" Margin="0,4">
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <Border Classes="stepNumber"><TextBlock Text="1" /></Border>
+                        <TextBlock Classes="stepText" Text="Open any window" />
+                    </StackPanel>
+                    <Rectangle Grid.Column="1" Width="1" Height="52" Fill="{DynamicResource CardBorder}" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16">
+                        <Border Classes="stepNumber"><TextBlock Text="2" /></Border>
+                        <TextBlock Classes="stepText" Text="Drag it across the screen edge" MaxWidth="170" />
+                    </StackPanel>
+                    <Rectangle Grid.Column="3" Width="1" Height="52" Fill="{DynamicResource CardBorder}" />
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="16">
+                        <Border Classes="stepNumber"><TextBlock Text="3" /></Border>
+                        <TextBlock Classes="stepText" Text="Work on the other computer" MaxWidth="170" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- oba kierunki i opcje, które są tylko na Windowsie -->
+            <Border Classes="card glass">
+                <StackPanel Spacing="12">
+                    <TextBlock Classes="glassTitle" Text="Both directions" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14" MinHeight="44">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Classes="rowTitle" Text="Mac windows on this computer" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="7" Height="7" Fill="{Binding DisplayStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="glassBody" Text="{Binding DisplayStatusText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding DisplaySwitch}" IsEnabled="{Binding SessionPro}"
+                                      AutomationProperties.Name="Mac windows on this computer" />
+                    </Grid>
+                    <Rectangle Classes="divider" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14" MinHeight="44">
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Classes="rowTitle" Text="Windows apps on the Mac" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="7" Height="7" Fill="{Binding WinViewStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="glassBody" Text="{Binding WinViewStatusText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Button Classes="accent" Content="Install driver"
+                                    IsVisible="{Binding WinViewDriverMissing}" Command="{Binding InstallDisplayDriverCommand}"
+                                    IsEnabled="{Binding !IsInstallingDriver}"
+                                    ToolTip.Tip="One-time install of the free, signed Virtual Display Driver (requires administrator approval)." />
+                            <ToggleSwitch Classes="compact" IsChecked="{Binding WinViewSwitch}" IsEnabled="{Binding SessionPro}"
+                                          AutomationProperties.Name="Windows apps on the Mac" />
+                        </StackPanel>
+                    </Grid>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Mac windows only" Subtitle="Mac windows sit on the Windows desktop next to Windows apps. Off: the whole Mac desktop fills the monitor.">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding DisplayWindowMode}" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Show it whenever you control the Mac" Subtitle="Full desktop only. Off: the Mac desktop appears only when you drag a window onto it.">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding ShowMacDisplayWhileRemote}" IsEnabled="{Binding !DisplayWindowMode}" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Video stream" Subtitle="Restart it if the picture freezes or lags behind.">
+                        <Button Content="Restart" Command="{Binding RestartDisplayCommand}" IsEnabled="{Binding IsConnected}" />
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <!-- układ ekranów, a bez połączenia także droga do jego ustawień -->
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                    <TextBlock x:Name="EdgeText" FontSize="13" Foreground="{DynamicResource MutedText}" VerticalAlignment="Center" />
+                    <Button Theme="{StaticResource LinkButton}" Foreground="{DynamicResource PageLight}" Content="Arrange screens" Click="OpenDisplays" />
+                </StackPanel>
+                <StackPanel x:Name="DisconnectedLinks" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                    <Button Theme="{StaticResource LinkButton}" Foreground="{DynamicResource PageLight}" Content="Connection settings" Click="OpenConnection" />
+                    <Button Theme="{StaticResource LinkButton}" Foreground="{DynamicResource PageLight}" Content="Connection help" Click="OpenHelp" />
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding DisplayStatsText}"
+                       IsVisible="{Binding DisplayStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding WinViewStatsText}"
+                       IsVisible="{Binding WinViewStatsText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

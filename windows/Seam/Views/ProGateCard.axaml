@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Seam.ViewModels"
+             x:Class="Seam.Views.ProGateCard"
+             x:DataType="vm:MainViewModel"
+             IsVisible="{Binding !SessionPro}">
+    <!-- Karta pod głównym przełącznikiem funkcji Pro, gdy ani ten PC, ani Mac nie ma Pro (jak ProGateCard na Macu). -->
+    <Border Classes="card glass" MaxWidth="600">
+        <StackPanel Spacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Border Classes="proBadge"><TextBlock Text="PRO" /></Border>
+                <TextBlock Text="{Binding ProGateTitle}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Classes="subtitle" FontSize="13" Text="{Binding ProGateMessage}" />
+            <WrapPanel ItemSpacing="10" LineSpacing="8">
+                <Button Theme="{StaticResource ProPrimaryButton}" Content="Check now" Command="{Binding CheckLicenseCommand}"
+                        IsVisible="{Binding ProGateNeedsCheck}" IsEnabled="{Binding !IsLicenseBusy}" />
+                <Button Theme="{StaticResource ProPrimaryButton}" Content="{Binding StartTrialLabel}" Command="{Binding StartTrialCommand}"
+                        IsVisible="{Binding CanStartTrial}" />
+                <Button Theme="{StaticResource ProGlassButton}" Content="{Binding BuyProLabel}" Command="{Binding BuyProCommand}"
+                        IsVisible="{Binding CanStartTrial}" />
+                <Button Theme="{StaticResource ProPrimaryButton}" Content="{Binding BuyProLabel}" Command="{Binding BuyProCommand}"
+                        IsVisible="{Binding ProGateCanBuyOnly}" />
+                <Button Theme="{StaticResource LinkButton}" Content="Enter license key" Click="OpenLicense" />
+            </WrapPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

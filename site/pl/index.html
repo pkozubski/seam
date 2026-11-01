@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="pl" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>seam: Mac i PC. Jedno biurko.</title>
+  <meta name="description" content="Jedna klawiatura i mysz, wspólny schowek, dźwięk z Maca i okna w obie strony. Seam łączy Maca i PC z Windowsem w sieci lokalnej, bez konta i chmury.">
+  <meta name="theme-color" content="#0a1fa8">
+  <link rel="canonical" href="https://seamdesk.app/pl/">
+  <link rel="alternate" hreflang="en" href="https://seamdesk.app/">
+  <link rel="alternate" hreflang="pl" href="https://seamdesk.app/pl/">
+  <link rel="alternate" hreflang="x-default" href="https://seamdesk.app/">
+  <meta property="og:title" content="seam: Mac i PC. Jedno biurko.">
+  <meta property="og:description" content="Jedna klawiatura i mysz, wspólny schowek, dźwięk z Maca i okna w obie strony. W sieci lokalnej, bez konta.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://seamdesk.app/pl/">
+  <meta property="og:locale" content="pl_PL">
+  <meta property="og:locale:alternate" content="en_US">
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="preload" as="font" type="font/woff2" href="../fonts/inter-latin-wght-normal.woff2" crossorigin>
+  <link rel="preload" as="image" href="../assets/bg-hero.webp">
+  <link rel="preload" as="image" href="../assets/pl/stage-scene.webp">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../gallery.css">
+  <link rel="stylesheet" href="../nav.css">
+</head>
+<body>
+  <a class="skip" href="#funkcje">Przejdź do treści</a>
+
+  <!-- Nawigacja w układzie globalnej nawigacji apple.com (klasy jak w oryginale, nav.css/nav.js) -->
+  <div id="globalheader">
+    <nav id="globalnav" class="globalnav globalnav-scrim" aria-label="Seam">
+      <div class="globalnav-content">
+        <ul class="globalnav-list" id="globalnav-list" role="none">
+          <li class="globalnav-item globalnav-item-seam"><a class="globalnav-link globalnav-link-seam" href="#top" aria-label="seam, początek strony"><img src="../assets/seam-icon.webp" alt="" width="22" height="22"><span class="globalnav-link-text">seam</span></a></li>
+          <li class="globalnav-item globalnav-item-submenu globalnav-item-funkcje" data-topnav-flyout-item="funkcje" data-topnav-flyout-label="Funkcje">
+            <ul class="globalnav-submenu-trigger-group" role="none">
+              <li class="globalnav-submenu-trigger-item"><a class="globalnav-link globalnav-submenu-trigger-link" href="#funkcje"><span class="globalnav-link-text">Funkcje</span></a><button class="globalnav-submenu-trigger-button" type="button" aria-expanded="false" aria-label="Menu: Funkcje"><svg height="10" width="10" viewBox="0 0 10 10" aria-hidden="true" class="globalnav-submenu-button-icon"><path d="m4.4 7.6-3.6-3.4a.6.6 0 0 1 .8-.9l3.4 3.2 3.4-3.2a.6.6 0 0 1 .8.9L5.6 7.6c-.3.3-.9.3-1.2 0z"/></svg></button></li>
+            </ul>
+            <div class="globalnav-flyout globalnav-submenu" data-topnav-flyout="funkcje">
+              <div class="globalnav-flyout-scroll-container">
+              <div class="globalnav-flyout-content globalnav-submenu-content">
+                <div class="globalnav-submenu-group globalnav-submenu-group-elevated">
+                  <h2 class="globalnav-submenu-header">Poznaj Seam</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#funkcje">Klawiatura i mysz</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#funkcje">Schowek</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#funkcje">Dźwięk</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#funkcje">Okna</a></li>
+                  </ul>
+                </div>
+                <div class="globalnav-submenu-group">
+                  <h2 class="globalnav-submenu-header">Zobacz więcej</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#aplikacja">Tak wygląda aplikacja</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#start">Trzy kroki do startu</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#cennik">Za darmo i Pro</a></li>
+                  </ul>
+                </div>
+                <div class="globalnav-submenu-group">
+                  <h2 class="globalnav-submenu-header">Wymagania</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#pobierz">macOS 14.2 lub nowszy</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#pobierz">Windows 10 i 11 (x64)</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#pytania">Ta sama sieć lokalna</a></li>
+                  </ul>
+                </div>
+              </div>
+              </div>
+            </div>
+          </li>
+          <li class="globalnav-item globalnav-item-submenu globalnav-item-start" data-topnav-flyout-item="start" data-topnav-flyout-label="Jak zacząć">
+            <ul class="globalnav-submenu-trigger-group" role="none">
+              <li class="globalnav-submenu-trigger-item"><a class="globalnav-link globalnav-submenu-trigger-link" href="#start"><span class="globalnav-link-text">Jak zacząć</span></a><button class="globalnav-submenu-trigger-button" type="button" aria-expanded="false" aria-label="Menu: Jak zacząć"><svg height="10" width="10" viewBox="0 0 10 10" aria-hidden="true" class="globalnav-submenu-button-icon"><path d="m4.4 7.6-3.6-3.4a.6.6 0 0 1 .8-.9l3.4 3.2 3.4-3.2a.6.6 0 0 1 .8.9L5.6 7.6c-.3.3-.9.3-1.2 0z"/></svg></button></li>
+            </ul>
+            <div class="globalnav-flyout globalnav-submenu" data-topnav-flyout="start">
+              <div class="globalnav-flyout-scroll-container">
+              <div class="globalnav-flyout-content globalnav-submenu-content">
+                <div class="globalnav-submenu-group globalnav-submenu-group-elevated">
+                  <h2 class="globalnav-submenu-header">Zacznij w minutę</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#start">Pobierz Seam</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#start">Połącz kodem</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#start">Przesuń kursor</a></li>
+                  </ul>
+                </div>
+                <div class="globalnav-submenu-group">
+                  <h2 class="globalnav-submenu-header">Pomoc</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="#pytania">Najczęstsze pytania</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="mailto:support@seamdesk.app">Zgłoś problem</a></li>
+                  </ul>
+                </div>
+              </div>
+              </div>
+            </div>
+          </li>
+          <li class="globalnav-item globalnav-item-submenu globalnav-item-bezpieczenstwo" data-topnav-flyout-item="bezpieczenstwo" data-topnav-flyout-label="Bezpieczeństwo">
+            <ul class="globalnav-submenu-trigger-group" role="none">
+              <li class="globalnav-submenu-trigger-item"><a class="globalnav-link globalnav-submenu-trigger-link" href="#bezpieczenstwo"><span class="globalnav-link-text">Bezpieczeństwo</span></a><button class="globalnav-submenu-trigger-button" type="button" aria-expanded="false" aria-label="Menu: Bezpieczeństwo"><svg height="10" width="10" viewBox="0 0 10 10" aria-hidden="true" class="globalnav-submenu-button-icon"><path d="m4.4 7.6-3.6-3.4a.6.6 0 0 1 .8-.9l3.4 3.2 3.4-3.2a.6.6 0 0 1 .8.9L5.6 7.6c-.3.3-.9.3-1.2 0z"/></svg></button></li>
+            </ul>
+            <div class="globalnav-flyout globalnav-submenu" data-topnav-flyout="bezpieczenstwo">
+              <div class="globalnav-flyout-scroll-container">
+              <div class="globalnav-flyout-content globalnav-submenu-content">
+                <div class="globalnav-submenu-group globalnav-submenu-group-elevated">
+                  <h2 class="globalnav-submenu-header">Prywatność</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#bezpieczenstwo">Twoje dane w domu</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="#bezpieczenstwo">Szyfrowanie AES-256</a></li>
+                  </ul>
+                </div>
+                <div class="globalnav-submenu-group">
+                  <h2 class="globalnav-submenu-header">Dokumenty</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="legal/privacy/">Polityka prywatności</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="legal/eula/">Umowa licencyjna</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="legal/refunds/">Zasady zwrotów</a></li>
+                  </ul>
+                </div>
+              </div>
+              </div>
+            </div>
+          </li>
+          <li class="globalnav-item globalnav-item-cennik"><a class="globalnav-link" href="#cennik"><span class="globalnav-link-text">Cennik</span></a></li>
+          <li class="globalnav-item globalnav-item-pytania"><a class="globalnav-link" href="#pytania"><span class="globalnav-link-text">Pytania</span></a></li>
+          <li class="globalnav-item globalnav-item-submenu globalnav-item-pobierz" data-topnav-flyout-item="pobierz" data-topnav-flyout-label="Pobierz">
+            <ul class="globalnav-submenu-trigger-group" role="none">
+              <li class="globalnav-submenu-trigger-item"><a class="globalnav-link globalnav-submenu-trigger-link" href="#pobierz"><span class="globalnav-link-text">Pobierz</span></a><button class="globalnav-submenu-trigger-button" type="button" aria-expanded="false" aria-label="Menu: Pobierz"><svg height="10" width="10" viewBox="0 0 10 10" aria-hidden="true" class="globalnav-submenu-button-icon"><path d="m4.4 7.6-3.6-3.4a.6.6 0 0 1 .8-.9l3.4 3.2 3.4-3.2a.6.6 0 0 1 .8.9L5.6 7.6c-.3.3-.9.3-1.2 0z"/></svg></button></li>
+            </ul>
+            <div class="globalnav-flyout globalnav-submenu" data-topnav-flyout="pobierz">
+              <div class="globalnav-flyout-scroll-container">
+              <div class="globalnav-flyout-content globalnav-submenu-content">
+                <div class="globalnav-submenu-group globalnav-submenu-group-elevated">
+                  <h2 class="globalnav-submenu-header">Pobierz Seam</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="https://github.com/pkozubski/seam-releases/releases/latest/download/Seam-macOS.zip">Na Maca</a></li>
+                    <li class="globalnav-submenu-list-item-elevated"><a class="globalnav-submenu-link" href="https://github.com/pkozubski/seam-releases/releases/latest/download/Seam-Windows-x64.exe">Na Windows</a></li>
+                  </ul>
+                </div>
+                <div class="globalnav-submenu-group">
+                  <h2 class="globalnav-submenu-header">Wydania</h2>
+                  <ul class="globalnav-submenu-list">
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="https://github.com/pkozubski/seam-releases/releases">Wszystkie wydania</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="https://github.com/pkozubski/seam-releases/releases/latest">Sumy kontrolne</a></li>
+                    <li class="globalnav-submenu-list-item"><a class="globalnav-submenu-link" href="https://github.com/pkozubski/seam-releases/releases/latest">Lista zmian</a></li>
+                  </ul>
+                </div>
+              </div>
+              </div>
+            </div>
+          </li>
+          <li class="globalnav-item globalnav-item-lang"><a class="globalnav-link globalnav-link-lang" href="../" hreflang="en" data-lang-switch="en" aria-label="English: angielska wersja strony"><span class="globalnav-link-text"><span lang="en">EN</span><span class="globalnav-lang-sep">/</span><span class="globalnav-lang-on">PL</span></span></a></li>
+        </ul>
+        <div class="globalnav-menutrigger">
+          <button class="globalnav-menutrigger-button" type="button" aria-expanded="false" aria-controls="globalnav-list" aria-label="Menu"><span class="globalnav-menutrigger-bread globalnav-menutrigger-bread-top"></span><span class="globalnav-menutrigger-bread globalnav-menutrigger-bread-bottom"></span></button>
+        </div>
+      </div>
+    </nav>
+    <div class="globalnav-curtain" id="globalnav-curtain"></div>
+  </div>
+
+  <main id="top">
+    <!-- 1. Hero: obietnica -->
+    <section class="hero">
+      <div class="hero__copy">
+        <p class="pill"><svg class="pill__spark" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="pill-spark-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#939cd6"/><stop offset="1" stop-color="#444a97"/></linearGradient></defs><path fill="url(#pill-spark-fill)" d="M10 5Q10.8 12.2 18 13 10.8 13.8 10 21 9.2 13.8 2 13 9.2 12.2 10 5ZM18.5 1.5Q18.8 5.2 22.5 5.5 18.8 5.8 18.5 9.5 18.2 5.8 14.5 5.5 18.2 5.2 18.5 1.5Z"/></svg><span class="pill__tag">Nowość</span>Okna w obie strony<span class="pill__beta">beta</span></p>
+        <h1>Mac i PC.<br>Jedno biurko.</h1>
+        <p class="hero__lead">Jedna klawiatura i mysz, wspólny schowek, dźwięk z Maca i okna w obie strony. W sieci lokalnej, bez konta.</p>
+        <div class="hero__cta" data-download-buttons>
+          <a class="btn btn--light" data-os="mac" href="https://github.com/pkozubski/seam-releases/releases/latest/download/Seam-macOS.zip">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v9m0 0-4-4m4 4 4-4M4 16h12"/></svg>Pobierz na Maca
+          </a>
+          <a class="btn btn--ghost" data-os="windows" href="https://github.com/pkozubski/seam-releases/releases/latest/download/Seam-Windows-x64.exe">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3v9m0 0-4-4m4 4 4-4M4 16h12"/></svg>Pobierz na Windows
+          </a>
+        </div>
+        <p class="hero__meta">macOS&nbsp;14.2+ · Windows&nbsp;10/11 · Za&nbsp;darmo · Pro&nbsp;$10</p>
+      </div>
+
+      <!-- Scena w chmurach: prawdziwe zrzuty aplikacji na obu komputerach -->
+      <div class="stage">
+        <img class="stage__scene" src="../assets/pl/stage-scene.webp" width="1536" height="1024" alt="MacBook z aplikacją Seam na stronie Połączenie i monitor PC z jej stroną Klawiatura i mysz, na świecącym blacie wśród chmur">
+
+        <ul class="badges" aria-label="W skrócie">
+          <li class="badge"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#badge-ring"/><text><textPath href="#arc-top" startOffset="50%">BEZ</textPath></text><text><textPath href="#arc-bottom" startOffset="50%">KONTA</textPath></text><image class="badge__icon" href="../assets/badge-no-account.png" x="35" y="35" width="50" height="50"/></svg><span class="sr">Bez konta</span></li>
+          <li class="badge"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#badge-ring"/><text><textPath href="#arc-top" startOffset="50%">BEZ</textPath></text><text><textPath href="#arc-bottom" startOffset="50%">CHMURY</textPath></text><image class="badge__icon" href="../assets/badge-no-cloud.png" x="35" y="35" width="50" height="50"/></svg><span class="sr">Bez chmury</span></li>
+          <li class="badge"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#badge-ring"/><text><textPath href="#arc-top" startOffset="50%">TYLKO</textPath></text><text><textPath href="#arc-bottom" startOffset="50%">SIEĆ LOKALNA</textPath></text><image class="badge__icon" href="../assets/badge-local-network.png" x="35" y="35" width="50" height="50"/></svg><span class="sr">Tylko sieć lokalna</span></li>
+          <li class="badge"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#badge-ring"/><text><textPath href="#arc-top" startOffset="50%">AES-256</textPath></text><text><textPath href="#arc-bottom" startOffset="50%">GCM</textPath></text><image class="badge__icon" href="../assets/badge-aes.png" x="35" y="35" width="50" height="50"/></svg><span class="sr">Szyfrowanie AES-256-GCM</span></li>
+          <li class="badge"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#badge-ring"/><text><textPath href="#arc-top" startOffset="50%">PODPISANE</textPath></text><text><textPath href="#arc-bottom" startOffset="50%">AKTUALIZACJE</textPath></text><image class="badge__icon" href="../assets/badge-signed-updates.png" x="35" y="35" width="50" height="50"/></svg><span class="sr">Podpisane aktualizacje</span></li>
+        </ul>
+        <svg width="0" height="0" class="defs" aria-hidden="true">
+          <defs>
+            <path id="arc-top" d="M20 60a40 40 0 0 1 80 0"/>
+            <path id="arc-bottom" d="M9 60a51 51 0 0 0 102 0"/>
+            <circle id="badge-ring" cx="60" cy="60" r="56"/>
+          </defs>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 2. Funkcje: galeria z pigułką (jasna wersja galerii „Co go wyróżnia.”, gallery.css/gallery.js) -->
+    <section class="section-highlights" id="funkcje">
+      <div class="section">
+        <div class="section__head reveal">
+          <h2>Biurko, którego brakowało Twojemu Macowi</h2>
+          <p>Cztery funkcje, jedna aplikacja na obu komputerach.</p>
+        </div>
+      </div>
+
+      <div class="media-card-gallery-content media-card-set paused" data-media-card-gallery>
+        <div class="all-access-pass__container">
+          <div class="all-access-pass inactive aap-media-card-gallery">
+            <div class="all-access-pass__intro-element" aria-hidden="true"></div>
+            <div class="all-access-pass__element play-pause-button-wrapper">
+              <span class="all-access-pass__background"></span>
+              <button class="play-pause-button all-access-pass__play-pause-button aap-media-card-gallery__button" type="button" aria-label="Odtwórz galerię funkcji">
+                <svg class="svg-icon play-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M23.5 19.6c0-1.6 1.7-2.5 3-1.7l11.1 6.9c1.3.8 1.3 2.6 0 3.4l-11.1 6.9c-1.3.8-3-.1-3-1.7z"/></svg>
+                <svg class="svg-icon pause-icon" viewBox="0 0 56 56" aria-hidden="true"><rect x="21.5" y="19.5" width="4.5" height="17" rx="1.6"/><rect x="30" y="19.5" width="4.5" height="17" rx="1.6"/></svg>
+                <svg class="svg-icon replay-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M28 20.5c-4.7 0-8.5 3.6-8.5 8.2s3.8 8.2 8.5 8.2 8.5-3.6 8.5-8.2a1.8 1.8 0 0 0-3.6 0c0 2.6-2.2 4.6-4.9 4.6s-4.9-2-4.9-4.6 2.2-4.6 4.9-4.6v2.4c0 .7.8 1.1 1.4.7l4.6-3.2c.5-.4.5-1.1 0-1.5l-4.6-3.2c-.6-.4-1.4 0-1.4.7z"/></svg>
+              </button>
+            </div>
+            <div class="all-access-pass__element aap-media-card-gallery__timed-dotnav">
+              <span class="all-access-pass__background"></span>
+              <div class="tablist-wrapper">
+                <div class="dotnav">
+                  <ul role="tablist" aria-label="Funkcje Seam" class="dotnav-items" style="--dotnav-count: 4">
+              <li role="presentation" class="dotnav-item aap-media-card-gallery__dotnav-item" style="--item-index: 0">
+                <a id="funkcja-1-trigger" role="tab" class="dotnav-link" href="#funkcja-1" aria-controls="funkcja-1"><span class="sr">Klawiatura i mysz</span></a>
+              </li>
+              <li role="presentation" class="dotnav-item aap-media-card-gallery__dotnav-item" style="--item-index: 1">
+                <a id="funkcja-2-trigger" role="tab" class="dotnav-link" href="#funkcja-2" aria-controls="funkcja-2"><span class="sr">Schowek</span></a>
+              </li>
+              <li role="presentation" class="dotnav-item aap-media-card-gallery__dotnav-item" style="--item-index: 2">
+                <a id="funkcja-3-trigger" role="tab" class="dotnav-link" href="#funkcja-3" aria-controls="funkcja-3"><span class="sr">Dźwięk</span></a>
+              </li>
+              <li role="presentation" class="dotnav-item aap-media-card-gallery__dotnav-item" style="--item-index: 3">
+                <a id="funkcja-4-trigger" role="tab" class="dotnav-link" href="#funkcja-4" aria-controls="funkcja-4"><span class="sr">Okna</span></a>
+              </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="media-gallery-wrapper">
+          <div class="gallery media-gallery scroll-container">
+            <ul class="card-set item-container" role="list">
+            <li class="card-container gallery-item media-gallery-item-1" id="funkcja-1" data-ac-gallery-item role="tabpanel" aria-labelledby="funkcja-1-trigger" style="--progress: 0">
+              <div class="card tile tile-rounded card--input">
+                <div class="caption-container" role="none">
+                  <div class="caption-animation-container">
+                    <span class="chip">Windows → Mac</span>
+                    <h3>Klawiatura i mysz</h3>
+                    <p>Kursor przechodzi przez krawędź ekranu. Ctrl działa jak ⌘, jeśli chcesz.</p>
+                  </div>
+                </div>
+                <div class="media-container" aria-hidden="true">
+                  <img class="obj obj--mouse" src="../assets/hero-control-mouse.webp" alt="" loading="lazy">
+                  <img class="obj obj--key" src="../assets/hero-control-key.webp" alt="" loading="lazy">
+                </div>
+              </div>
+            </li>
+            <li class="card-container gallery-item media-gallery-item-2" id="funkcja-2" data-ac-gallery-item role="tabpanel" aria-labelledby="funkcja-2-trigger" style="--progress: 1">
+              <div class="card tile tile-rounded card--clipboard">
+                <div class="caption-container" role="none">
+                  <div class="caption-animation-container">
+                    <span class="chip">w obie strony</span>
+                    <h3>Schowek</h3>
+                    <p>Kopiujesz tu, wklejasz tam. Tekst za darmo, zdjęcia i zrzuty ekranu w Pro.</p>
+                  </div>
+                </div>
+                <div class="media-container" aria-hidden="true">
+                  <img class="obj obj--board" src="../assets/hero-clipboard-board.webp" alt="" loading="lazy">
+                  <img class="obj obj--text" src="../assets/hero-clipboard-text.webp" alt="" loading="lazy">
+                  <img class="obj obj--photo" src="../assets/hero-clipboard-photo.webp" alt="" loading="lazy">
+                </div>
+              </div>
+            </li>
+            <li class="card-container gallery-item media-gallery-item-3" id="funkcja-3" data-ac-gallery-item role="tabpanel" aria-labelledby="funkcja-3-trigger" style="--progress: 2">
+              <div class="card tile tile-rounded card--audio">
+                <div class="caption-container" role="none">
+                  <div class="caption-animation-container">
+                    <span class="chip">Mac → Windows <b>Pro</b></span>
+                    <h3>Dźwięk</h3>
+                    <p>Cały dźwięk Maca w słuchawkach podłączonych do PC.</p>
+                  </div>
+                </div>
+                <div class="media-container" aria-hidden="true">
+                  <img class="obj obj--phones" src="../assets/hero-audio-headphones.webp" alt="" loading="lazy">
+                </div>
+              </div>
+            </li>
+            <li class="card-container gallery-item media-gallery-item-4" id="funkcja-4" data-ac-gallery-item role="tabpanel" aria-labelledby="funkcja-4-trigger" style="--progress: 3">
+              <div class="card tile tile-rounded card--windows">
+                <div class="caption-container" role="none">
+                  <div class="caption-animation-container">
+                    <span class="chip">w obie strony <b>beta</b> <b>Pro</b></span>
+                    <h3>Okna</h3>
+                    <p>Okna Maca na pasku zadań Windows, aplikacje Windows w Docku Maca.</p>
+                  </div>
+                </div>
+                <div class="media-container" aria-hidden="true">
+                  <img class="obj obj--window" src="../assets/hero-windows-window.webp" alt="" loading="lazy">
+                </div>
+              </div>
+            </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Zobacz z bliska: prawdziwe zrzuty -->
+    <section class="section" id="aplikacja">
+      <div class="section__head reveal">
+        <h2>Tak wygląda Seam</h2>
+        <p>Każda funkcja ma swoją stronę w aplikacji.</p>
+      </div>
+      <div class="showcase reveal">
+        <figure class="shot" id="shot" role="tabpanel" aria-labelledby="tab-control">
+          <img src="../assets/pl/app-control.webp" alt="Strona Klawiatura i mysz w aplikacji Seam na Macu" width="1600" height="1194" loading="lazy">
+        </figure>
+        <!-- kulki w kolorach stron, te same co status połączenia w aplikacji (ConnectionStatusButton) -->
+        <div class="orbs" role="tablist" aria-label="Strony aplikacji">
+          <button class="orb" role="tab" id="tab-connection" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="app-connection" data-alt="Strona Połączenie w aplikacji Seam na Macu" title="Połączenie" style="--light:#2FC8FF;--mid:#1A3FD6;--deep:#0B1F6B;--glow:#2FC8FF"><span class="sr">Połączenie</span></button>
+          <button class="orb" role="tab" id="tab-control" aria-controls="shot" aria-selected="true" data-shot="app-control" data-alt="Strona Klawiatura i mysz w aplikacji Seam na Macu" title="Klawiatura i mysz" style="--light:#FF8CD1;--mid:#E02A8A;--deep:#8C0548;--glow:#E11677"><span class="sr">Klawiatura i mysz</span></button>
+          <button class="orb" role="tab" id="tab-audio" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="app-audio" data-alt="Strona Dźwięk w aplikacji Seam na Macu" title="Dźwięk" style="--light:#C4B3FF;--mid:#866CF0;--deep:#22125E;--glow:#866CF0"><span class="sr">Dźwięk</span></button>
+          <button class="orb" role="tab" id="tab-clipboard" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="app-clipboard" data-alt="Strona Schowek w aplikacji Seam na Macu" title="Schowek" style="--light:#FFD58A;--mid:#D9922C;--deep:#6E4212;--glow:#C8862A"><span class="sr">Schowek</span></button>
+          <button class="orb" role="tab" id="tab-windows" aria-controls="shot" aria-selected="false" tabindex="-1" data-shot="app-windows" data-alt="Strona Okna w aplikacji Seam na Macu" title="Okna" style="--light:#C4EC8A;--mid:#7CC43F;--deep:#2F6416;--glow:#8CC63F"><span class="sr">Okna</span></button>
+        </div>
+        <div class="orbs-caption">
+          <button class="orbs-caption__step" type="button" data-dir="-1" aria-label="Poprzednia strona aplikacji"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg></button>
+          <p class="orbs-caption__label" aria-live="polite"><b>Klawiatura i mysz</b> · 2 z 5</p>
+          <button class="orbs-caption__step" type="button" data-dir="1" aria-label="Następna strona aplikacji"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Jak zacząć (karty w układzie kart Apple: nadtytuł, tytuł, opis, ilustracja u dołu) -->
+    <section class="section" id="start">
+      <div class="section__head section__head--split reveal">
+        <h2>Trzy kroki do jednego biurka.</h2>
+        <a class="link-more" href="#pobierz">Pobierz Seam <span aria-hidden="true">›</span></a>
+      </div>
+      <ol class="steps">
+        <li class="step reveal">
+          <p class="step__eyebrow">Krok 1</p>
+          <h3>Pobierz Seam.</h3>
+          <p class="step__text">Jedna aplikacja na Maca, jedna na PC z Windowsem. Bez konta, na Windowsie bez instalatora.</p>
+          <div class="step__media step__media--icon"><img src="../assets/seam-icon.webp" alt="Ikona aplikacji Seam" width="253" height="256" loading="lazy"></div>
+          <a class="step__action" href="#pobierz" aria-label="Przejdź do pobierania">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>
+          </a>
+        </li>
+        <li class="step reveal">
+          <p class="step__eyebrow">Krok 2</p>
+          <h3>Połącz kodem.</h3>
+          <p class="step__text">Mac pokazuje kod parowania. Wpisujesz go na Windowsie i komputery są połączone.</p>
+          <div class="step__media step__media--bleed"><img src="../assets/pl/step-pairing-photo.webp" alt="MacBook z ekranem parowania Seam i kodem do wpisania na Windowsie" width="900" height="497" loading="lazy"></div>
+        </li>
+        <li class="step reveal">
+          <p class="step__eyebrow">Krok 3</p>
+          <h3>Przesuń kursor.</h3>
+          <p class="step__text">Za krawędź ekranu i już pracujesz na drugim komputerze tą samą klawiaturą i myszą.</p>
+          <div class="step__media step__media--bleed step__media--mouse"><img src="../assets/step-mouse.webp" alt="Biała mysz bezprzewodowa" width="900" height="791" loading="lazy"></div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 5. Bezpieczeństwo: układ redakcyjny jak sekcje Apple (nadtytuł, nagłówek, akapit, liczby, zdjęcie z prawej krawędzi) -->
+    <section class="secure" id="bezpieczenstwo">
+      <div class="secure__inner reveal">
+        <p class="secure__eyebrow">Bezpieczeństwo i prywatność</p>
+        <h2 class="secure__title">Twoje dane nie wychodzą z&nbsp;domu.</h2>
+        <p class="secure__lead"><b>Seam działa tylko w Twojej sieci lokalnej.</b> Bez serwerów, konta i chmury. Komputery parujesz jednorazowym kodem, a sekret trafia do Pęku kluczy na Macu i do DPAPI na Windowsie. Sterowanie, schowek i dźwięk są szyfrowane i chronione przed powtórzeniem.</p>
+        <div class="secure__stats">
+          <div class="stat">
+            <p class="stat__kicker">Szyfrowanie</p>
+            <p class="stat__value">AES-256-GCM</p>
+            <p class="stat__note">sterowania, schowka i dźwięku</p>
+          </div>
+          <div class="stat">
+            <p class="stat__kicker">Serwery po drodze</p>
+            <p class="stat__value">0</p>
+            <p class="stat__note">wszystko zostaje w sieci lokalnej</p>
+          </div>
+          <div class="stat">
+            <p class="stat__kicker">Każda aktualizacja</p>
+            <p class="stat__value">ECDSA</p>
+            <p class="stat__note">podpis i suma SHA-256 sprawdzane przed instalacją</p>
+          </div>
+        </div>
+      </div>
+      <figure class="secure__photo">
+        <img src="../assets/hand-lock.webp" alt="Dłoń trzymająca kłódkę" width="1536" height="1024" loading="lazy">
+      </figure>
+      <div class="secure__inner secure__foot reveal">
+        <h3>Bez reklam, analityki i&nbsp;telemetrii.</h3>
+        <p>Z internetem Seam łączy się tylko po aktualizacje i, jeśli zechcesz, po sterownik wirtualnego monitora. Z Pro sprawdza też mniej więcej raz w tygodniu klucz licencji w Lemon Squeezy. Dzienniki zostają na Twoim komputerze.</p>
+        <a class="link-more" href="legal/privacy/">Polityka prywatności <span aria-hidden="true">›</span></a>
+      </div>
+    </section>
+
+    <!-- 6. Cennik: Free vs Pro (teksty spójne z LicenseSettingsPane.swift i ProGate.swift) -->
+    <section class="section" id="cennik">
+      <div class="section__head reveal">
+        <h2>Za darmo na start.<br>Pro za $10, raz.</h2>
+        <p>Klawiatura, mysz i tekst w schowku są darmowe na zawsze. Pro dodaje dźwięk, okna i obrazy. Bez subskrypcji.</p>
+      </div>
+      <div class="compare reveal">
+        <table>
+          <caption class="sr">Porównanie Seam za darmo i Seam Pro</caption>
+          <colgroup><col class="compare__feature"><col class="compare__plan"><col class="compare__plan"></colgroup>
+          <thead>
+            <tr>
+              <th scope="col" class="compare__intro"><b>Co dostajesz</b><p>Pro działa na obu komputerach, gdy licencję albo okres próbny ma którykolwiek z nich.</p></th>
+              <th scope="col"><p class="plan__name">Za darmo</p><p class="plan__price">$0</p><p class="plan__note">na zawsze, bez konta</p></th>
+              <th scope="col" class="is-pro"><p class="plan__name">Pro <span class="plan__tag">7 dni gratis</span></p><p class="plan__price">$10</p><p class="plan__note">raz, bez subskrypcji</p></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Jedna klawiatura i mysz <small>z układem ekranów</small></th><td><span class="yes" role="img" aria-label="W zestawie"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Tekst w schowku</th><td><span class="yes" role="img" aria-label="W zestawie"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Obrazy i zrzuty w schowku</th><td><span class="no" role="img" aria-label="Brak"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Dźwięk Maca na PC</th><td><span class="no" role="img" aria-label="Brak"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Okna Maca na PC <small>na wirtualnym ekranie</small></th><td><span class="no" role="img" aria-label="Brak"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Aplikacje Windows na Macu</th><td><span class="no" role="img" aria-label="Brak"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Tylko sieć lokalna, AES-256-GCM</th><td><span class="yes" role="img" aria-label="W zestawie"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+            <tr><th scope="row">Podpisane aktualizacje automatyczne</th><td><span class="yes" role="img" aria-label="W zestawie"></span></td><td class="is-pro"><span class="yes" role="img" aria-label="W zestawie"></span></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td></td>
+              <td><a class="btn btn--blue" href="#pobierz">Pobierz za darmo</a></td>
+              <td class="is-pro"><a class="btn btn--light" href="#cennik" data-checkout>Kup Pro – $10</a><p class="plan__status" data-checkout-status role="status" hidden></p></td>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="compare__mobile-cta">
+          <a class="btn btn--blue" href="#cennik" data-checkout>Kup Pro – $10</a>
+          <p class="plan__status" data-checkout-status role="status" hidden></p>
+          <a class="btn btn--soft" href="#pobierz">Pobierz za darmo</a>
+          <p>Pro działa na obu komputerach, gdy licencję albo okres próbny ma którykolwiek z nich.</p>
+        </div>
+      </div>
+      <ul class="facts">
+        <li class="reveal">
+          <h3>7 dni za darmo</h3>
+          <p>Wszystkie funkcje Pro, bez konta i karty. Okres próbny zaczyna się przy pierwszym włączeniu funkcji Pro, a nie przy instalacji.</p>
+        </li>
+        <li class="reveal">
+          <h3>Do 3 komputerów</h3>
+          <p>Jedną licencję aktywujesz na trzech komputerach, a para potrzebuje tylko jednej. Przeniesiesz ją przyciskiem Dezaktywuj w Ustawieniach.</p>
+        </li>
+        <li class="reveal">
+          <h3>Na stałe</h3>
+          <p>Licencja bezterminowa ze wszystkimi aktualizacjami Seam 3.x. Działa offline do 30 dni. <a href="legal/refunds/">Zasady zwrotów</a></p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 7. Pytania -->
+    <section class="section" id="pytania">
+      <div class="section__head reveal">
+        <h2>Najczęstsze<br>pytania</h2>
+      </div>
+      <!-- pytania jak rozmowa: naprzemiennie z lewej i prawej, odpowiedź w dymku z kropką -->
+      <div class="faq">
+        <div class="qa is-open">
+          <button class="qa__q" type="button" aria-expanded="true" aria-controls="qa-1">
+            <span class="qa__pill">Czy działa przez Wi-Fi?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-1" role="region">
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Tak. Oba komputery muszą być w tej samej sieci lokalnej. Najmniejsze opóźnienie daje kabel, szczególnie przy dźwięku i oknach.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-2">
+            <span class="qa__pill">Jak działa licencja Pro?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-2" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Płacisz $10 raz, bez subskrypcji. Klucz licencji przychodzi e-mailem; wpisz go w <b>Seam → Ustawienia → Licencja</b>. Licencja nie wygasa i obejmuje wszystkie aktualizacje Seam 3.x.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-3">
+            <span class="qa__pill">Na ilu komputerach mogę jej używać?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-3" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Na maksymalnie 3 komputerach. Para potrzebuje tylko jednej licencji: Pro działa na obu komputerach, gdy licencję albo okres próbny ma którykolwiek z nich. Żeby przenieść licencję na nowy komputer, wybierz <b>Dezaktywuj</b> na starym.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-4">
+            <span class="qa__pill">Co się dzieje po okresie próbnym?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-4" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Okres próbny trwa 7 dni i nie wymaga konta ani karty. Gdy się skończy, dźwięk, okna i obrazy w schowku czekają na zakup Pro, a Twoje ustawienia zostają bez zmian. Klawiatura, mysz i tekst w schowku działają dalej, za darmo na zawsze.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-5">
+            <span class="qa__pill">Czy Seam działa bez internetu?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-5" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Tak. Sam Seam potrzebuje tylko sieci lokalnej. Pro sprawdza licencję mniej więcej raz w tygodniu, gdy komputer jest online, i działa bez internetu do 30 dni od ostatniego sprawdzenia. Potem wystarczy na chwilę połączyć się z siecią.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-6">
+            <span class="qa__pill">Czy mogę dostać zwrot pieniędzy?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-6" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Tak. Płatności i zwroty obsługuje Lemon Squeezy, nasz sprzedawca (merchant of record); szczegóły są w <a href="legal/refunds/">zasadach zwrotów</a>. Po zwrocie licencja przestaje działać, a Seam wraca do darmowych funkcji.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-7">
+            <span class="qa__pill">Jakich uprawnień potrzebuje Mac?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-7" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Dostępności (do sterowania myszą i klawiaturą) oraz Nagrywania dźwięku systemowego. Do przenoszenia okien także Nagrywania ekranu. Aplikacja przy pierwszym uruchomieniu przeprowadzi Cię przez każdą zgodę.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <!-- TODO(launch): prawdziwe dopiero po podpisie Developer ID + notaryzacji i Authenticode (Faza 5 planu) -->
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-8">
+            <span class="qa__pill">Czy system ostrzeże mnie przy pierwszym uruchomieniu?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-8" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Nie. Aplikacja na Maca ma podpis Apple Developer ID i notaryzację Apple, a aplikacja na Windows podpis Authenticode. Jeśli SmartScreen zapyta o zupełnie nowe wydanie, wybierz <b>Więcej informacji → Uruchom mimo to</b>. Każdy plik możesz też sprawdzić sumą z SHA256SUMS.txt w wydaniu.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-9">
+            <span class="qa__pill">Co zrobić, gdy kursor zostanie na drugim ekranie?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-9" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Naciśnij na Windowsie klawisz awaryjny: domyślnie Scroll Lock. W ustawieniach możesz wybrać Pause, F12 albo Ctrl + Alt + Shift + B, jeśli Twoja klawiatura nie ma Scroll Lock.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-10">
+            <span class="qa__pill">Jak działają aktualizacje?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-10" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Obie aplikacje same sprawdzają nowe wydania na GitHubie, weryfikują sumę i podpis, a potem instalują się jednym kliknięciem. Sprawdzanie możesz wyłączyć w ustawieniach.</p></div></div>
+          </div>
+        </div>
+        <div class="qa">
+          <button class="qa__q" type="button" aria-expanded="false" aria-controls="qa-11">
+            <span class="qa__pill">Czy przeniosę okna między komputerami?</span>
+            <span class="qa__btn" aria-hidden="true"><svg viewBox="0 0 20 20"><path class="qa__h" d="M5 10h10"/><path class="qa__v" d="M10 5v10"/></svg></span>
+          </button>
+          <div class="qa__a" id="qa-11" role="region" inert>
+            <div class="qa__clip"><div class="qa__row"><span class="qa__dot" aria-hidden="true"></span><p class="qa__bubble">Tak, z Seam Pro (funkcja w becie). Okno Maca przeciągnięte za krawędź pojawia się na pulpicie Windows. Aplikacje Windows na Macu wymagają jednorazowej instalacji wirtualnego monitora (za zgodą administratora).</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 8–9. Pobierz i stopka na jednym tle: chmury przechodzą w błękit stopki -->
+  <div class="finale">
+    <section class="download" id="pobierz">
+      <div class="download__head reveal">
+        <h2>Pobierz Seam.</h2>
+        <p>Pobierasz za darmo, bez konta i bez chmury. Zainstaluj aplikację na obu komputerach.</p>
+      </div>
+      <div class="platforms">
+        <article class="platform platform--light reveal" data-platform="mac">
+          <header class="platform__head"><img src="../assets/seam-icon.webp" alt="" width="44" height="44"><h3>Seam dla macOS</h3></header>
+          <p class="platform__desc">Steruj Makiem klawiaturą i myszą z PC, a dźwięk Maca słuchaj na Windowsie.</p>
+          <div class="platform__art platform__art--mac" role="img" aria-label="Laptop narysowany kropkami"></div>
+          <p class="platform__price">Za darmo</p>
+          <p class="platform__note">Pro za $10 raz, 7 dni na próbę</p>
+          <ul class="checks platform__checks">
+            <li>macOS 14.2 lub nowszy</li>
+            <li>Apple Silicon i Intel w jednej aplikacji</li>
+            <li>Aktualizuje się sam, z weryfikacją podpisu</li>
+            <li>Działa tylko w Twojej sieci lokalnej</li>
+          </ul>
+          <a class="btn btn--blue" href="https://github.com/pkozubski/seam-releases/releases/latest/download/Seam-macOS.zip"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-4-4m4 4 4-4M4 16h12"/></svg>Pobierz na Maca</a>
+        </article>
+        <article class="platform platform--dark reveal" data-platform="windows">
+          <header class="platform__head"><img src="../assets/seam-icon.webp" alt="" width="44" height="44"><h3>Seam dla Windows</h3></header>
+          <p class="platform__desc">Klawiatura i mysz z PC sterują Makiem. Schowek, dźwięk i okna przechodzą między komputerami.</p>
+          <div class="platform__art platform__art--pc" role="img" aria-label="Monitor z klawiaturą i myszą narysowany kropkami"></div>
+          <p class="platform__price">Za darmo</p>
+          <p class="platform__note">jeden plik, bez instalatora</p>
+          <ul class="checks platform__checks">
+            <li>Windows 10 i 11 (x64)</li>
+            <li>Nie trzeba instalować .NET</li>
+            <li>Aktualizuje się sam, z weryfikacją podpisu</li>
+            <li>Okna Maca na pasku zadań (Pro, beta)</li>
+          </ul>
+          <a class="btn btn--soft" href="https://github.com/pkozubski/seam-releases/releases/latest/download/Seam-Windows-x64.exe"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-4-4m4 4 4-4M4 16h12"/></svg>Pobierz na Windows</a>
+        </article>
+      </div>
+      <p class="download__note"><a href="https://github.com/pkozubski/seam-releases/releases">Wszystkie wydania i sumy kontrolne na GitHubie</a></p>
+    </section>
+
+  <!-- 9. Stopka -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <a class="brand" href="#top"><img src="../assets/seam-icon.webp" alt="" width="40" height="40"><span>seam</span></a>
+        <p>Mac i PC. Jedno biurko.</p>
+      </div>
+      <nav class="footer__cols" aria-label="Stopka">
+        <div>
+          <h4>Produkt</h4>
+          <a href="#funkcje">Funkcje</a>
+          <a href="#cennik">Cennik</a>
+          <a href="#pobierz">Pobierz</a>
+          <a href="https://github.com/pkozubski/seam-releases/releases">Lista zmian</a>
+        </div>
+        <div>
+          <h4>Pomoc</h4>
+          <a href="#pytania">Pytania</a>
+          <a href="mailto:support@seamdesk.app">Zgłoś problem</a>
+        </div>
+        <div>
+          <h4>Informacje prawne</h4>
+          <a href="legal/privacy/">Prywatność</a>
+          <a href="legal/eula/">Umowa licencyjna</a>
+          <a href="legal/refunds/">Zwroty</a>
+          <a href="legal/imprint/">Dane sprzedawcy</a>
+        </div>
+      </nav>
+    </div>
+    <p class="footer__legal">© 2026 Seam · Działa tylko w Twojej sieci lokalnej. · <a href="../" hreflang="en" lang="en" data-lang-switch="en">English</a> · <span aria-current="true">Polski</span></p>
+    <div class="footer__word" aria-hidden="true">seam</div>
+  </footer>
+  </div>
+
+  <script src="../main.js" defer></script>
+  <script src="../gallery.js" defer></script>
+  <script src="../nav.js" defer></script>
+  <script src="../lang.js" defer></script>
+  <script src="../checkout.js" defer></script>
+</body>
+</html>
