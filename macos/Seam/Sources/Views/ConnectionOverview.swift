@@ -15,12 +15,15 @@ struct ConnectionOverview: View {
                 .font(.system(size: 16)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(spacing: 22) {
-                QuickToggleRow(title: L10n.text("Mysz i klawiatura", "Mouse & keyboard"), symbol: "computermouse", isOn: $state.settings.inputEnabled)
-                QuickToggleRow(title: L10n.text("Dźwięk z Maca", "Audio from Mac"), symbol: "speaker.wave.2", isOn: $state.settings.audioEnabled)
-                QuickToggleRow(title: L10n.text("Wspólny schowek", "Shared clipboard"), symbol: "clipboard", isOn: $state.settings.clipboardSyncEnabled)
+                QuickToggleRow(title: L10n.text("Mysz i klawiatura", "Mouse & keyboard"), symbol: "computermouse", isOn: $state.settings.inputEnabled,
+                               tile: "tile-control")
+                QuickToggleRow(title: L10n.text("Dźwięk z Maca", "Audio from Mac"), symbol: "speaker.wave.2", isOn: $state.settings.audioEnabled,
+                               tile: "tile-audio")
+                QuickToggleRow(title: L10n.text("Wspólny schowek", "Shared clipboard"), symbol: "clipboard", isOn: $state.settings.clipboardSyncEnabled,
+                               tile: "tile-clipboard")
                 Button(action: openWindows) {
                     HStack(spacing: 10) {
-                        SeamIconTile(name: "icon-windows", size: 32)
+                        ConnectionTile(name: "tile-windows")
                         Text(L10n.text("Przenieś okno", "Move a window"))
                     }.font(.body).frame(maxWidth: .infinity, alignment: .leading)
                 }

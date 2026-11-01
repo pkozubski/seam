@@ -1,48 +1,57 @@
 import SwiftUI
 
-/// Zakładka Okna w układzie z Windowsa (`windows/Seam/Views/Pages/WindowsPage.axaml`): główny przełącznik
-/// w pigułce, ilustracja po lewej, połączenie i układ ekranów po prawej, szczegóły pod przewinięciem.
+/// Zakładka Okna: okno przechodzące przez świetlny szew, główny przełącznik i trzy kroki, na zielonym tle (`WindowsBackdrop`).
 struct WindowsPage: View {
     @Environment(AppState.self) private var state
     var openConnection: () -> Void = {}
     var fullPreview = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var width: CGFloat = 900
 
     private static let helpURL = URL(string: "https://github.com/pkozubski/seam#uruchomienie-krok-po-kroku")!
-    private static let howID = "how"
+
+    private var status: String {
+        state.settings.displayEnabled ? state.displayStatusText : L10n.text("Wyłączone", "Off")
+    }
+
+    private var edgeText: String {
+        switch state.displayEdge {
+        case .left: return L10n.text("Ekran Windows stoi po lewej od Maca", "The Windows screen is to the left of the Mac")
+        case .right: return L10n.text("Ekran Windows stoi po prawej od Maca", "The Windows screen is to the right of the Mac")
+        case .top: return L10n.text("Ekran Windows stoi nad Makiem", "The Windows screen is above the Mac")
+        case .bottom: return L10n.text("Ekran Windows stoi pod Makiem", "The Windows screen is below the Mac")
+        case nil: return L10n.text("Układ ekranów pojawi się po uruchomieniu drugiego ekranu",
+                                   "The screen layout appears when the second display starts")
+        }
+    }
 
     var body: some View {
         Group {
             if fullPreview {
-                guide(scrollToHow: {}).frame(width: 1040).padding(40)
+                content(narrow: false, heroWidth: 820).frame(width: 1040).padding(40)
             } else {
-                ScrollViewReader { proxy in
+                GeometryReader { geometry in
                     ScrollView {
-                        guide(scrollToHow: {
-                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.45)) {
-                                proxy.scrollTo(Self.howID, anchor: .top)
-                            }
-                        })
-                        .frame(maxWidth: 1040)
-                        .padding(.horizontal, width < 850 ? 24 : 40)
-                        .padding(.top, 20)
-                        .padding(.bottom, 48)
-                        .frame(maxWidth: .infinity)
+                        content(narrow: geometry.size.width < 720, heroWidth: geometry.size.height < 760 ? 640 : 820)
+                            .padding(.horizontal, 28).padding(.top, 8).padding(.bottom, 96)
+                            .frame(maxWidth: 1000)
+                            .frame(maxWidth: .infinity, minHeight: geometry.size.height)
                     }
                 }
             }
         }
         // W oknie aplikacji zielone tło leży pod całym oknem (ContentView), razem z paskiem bocznym.
         .background { if fullPreview { WindowsBackdrop().ignoresSafeArea() } }
-        .tint(OknaTokens.switchOn)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .tint(OknaTokens.accent)
     }
 
-    /// Also used by the full-length preview without imposing a window-sized viewport.
-    func guide(scrollToHow: @escaping () -> Void) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            header
+    private func content(narrow: Bool, heroWidth: CGFloat) -> some View {
+        @Bindable var state = state
+        return VStack(spacing: 22) {
+            WindowsHero().frame(maxWidth: heroWidth)
+            Text(L10n.text("Twoje aplikacje na obu komputerach", "Your apps on both computers"))
+                .font(.system(size: 36, weight: .semibold)).tracking(-0.8)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
             if state.settings.displayEnabled && !state.screenCaptureGranted {
                 PermissionBanner(title: "Brak uprawnienia Nagrywanie ekranu",
                                  message: "Potrzebne tylko tej funkcji. Po nadaniu uruchom aplikację ponownie.",
@@ -53,149 +62,82 @@ struct WindowsPage: View {
                                  message: "Pozwala przenosić okna i sterować nimi na drugim urządzeniu.",
                                  grant: state.requestAccessibility, openSettings: state.openAccessibilitySettings)
             }
-            cards(scrollToHow: scrollToHow)
-            HStack {
-                Spacer()
-                Link(destination: Self.helpURL) {
-                    HStack(spacing: 6) {
-                        Text(L10n.text("Pomoc z połączeniem", "Connection help"))
-                        Image(systemName: "arrow.up.right.square").font(.system(size: 11))
+            TintedGlassCard(border: OknaTokens.cardBorder) {
+                HStack(spacing: 14) {
+                    SeamArtwork(name: "tile-windows-lime").frame(width: 46, height: 46)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.text("Przenoszenie okien", "Window moving")).font(.title3.weight(.semibold))
+                        HStack(spacing: 7) {
+                            StatusDot(ok: state.displayStreaming ? true : (state.displayError == nil ? nil : false))
+                            Text(status).font(.callout).foregroundStyle(OknaTokens.mutedText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                    .font(.system(size: 13))
-                    .foregroundStyle(OknaTokens.buttonText)
+                    Spacer(minLength: 8)
+                    if state.displayStreaming {
+                        Button(L10n.text("Zatrzymaj", "Stop"), action: state.stopDisplay)
+                            .buttonStyle(GlassPillButtonStyle(border: OknaTokens.cardBorder))
+                    }
+                    Toggle(L10n.text("Przenoszenie okien", "Move windows"), isOn: $state.settings.displayEnabled)
+                        .labelsHidden().toggleStyle(.switch)
                 }
-                .padding(.horizontal, 6)
             }
-            .padding(.top, -8)
-            WindowsHowItWorks(edge: state.displayEdge ?? .right).id(Self.howID)
-            WindowsDisplayOptions()
+            .frame(maxWidth: 620)
+            steps(narrow: narrow)
+            footer
         }
     }
 
-    private var header: some View {
-        @Bindable var state = state
-        return VStack(spacing: 16) {
-            Text(L10n.text("Twoje aplikacje na obu komputerach.", "Your apps, on both computers."))
-                .font(.system(size: 32, weight: .semibold))
+    private func steps(narrow: Bool) -> some View {
+        let items = [L10n.text("Otwórz dowolne okno", "Open any window"),
+                     L10n.text("Przeciągnij je za krawędź ekranu", "Drag it across the screen edge"),
+                     L10n.text("Pracuj na drugim komputerze", "Work on the other computer")]
+        let layout = narrow ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+                            : AnyLayout(HStackLayout(spacing: 18))
+        return TintedGlassCard(border: OknaTokens.cardBorder) {
+            layout {
+                ForEach(items.indices, id: \.self) { index in
+                    if index > 0 && !narrow {
+                        Rectangle().fill(OknaTokens.cardBorder).frame(width: 1, height: 52)
+                    }
+                    HStack(spacing: 16) {
+                        OknaStepNumber(number: index + 1)
+                        Text(items[index]).font(.body.weight(.medium))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(index + 1). \(items[index])")
+                }
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    /// Układ ekranów i ustawienia, które są tylko na Windowsie; bez połączenia także droga do jego ustawień.
+    private var footer: some View {
+        VStack(spacing: 8) {
+            Text(edgeText + L10n.text(" · układ, okna Windows na Macu i tryb całego pulpitu zmienisz w Seam na Windowsie.",
+                                      " · change the layout, Windows apps on the Mac and full-desktop mode in Seam on Windows."))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            HStack(spacing: 18) {
-                Text(state.settings.displayEnabled ? L10n.text("Przenoszenie okien włączone", "Window moving is on")
-                                                   : L10n.text("Przenoszenie okien wyłączone", "Window moving is off"))
-                    .font(.system(size: 15, weight: .semibold))
-                Toggle(L10n.text("Przenoszenie okien", "Move windows"), isOn: $state.settings.displayEnabled)
-                    .toggleStyle(.switch).labelsHidden()
-            }
-            .padding(.leading, 18).padding(.trailing, 10).padding(.vertical, 10)
-            .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(OknaTokens.cardBorder, lineWidth: 1) }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 10).padding(.bottom, 6)
-    }
-
-    /// Siatka 5:9 jak na Windowsie; w wąskim oknie karty układają się jedna pod drugą.
-    @ViewBuilder private func cards(scrollToHow: @escaping () -> Void) -> some View {
-        let right = VStack(spacing: 18) {
-            WindowsConnectionCard(openConnection: openConnection)
-            WindowsArrangementCard(edge: state.displayEdge)
-        }
-        if width < 700 && !fullPreview {
-            VStack(spacing: 18) {
-                WindowsMoveCard(showHow: scrollToHow)
-                right
-            }
-        } else {
-            Grid(horizontalSpacing: 18) {
-                GridRow {
-                    WindowsMoveCard(showHow: scrollToHow).gridCellColumns(5)
-                    right.gridCellColumns(9)
-                }
-                // Niewidoczny wiersz dzieli szerokość na 14 równych kolumn (proporcja 5:9).
-                GridRow { ForEach(0..<14, id: \.self) { _ in Color.clear.frame(height: 0) } }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
-/// „Jak to działa”: trzy etapy przeniesienia okna na schemacie ekranów.
-private struct WindowsHowItWorks: View {
-    let edge: ScreenEdge
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            OknaSectionHeader(title: L10n.text("Jak to działa", "How it works"))
-            HStack(alignment: .top, spacing: 18) {
-                step(1, progress: 0, title: L10n.text("Otwórz dowolne okno", "Open any window"),
-                     detail: L10n.text("Przeglądarka, dokument, komunikator — to, z czym pracujesz.",
-                                       "A browser, document or chat — whatever you are working on."))
-                step(2, progress: 0.5, title: L10n.text("Przeciągnij za krawędź", "Drag across the edge"),
-                     detail: L10n.text("Chwyć górny pasek i przesuń okno w stronę drugiego ekranu.",
-                                       "Grab the title bar and move it towards the other display."))
-                step(3, progress: 1, title: L10n.text("Pracuj na drugim ekranie", "Use the other display"),
-                     detail: L10n.text("Okno pojawi się na drugim urządzeniu. Wróci tą samą krawędzią w przeciwną stronę.",
-                                       "Your window appears on the other device. It comes back across the same edge."))
-            }
-        }
-        .modifier(OknaCard(padding: EdgeInsets(top: 20, leading: 22, bottom: 22, trailing: 22)))
-    }
-
-    private func step(_ number: Int, progress: CGFloat, title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            WindowTransferDiagram(edge: edge, progress: progress, compact: true).frame(height: 86)
-            Text(String(format: "%02d", number))
-                .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                .foregroundStyle(OknaTokens.stepNumber)
-            Text(title).font(.body.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
-            Text(detail).font(.callout).foregroundStyle(OknaTokens.mutedText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// „Opcje wyświetlania” po stronie Maca: stan ekranu, który Mac udostępnia Windowsowi.
-/// Kierunki i tryb pulpitu należą do aplikacji Windows, więc tu jest tylko wskazówka.
-private struct WindowsDisplayOptions: View {
-    @Environment(AppState.self) private var state
-
-    private var statusColor: Color {
-        if state.displayStreaming { return Color(red: 0.20, green: 0.78, blue: 0.35) }
-        return state.displayError != nil ? .orange : .gray
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            OknaSectionHeader(title: L10n.text("Opcje wyświetlania", "Display options"))
-            HStack(spacing: 14) {
-                SeamIconTile(name: "icon-windows", size: 34, active: state.displayStreaming)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.text("Okna Maca na komputerze z Windows", "Mac windows on your Windows computer"))
-                    HStack(spacing: 7) {
-                        Circle().fill(statusColor).frame(width: 7, height: 7).accessibilityHidden(true)
-                        Text(state.displayStatusText).font(.callout).foregroundStyle(OknaTokens.mutedText)
-                            .fixedSize(horizontal: false, vertical: true)
+            if state.peer == nil {
+                HStack(spacing: 18) {
+                    Button(L10n.text("Ustawienia połączenia", "Connection settings"), action: openConnection)
+                        .buttonStyle(.link)
+                    Link(destination: Self.helpURL) {
+                        HStack(spacing: 5) {
+                            Text(L10n.text("Pomoc z połączeniem", "Connection help"))
+                            Image(systemName: "arrow.up.right.square").font(.system(size: 11))
+                        }
                     }
                 }
-                Spacer(minLength: 12)
-                if state.displayStreaming {
-                    Button(L10n.text("Zatrzymaj", "Stop"), action: state.stopDisplay)
-                        .buttonStyle(OknaButtonStyle())
-                }
-            }
-            .frame(minHeight: 44)
-            Rectangle().fill(OknaTokens.divider).frame(height: 1)
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "pc").foregroundStyle(OknaTokens.mutedText).accessibilityHidden(true)
-                Text(L10n.text("Okna Windows na Macu, tryb całego pulpitu i ponowne uruchomienie obrazu ustawisz w Seam na Windowsie, w zakładce Okna.",
-                               "Windows apps on the Mac, full-desktop mode and restarting the stream are in Seam on Windows, under Windows."))
-                    .font(.callout).foregroundStyle(OknaTokens.mutedText)
-                    .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(OknaTokens.light)
             }
         }
-        .modifier(OknaCard(padding: EdgeInsets(top: 20, leading: 22, bottom: 20, trailing: 22)))
+        .font(.callout).foregroundStyle(OknaTokens.mutedText)
+        .padding(.top, 4)
     }
 }

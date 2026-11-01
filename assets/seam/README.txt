@@ -16,4 +16,12 @@ window-desktop-mac.png / window-desktop-pc.png: original paired emerald/blue
 wallpapers generated with built-in image_gen for the Windows tab's monitor diagrams.
 window-prompts.txt records both exact prompts. The windows, shared edge, arrows and
 localized labels are drawn natively on each platform. All diagrams follow the
-configured screen arrangement; macOS marks the layout as an example until negotiated.
+configured screen arrangement. Only the Windows app draws these diagrams now; the macOS
+Windows page uses the hero-windows-* assets instead.
+
+hero-connection.png, tile-*.png: blue glass hero and feature tiles of the Connection page;
+hero-prompts.txt records the prompts.
+hero-control-mouse.png, hero-control-key.png, tile-input.png: magenta glass assets of the Keyboard & mouse page.
+hero-audio-headphones.png, tile-audio-violet.png: violet glass assets of the Sound page.
+hero-clipboard-board.png, hero-clipboard-text.png, hero-clipboard-photo.png, tile-clipboard-amber.png: amber glass assets of the Clipboard page.
+hero-windows-laptop.png, hero-windows-monitor.png, hero-windows-window.png, tile-windows-lime.png: leaf-green glass assets of the macOS Windows page.

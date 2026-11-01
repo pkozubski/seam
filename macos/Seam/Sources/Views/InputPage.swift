@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Klawiatura i mysz: grafika po lewej, szklane karty ustawień po prawej, na magentowym tle (`ControlBackdrop`).
 struct InputPage: View {
     @Environment(AppState.self) private var state
 
@@ -12,51 +13,120 @@ struct InputPage: View {
     }
 
     var body: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                HStack(alignment: .center, spacing: 20) {
+                    VStack(spacing: 14) {
+                        // Mysz i klawisz ⌘ to osobne grafiki; klawisz stoi przed myszą, w lewym dolnym rogu.
+                        ZStack(alignment: .bottomLeading) {
+                            SeamArtwork(name: "hero-control-mouse")
+                                .padding(.leading, 70).padding(.bottom, 20)
+                            SeamArtwork(name: "hero-control-key")
+                                .frame(width: 170)
+                                .shadow(color: ControlTokens.hotGlow.opacity(0.35), radius: 24)
+                        }
+                        .frame(maxWidth: 500)
+                        .background {
+                            // Szeroka poświata pod grafiką, jak na makiecie; wychodzi poza ramkę grafiki.
+                            Ellipse()
+                                .fill(ControlTokens.hotGlow.opacity(0.5))
+                                .padding(.horizontal, 30).padding(.vertical, 50)
+                                .blur(radius: 70)
+                                .allowsHitTesting(false)
+                        }
+                        Text(L10n.text("Kursor przechodzi przez krawędź ekranu.", "The pointer crosses the screen edge."))
+                            .font(.callout).foregroundStyle(ControlTokens.mutedText.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .combine)
+                    settings
+                        .frame(width: geometry.size.width < 860 ? 340 : 420)
+                }
+                .padding(.horizontal, 28).padding(.top, 30).padding(.bottom, 90)
+                .frame(minHeight: geometry.size.height)
+                .frame(maxWidth: 1180)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .tint(ControlTokens.accent)
+    }
+
+    private var settings: some View {
         @Bindable var state = state
-        SettingsPageLayout(title: "Klawiatura i mysz", subtitle: "Jedna klawiatura i mysz dla obu komputerów.") {
+        return VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.text("Klawiatura i mysz", "Keyboard & mouse"))
+                    .font(.system(size: 40, weight: .semibold)).tracking(-1)
+                    .accessibilityAddTraits(.isHeader)
+                Text(L10n.text("Jedna klawiatura i mysz dla obu komputerów.", "One keyboard and mouse for both computers."))
+                    .font(.system(size: 16)).foregroundStyle(ControlTokens.mutedText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.bottom, 10)
             if !state.accessibilityGranted {
                 PermissionBanner(title: "Brak uprawnienia Dostępność",
                                  message: "Bez niego Mac nie przyjmie ruchów myszy ani klawiszy z Windowsa.",
                                  grant: state.requestAccessibility,
                                  openSettings: state.openAccessibilitySettings)
             }
-            FeatureHero(icon: "icon-control", title: "Przyjmuj klawiaturę i mysz z Windowsa",
-                        status: status,
-                        ok: state.settings.inputEnabled ? (state.peer != nil ? true : nil) : nil,
-                        isOn: $state.settings.inputEnabled)
-            SettingsGroup("Klawiatura") {
-                SettingRow(title: "Zamień Ctrl ↔ Cmd",
-                           subtitle: "Ctrl+C na klawiaturze PC działa jak ⌘C na Macu.") {
-                    Toggle("", isOn: $state.settings.swapCtrlCmd).labelsHidden().toggleStyle(.switch)
+            TintedGlassCard {
+                HStack(spacing: 14) {
+                    SeamArtwork(name: "tile-input").frame(width: 46, height: 46)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.text("Sterowanie z Windowsa", "Control from Windows")).font(.title3.weight(.semibold))
+                        HStack(spacing: 7) {
+                            StatusDot(ok: state.settings.inputEnabled ? (state.peer != nil ? true : nil) : nil)
+                            Text(status).font(.callout).foregroundStyle(ControlTokens.mutedText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    Toggle(L10n.text("Sterowanie z Windowsa", "Control from Windows"), isOn: $state.settings.inputEnabled)
+                        .labelsHidden().toggleStyle(.switch)
                 }
             }
-            SettingsGroup("Przewijanie") {
-                SettingRow(title: "Kierunek",
-                           subtitle: "„Automatycznie” uwzględnia naturalne przewijanie z ustawień Maca.") {
-                    Picker("", selection: $state.settings.scrollDirection) {
-                        ForEach(ScrollDirectionMode.allCases) { Text($0.label).tag($0) }
+            TintedGlassCard {
+                HStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.text("Zamień Ctrl ↔ Cmd", "Swap Ctrl ↔ Cmd")).font(.title3.weight(.semibold))
+                        Text(L10n.text("Ctrl+C na PC działa jak ⌘C.", "Ctrl+C on the PC works like ⌘C."))
+                            .font(.callout).foregroundStyle(ControlTokens.mutedText)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
+                    Spacer(minLength: 8)
+                    Toggle(L10n.text("Zamień Ctrl ↔ Cmd", "Swap Ctrl ↔ Cmd"), isOn: $state.settings.swapCtrlCmd)
+                        .labelsHidden().toggleStyle(.switch)
                 }
-                Divider()
-                SettingRow(title: "Szybkość",
-                           subtitle: "\(state.settings.scrollSpeed.formatted(.number.precision(.fractionLength(0...2))))× · \(Int(40 * state.settings.scrollSpeed)) px"
-                               + L10n.text(" na ząbek kółka", " per wheel notch")) {
+            }
+            TintedGlassCard {
+                Text(L10n.text("Przewijanie", "Scrolling")).font(.title3.weight(.semibold))
+                Picker(L10n.text("Kierunek", "Direction"), selection: $state.settings.scrollDirection) {
+                    ForEach(ScrollDirectionMode.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help(L10n.text("„Automatycznie” uwzględnia naturalne przewijanie z ustawień Maca.",
+                                "“Automatic” follows natural scrolling from the Mac's settings."))
+                Divider().overlay(ControlTokens.cardBorder)
+                HStack(spacing: 12) {
+                    Text(L10n.text("Szybkość", "Speed")).font(.body.weight(.semibold))
+                    Text("\(state.settings.scrollSpeed.formatted(.number.precision(.fractionLength(0...2))))×")
+                        .font(.body.monospacedDigit()).foregroundStyle(ControlTokens.mutedText)
                     Slider(value: $state.settings.scrollSpeed, in: 0.25...4, step: 0.25) {
-                        Text("Szybkość")
+                        Text(L10n.text("Szybkość", "Speed"))
                     } minimumValueLabel: {
                         Image(systemName: "tortoise").accessibilityHidden(true)
                     } maximumValueLabel: {
                         Image(systemName: "hare").accessibilityHidden(true)
                     }
                     .labelsHidden()
-                    .frame(width: 220)
                 }
+                .help("\(Int(40 * state.settings.scrollSpeed)) px" + L10n.text(" na ząbek kółka", " per wheel notch"))
             }
-            Text("Skrót awaryjny, czułość myszy i położenie ekranów ustawiasz w aplikacji na Windowsie.")
-                .font(.callout).foregroundStyle(.secondary)
+            Text(L10n.text("Skrót awaryjny, czułość myszy i położenie ekranów ustawiasz w aplikacji na Windowsie.",
+                           "Set the emergency shortcut, mouse sensitivity and screen layout in the Windows app."))
+                .font(.callout).foregroundStyle(ControlTokens.mutedText.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 4)
         }
     }

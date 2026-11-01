@@ -16,6 +16,17 @@ struct ContentView: View {
     private var slide: Animation { SettingsChrome.slide(reduceMotion: reduceMotion) }
     /// Zakładka Okna ma zielone tło na całe okno, jak na Windowsie.
     private var greenWindow: Bool { selection == .windows && !settingsNavigation.isPresented }
+    /// Zakładka Połączenie ma niebieskie tło pod grafiką hero.
+    private var blueWindow: Bool { (selection ?? .connection) == .connection && !settingsNavigation.isPresented }
+    /// Zakładka Klawiatura i mysz ma magentowe tło.
+    private var magentaWindow: Bool { selection == .control && !settingsNavigation.isPresented }
+    /// Zakładka Dźwięk ma fioletowe tło.
+    private var violetWindow: Bool { selection == .audio && !settingsNavigation.isPresented }
+    /// Zakładka Schowek ma bursztynowe tło.
+    private var amberWindow: Bool { selection == .clipboard && !settingsNavigation.isPresented }
+    private var orbAccent: ConnectionStatusButton.Accent {
+        magentaWindow ? .magenta : violetWindow ? .violet : amberWindow ? .amber : greenWindow ? .leaf : .blue
+    }
 
     var body: some View {
         // Własny układ kolumn zamiast NavigationSplitView: od macOS 26 system zamyka pasek boczny
@@ -51,20 +62,26 @@ struct ContentView: View {
             .modifier(SoftToolbarEdge())
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: greenWindow)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: blueWindow)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: magentaWindow)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: violetWindow)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: amberWindow)
         .toolbarBackground(.hidden, for: .windowToolbar)
         .modifier(HiddenToolbarTitle())
         .background {
             ZStack {
                 SeamBackdrop()
+                ConnectionBackdrop().opacity(blueWindow ? 1 : 0)
+                ControlBackdrop().opacity(magentaWindow ? 1 : 0)
+                AudioBackdrop().opacity(violetWindow ? 1 : 0)
+                ClipboardBackdrop().opacity(amberWindow ? 1 : 0)
                 WindowsBackdrop().opacity(greenWindow ? 1 : 0)
             }
             .ignoresSafeArea()
         }
         .frame(minWidth: 980, idealWidth: 1180, minHeight: 680, idealHeight: 800)
         .background {
-            if !greenWindow {
-                ConnectionStatusAttachment(state: state) { showConnectionStatus = true }
-            }
+            ConnectionStatusAttachment(state: state, accent: orbAccent) { showConnectionStatus = true }
         }
         .sheet(isPresented: $showConnectionStatus) { ConnectionDetails().environment(state) }
         .preferredColorScheme(.dark)

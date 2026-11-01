@@ -10,9 +10,9 @@ struct ConnectionPage: View {
             ScrollView {
                 VStack(spacing: 24) {
                     HStack(spacing: 12) {
-                        SeamArtwork(name: "seam-windows")
-                            .padding(26)
-                            .background(EllipticalGradient(colors: [DesignTokens.studioLight.opacity(0.18), .clear],
+                        SeamArtwork(name: "hero-connection")
+                            .padding(6)
+                            .background(EllipticalGradient(colors: [ConnectionTokens.cyanGlow.opacity(0.28), .clear],
                                                            endRadiusFraction: 0.5))
                             .frame(maxWidth: .infinity)
                             .accessibilityHidden(true)
@@ -39,6 +39,7 @@ struct ConnectionPage: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .tint(ConnectionTokens.accent)
         .sheet(isPresented: $showDetails) {
             ConnectionDetails().environment(state)
         }

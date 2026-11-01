@@ -76,7 +76,13 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
 - Wygląd obu aplikacji jest wspólny (ciemny grafit, srebrne ikony z `assets/seam/`, marka „seam” małymi literami).
   Windows (inspiracja: CleanMyMac): jedno tło pod paskiem tytułu, paskiem bocznym i treścią, szklane karty, pasek
   boczny z ikonami `nav-*` bez płytek, zaznaczenie w szklanej pigułce i kropka stanu na ikonie Połączenie.
-  **Zielona jest tylko zakładka Okna** (tokeny z projektu w `WindowsPage.axaml`, `SeamBackdrop.IsGreen`), reszta grafitowa.
+  **Zielona jest tylko zakładka Okna** (Windows: tokeny w `WindowsPage.axaml`, `SeamBackdrop.IsGreen`; Mac: zieleń liści,
+  `hero-windows-laptop/-monitor/-window` składane w `WindowsHero`, `tile-windows-lime`, `OknaTokens` w `OknaStyle.swift`), **niebieska tylko
+  zakładka Połączenie** (grafika `hero-connection`, kafelki `tile-*`, `ConnectionTokens` w `ConnectionStyle.swift`), **magentowa
+  tylko Klawiatura i mysz** (`hero-control-mouse` + `hero-control-key`, `tile-input`, `ControlTokens` w `ControlStyle.swift`),
+  **fioletowa tylko Dźwięk** (spokojny fiolet jak CleanMyMac: `hero-audio-headphones`, `tile-audio-violet`, `AudioTokens`
+  w `AudioStyle.swift`), **bursztynowa tylko Schowek** (`hero-clipboard-board` + `-text` + `-photo` składane w `ClipboardHero`,
+  `tile-clipboard-amber`, `ClipboardTokens` w `ClipboardStyle.swift`); na razie Mac, reszta grafitowa. Karty na kolorowych stronach: `TintedGlassCard`. Kula Połączono bierze kolor strony (`ConnectionStatusButton.Accent`), także na Okna. Styl kolorowych grafik: błyszczące szkło 3D w gradiencie (prompty w `assets/seam/hero-prompts.txt`).
   Pasek boczny: jedna strona na sekcję, każda strona funkcji zaczyna się kartą z głównym przełącznikiem.
   Użytkownik odrzucił: podzakładki na stronach i `SettingsExpander` (Windows).
 - Najpierw makieta/zrzut do akceptacji przy większych zmianach UI; użytkownik ocenia wygląd ze zrzutów.

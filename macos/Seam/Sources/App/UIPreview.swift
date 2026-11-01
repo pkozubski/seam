@@ -53,7 +53,9 @@ enum UIPreview {
             if args.contains("--ui-menu") {
                 MenuBarView()
             } else if args.contains("--ui-onboarding") {
-                OnboardingView()
+                // `--ui-onboarding-step <1-3>` otwiera kreator na danym kroku
+                let step = args.firstIndex(of: "--ui-onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 1
+                OnboardingView(initialStep: max(0, min(2, step - 1)))
             } else {
                 ContentView(initialSection: section)
             }

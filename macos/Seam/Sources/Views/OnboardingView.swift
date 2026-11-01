@@ -5,6 +5,9 @@ struct OnboardingView: View {
     @State private var step = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// `initialStep` służy podglądowi UI (`--ui-onboarding-step`), aplikacja zaczyna od 0.
+    init(initialStep: Int = 0) { _step = State(initialValue: initialStep) }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {

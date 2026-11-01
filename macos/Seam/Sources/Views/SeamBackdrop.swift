@@ -37,6 +37,9 @@ struct SeamBackdrop: View {
         .accessibilityHidden(true)
     }
 
+    /// One tile of monochrome noise, shared with the colored page backdrops.
+    static var grainTile: NSImage { grain }
+
     /// One tile of monochrome noise, drawn once per launch at device-pixel size.
     private static let grain: NSImage = {
         let side = 128
