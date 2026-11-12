@@ -9,7 +9,7 @@ internal static partial class LocalizationChecks
     private static partial Regex TextAttribute();
 
     // Marka, nazwy własne i wzór kodu parowania są takie same w obu językach.
-    private static readonly HashSet<string> SameInBothLanguages = ["seam", "System", "PRO", "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-X", "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"];
+    private static readonly HashSet<string> SameInBothLanguages = ["seam", "System", "PRO", "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-X", "SEAM-XXXXX-XXXXX-XXXXX-XXXXX"];
 
     public static void Run()
     {

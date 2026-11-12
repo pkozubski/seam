@@ -32,7 +32,7 @@
                     <views:SettingRow Title="License key" Subtitle="From the purchase email. One license covers up to 3 computers."
                                       IsVisible="{Binding !HasLicense}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBox Text="{Binding LicenseKeyInput}" Watermark="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" Width="280" />
+                            <TextBox Text="{Binding LicenseKeyInput}" Watermark="SEAM-XXXXX-XXXXX-XXXXX-XXXXX" Width="280" />
                             <Button Content="Activate" Command="{Binding ActivateLicenseCommand}" IsEnabled="{Binding !IsLicenseBusy}" />
                         </StackPanel>
                     </views:SettingRow>

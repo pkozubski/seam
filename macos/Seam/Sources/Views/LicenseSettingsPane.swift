@@ -79,7 +79,7 @@ struct LicenseSettingsPane: View {
                                     detail: L10n.text("From the purchase email. One license covers up to 3 computers.",
                                                       pl: "Z e-maila po zakupie. Jedna licencja obejmuje do 3 komputerów.")) {
                         HStack(spacing: 8) {
-                            TextField("", text: $key, prompt: Text(verbatim: "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"))
+                            TextField("", text: $key, prompt: Text(verbatim: "SEAM-XXXXX-XXXXX-XXXXX-XXXXX"))
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 230)

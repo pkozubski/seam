@@ -2,7 +2,7 @@
 
 ## Unreleased — test channel
 
-- Seam Pro is now sold through Stripe instead of Lemon Squeezy. Buy Pro opens Stripe checkout; right after paying, seamdesk.app/license shows your key (it also arrives by email) and lets you have it sent again. Keys look like SEAM-XXXXX-XXXXX-XXXXX-XXXXX and work on up to 3 computers; activating again on the same computer reuses its slot. Error messages for an unknown key, the device limit and a refunded license are translated.
+- Seam Pro is now sold through Stripe instead of Lemon Squeezy. Buy Pro opens Stripe checkout; right after paying, seamdesk.app/license shows your key (it also arrives by email) and lets you have it sent again. Keys look like SEAM-XXXXX-XXXXX-XXXXX-XXXXX and work on up to 3 computers; activating again on the same computer reuses its slot. Error messages for an unknown key, the device limit and a refunded license are translated. Sales are now on: Pro features need a license after the 7-day trial (test builds buy with a Stripe test card).
 - Windows: Settings open in their own window, like on the Mac: search, a card with your Seam Pro status, tiles for General, Language, Updates and Advanced, Diagnostics in the main window and an About page.
 - Windows: the Displays page has its own teal look, and you place the Mac by dragging its tile to the side where it sits (it snaps to the nearest side; arrow keys work too).
 - Windows: the Windows page now matches the Mac: a laptop, a monitor and a glass window joined by a seam of light, one main card, three numbered steps and a card for both directions and the Windows-only options.

@@ -14,10 +14,10 @@ public static class LicenseConfig
     public const string ApiBase = "https://api.seamdesk.app/v1/licenses/";
     public const string Price = "$10";
     /// <summary>Sprzedaż w Stripe działa w trybie live. Dopiero wtedy wydania blokują funkcje Pro.</summary>
-    public const bool LiveSales = false;
+    public const bool LiveSales = true;
     /// <summary>Payment Link w trybie testowym Stripe (karta 4242 4242 4242 4242): kanał dev blokuje Pro
     /// i przyjmuje klucze testowe, wydania nigdy.</summary>
-    public const bool TestSales = false;
+    public const bool TestSales = true;
 
     public static bool AcceptsTestLicenses => Net.Updater.IsDevChannel;
     /// <summary>Bez sprzedaży nikt nie traci funkcji, bo nie miałby gdzie kupić licencji.</summary>

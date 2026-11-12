@@ -108,7 +108,7 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
   `tests/fixtures/entitlement.json`), sprzedaż przez Stripe Payment Link (Managed Payments, Stripe jest sprzedawcą),
   klucze wydaje i sprawdza własny serwer `license-server/` (Cloudflare Worker + D1, `api.seamdesk.app`, odpowiedzi
   we wspólnych wektorach `tests/fixtures/license-api.json`). `LicenseConfig` (`LicenseConfig.swift` ↔ `LicenseClient.cs`):
-  dopóki `liveSales`/`testSales` = false, blokady są wyłączone; aplikacje otwierają `seamdesk.app/buy/`, a link Stripe
+  `liveSales` (wydania) i `testSales` (kanał dev, karta testowa Stripe) włączają blokady; aplikacje otwierają `seamdesk.app/buy/`, a link Stripe
   jest tylko w `site/checkout.js`. Pro działa, gdy uprawniona jest którakolwiek strona pary (STATUS bajt 1 bit 1 i `PEER_STATUS`).
   Nową funkcję płatną blokuj po obu stronach (nadawca i odbiorca) i pokaż na jej stronie `ProGateCard`.
   Podgląd stanów: Mac `--ui-license free|trial|expired|pro`, Windows `--screenshot-license …`.

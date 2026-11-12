@@ -6,10 +6,10 @@ enum LicenseConfig {
     static let apiBase = URL(string: "https://api.seamdesk.app/v1/licenses/")!
     static let price = "$10"
     /// Sprzedaż w Stripe działa w trybie live. Dopiero wtedy wydania blokują funkcje Pro.
-    static let liveSales = false
+    static let liveSales = true
     /// Payment Link w trybie testowym Stripe (karta 4242 4242 4242 4242): kanał dev blokuje Pro i przyjmuje
     /// klucze testowe, wydania nigdy.
-    static let testSales = false
+    static let testSales = true
 
     static var acceptsTestLicenses: Bool { Updater.isDevChannel }
     /// Bez sprzedaży nikt nie traci funkcji, bo nie miałby gdzie kupić licencji.

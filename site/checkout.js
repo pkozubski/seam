@@ -3,9 +3,9 @@
 // /license/?session_id=… (pl: /pl/license/), gdzie license.js pokazuje klucz z api.seamdesk.app.
 // Aplikacje otwierają /buy/ (wydania) i /buy/?test (kanał dev), więc link zmienia się tylko tutaj.
 
-// TODO(launch): Stripe → Payment Links → link produktu Seam Pro (tryb live) i ten sam w trybie testowym.
-// W obu ustaw „After payment → Redirect” na https://seamdesk.app/license/?session_id={CHECKOUT_SESSION_ID}.
-const PAYMENT_LINK = "https://buy.stripe.com/PLACEHOLDER-LIVE";
+// Stripe (konto SeamDesk) → Payment Links: live plink_1Ub7b1BANigsTD5abZ0s0sWm, test plink_1Ub6zCBANigsTD5a1ggqykzE.
+// Oba przekierowują po zapłacie na https://seamdesk.app/license/?session_id={CHECKOUT_SESSION_ID}.
+const PAYMENT_LINK = "https://buy.stripe.com/6oU00ialu1I1cP73vVfbq00";
 const TEST_PAYMENT_LINK = "https://buy.stripe.com/test_6oU00ialu1I1cP73vVfbq00";
 
 (() => {

@@ -22,8 +22,8 @@
     "EMAIL_FROM": "Seam <license@seamdesk.app>",
     "SUPPORT_EMAIL": "support@seamdesk.app",
     "MAX_DEVICES": "3",
-    // Identyfikatory Payment Links (plink_…) po przecinku: test (sandbox SeamDesk); dopisz live po weryfikacji konta
-    "PAYMENT_LINKS": "plink_1Ub6zCBANigsTD5a1ggqykzE"
+    // Identyfikatory Payment Links (plink_…) po przecinku: live, potem test (konto Stripe SeamDesk)
+    "PAYMENT_LINKS": "plink_1Ub7b1BANigsTD5abZ0s0sWm,plink_1Ub6zCBANigsTD5a1ggqykzE"
   },
   "observability": { "enabled": true }
 }
