@@ -10,6 +10,8 @@ on:
     paths-ignore:
       - "site/**"
       - ".github/workflows/site.yml"
+      - "license-server/**"
+      - ".github/workflows/license-server.yml"
 
 permissions:
   contents: write

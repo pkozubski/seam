@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Polityka prywatności · seam</title>
-  <meta name="description" content="Co Seam przetwarza na Twoich komputerach, co wysyła do GitHuba i Lemon Squeezy oraz co zbiera ta strona.">
+  <meta name="description" content="Co Seam przetwarza na Twoich komputerach, co wysyła do GitHuba i serwera licencji Seam oraz co zbiera ta strona.">
   <meta name="theme-color" content="#0a1fa8">
   <link rel="canonical" href="https://seamdesk.app/pl/legal/privacy/">
   <link rel="alternate" hreflang="en" href="https://seamdesk.app/legal/privacy/">
@@ -56,12 +56,12 @@
           <li>Seam nie ma konta, reklam, bibliotek analitycznych ani telemetrii użycia.</li>
           <li>Dane klawiatury, myszy, schowka, dźwięku i obrazu przechodzą tylko między sparowanym Makiem i PC w Twojej sieci lokalnej, zaszyfrowane.</li>
           <li><strong>Wersja darmowa nie wysyła przez internet nic poza sprawdzaniem aktualizacji</strong> na GitHubie.</li>
-          <li><strong>Seam Pro wysyła do Lemon Squeezy klucz licencji i nazwę urządzenia</strong> przy aktywacji i mniej więcej raz w tygodniu przy sprawdzaniu licencji.</li>
+          <li><strong>Seam Pro wysyła na nasz serwer licencji</strong> (<code>api.seamdesk.app</code>) <strong>klucz licencji i nazwę urządzenia</strong> przy aktywacji i mniej więcej raz w tygodniu przy sprawdzaniu licencji.</li>
         </ul>
       </div>
 
       <h2>Kto odpowiada za dane</h2>
-      <p>Administratorem opisanych tu danych osobowych jest Paweł Kozubski, Aleja Zdobywców Wału Pomorskiego 72E/21, 78-600 Wałcz, Polska, kontakt: <a href="mailto:support@seamdesk.app">support@seamdesk.app</a>. Zakupy obsługuje Lemon Squeezy jako sprzedawca (merchant of record), patrz „Zakupy” niżej.</p>
+      <p>Administratorem opisanych tu danych osobowych jest Paweł Kozubski, Aleja Zdobywców Wału Pomorskiego 72E/21, 78-600 Wałcz, Polska, kontakt: <a href="mailto:support@seamdesk.app">support@seamdesk.app</a>. Zakupy obsługuje Stripe jako sprzedawca (merchant of record), patrz „Zakupy” niżej.</p>
 
       <h2>Dane przetwarzane na Twoich komputerach</h2>
       <p>Gdy odpowiednie funkcje są włączone, Seam przetwarza zdarzenia klawiatury i myszy, tekst lub obrazy ze schowka, nazwy urządzeń, lokalne adresy IP, dźwięk systemowy oraz obraz wirtualnego ekranu Maca (tylko wirtualnego, nigdy wbudowanego ani innych fizycznych ekranów Maca) albo wirtualnego monitora Windows. Te dane są przesyłane tylko między sparowanym komputerem z Windowsem i Makiem w sieci lokalnej, szyfrowane AES-256-GCM. Aplikacja nie wysyła ich treści do nas ani do żadnej chmury.</p>
@@ -73,23 +73,25 @@
 
       <h2>Licencja Seam Pro</h2>
       <p>Okres próbny nie wymaga konta ani danych płatniczych. Data jego rozpoczęcia zostaje tylko na Twoim komputerze.</p>
-      <p>Po aktywacji Seam Pro aplikacja wysyła do License API Lemon Squeezy (<code>api.lemonsqueezy.com</code>):</p>
+      <p>Po aktywacji Seam Pro aplikacja wysyła na nasz serwer licencji (<code>api.seamdesk.app</code>, działa w Cloudflare Workers):</p>
       <ul>
         <li><strong>przy aktywacji:</strong> klucz licencji i nazwę urządzenia (nazwę komputera ustawioną w macOS lub Windows);</li>
         <li><strong>przy sprawdzaniu</strong>, mniej więcej co 7 dni, gdy komputer jest online: klucz licencji i identyfikator aktywacji otrzymany przy aktywacji;</li>
         <li><strong>przy dezaktywacji</strong>, gdy wybierzesz Dezaktywuj: klucz licencji i identyfikator aktywacji.</li>
       </ul>
-      <p>Lemon Squeezy otrzymuje przy każdym zapytaniu także Twój publiczny adres IP. W odpowiedzi podaje stan licencji i adres e-mail z zakupu, który aplikacja pokazuje w Ustawieniach → Licencja i zapisuje lokalnie. Nic więcej, w tym żadne dane z poprzednich punktów, nie jest wysyłane. Gdy sprawdzenie się nie uda, Pro działa do 30 dni od ostatniego udanego sprawdzenia.</p>
+      <p>Cloudflare otrzymuje przy każdym zapytaniu także Twój publiczny adres IP (patrz „Ta strona”); serwer licencji go nie zapisuje. W odpowiedzi serwer podaje stan licencji i adres e-mail z zakupu, który aplikacja pokazuje w Ustawieniach → Licencja i zapisuje lokalnie. Nic więcej, w tym żadne dane z poprzednich punktów, nie jest wysyłane. Gdy sprawdzenie się nie uda, Pro działa do 30 dni od ostatniego udanego sprawdzenia.</p>
+      <p>Dla każdej licencji serwer przechowuje klucz, adres e-mail i kraj z zakupu, numer zamówienia w Stripe oraz dla każdego aktywowanego komputera jego nazwę, identyfikator aktywacji i czas ostatniego sprawdzenia. Dezaktywacja komputera usuwa jego wpis.</p>
+      <p>Klucz licencji wysyłamy e-mailem po zakupie i wtedy, gdy poprosisz o niego ponownie na <a href="../../license/">seamdesk.app/pl/license</a>. Te maile wysyła Resend (<code>resend.com</code>), który przetwarza Twój adres e-mail i treść wiadomości tylko po to, żeby ją doręczyć.</p>
 
       <h2>Zakupy</h2>
-      <p>Seam Pro sprzedaje Lemon Squeezy, który działa jako sprzedawca i merchant of record. Lemon Squeezy zbiera dane potrzebne do płatności, podatków i ochrony przed oszustwami (np. imię i nazwisko, e-mail, kraj rozliczenia, metodę płatności) na zasadach własnej polityki prywatności: <a href="https://www.lemonsqueezy.com/privacy">lemonsqueezy.com/privacy</a>. Od Lemon Squeezy otrzymujemy informacje o zamówieniu, np. imię i nazwisko, adres e-mail, kraj, dane zamówienia i licencji, żeby zapewnić licencję, pomoc i zwroty. Przetwarzamy je w celu wykonania umowy i obowiązków podatkowych i przechowujemy, dopóki zamówienie jest na naszym koncie Lemon Squeezy, a co najmniej tak długo, jak wymagają przepisy podatkowe (zwykle 5 lat).</p>
+      <p>Seam Pro sprzedajemy przez Stripe Managed Payments: Stripe działa jako sprzedawca i merchant of record. Stripe zbiera dane potrzebne do płatności, podatków i ochrony przed oszustwami (np. imię i nazwisko, e-mail, kraj rozliczenia, metodę płatności) na zasadach własnej polityki prywatności: <a href="https://stripe.com/privacy">stripe.com/privacy</a>. Od Stripe otrzymujemy informacje o zamówieniu, np. imię i nazwisko, adres e-mail, kraj i dane zamówienia, żeby wydać licencję oraz zapewnić pomoc i zwroty. Przetwarzamy je w celu wykonania umowy i obowiązków podatkowych i przechowujemy, dopóki zamówienie jest na naszym koncie Stripe, a co najmniej tak długo, jak wymagają przepisy podatkowe (zwykle 5 lat).</p>
 
       <h2>Ta strona</h2>
       <ul>
         <li>Strona jest hostowana w Cloudflare. Cloudflare przetwarza dane połączenia, np. adres IP i user agent, żeby dostarczyć stronę i chronić ją przed nadużyciami. Te logi są przechowywane krótko, ze względów bezpieczeństwa. Strona nie zapisuje plików cookie i nie używa analityki.</li>
         <li>Strona nie ustawia plików cookie i nie ładuje zewnętrznych czcionek ani analityki. Czcionki pochodzą z tej domeny.</li>
         <li>Pamięć lokalna przeglądarki zapamiętuje tylko wybór języka (angielski lub polski), żeby strona przestała proponować drugą wersję.</li>
-        <li>Skrypt sklepu Lemon Squeezy (<code>app.lemonsqueezy.com</code>) ładuje się dopiero po kliknięciu „Kup Pro”.</li>
+        <li>„Kup Pro” to zwykły link do strony płatności Stripe; ta strona nie ładuje skryptu Stripe. <a href="../../license/">Strona licencji</a> łączy się z <code>api.seamdesk.app</code> tylko po to, żeby pokazać klucz po zakupie albo wysłać go ponownie.</li>
         <li>Przyciski pobierania prowadzą do plików na GitHubie.</li>
       </ul>
 
@@ -97,8 +99,8 @@
       <p>Dzienniki zostają na urządzeniu, chyba że sam je skopiujesz i wyślesz. Przed wysłaniem raportu usuń nazwy urządzeń, adresy IP i inne dane osobowe.</p>
 
       <h2>Twoje prawa</h2>
-      <p>W zależności od miejsca zamieszkania, w tym na podstawie RODO, możesz mieć prawo dostępu do swoich danych, ich sprostowania lub usunięcia, ograniczenia przetwarzania, sprzeciwu, przenoszenia danych oraz skargi do organu nadzorczego (w Polsce: Prezesa Urzędu Ochrony Danych Osobowych). W tych sprawach napisz na <a href="mailto:support@seamdesk.app">support@seamdesk.app</a>. Sprawy danych płatniczych możesz kierować także do Lemon Squeezy.</p>
-      <p>Klucz licencji i nazwę urządzenia przetwarzamy, żeby dostarczyć kupioną licencję (wykonanie umowy), a dane połączenia ze stroną, żeby chronić ją przed nadużyciami (prawnie uzasadniony interes). Dane zamówień i licencji pozostają na naszym koncie Lemon Squeezy, a klucz licencji i jego stan także na Twoim komputerze. GitHub, Cloudflare i Lemon Squeezy mogą przetwarzać dane poza Europejskim Obszarem Gospodarczym na podstawie standardowych klauzul umownych Komisji Europejskiej lub programu EU–US Data Privacy Framework.</p>
+      <p>W zależności od miejsca zamieszkania, w tym na podstawie RODO, możesz mieć prawo dostępu do swoich danych, ich sprostowania lub usunięcia, ograniczenia przetwarzania, sprzeciwu, przenoszenia danych oraz skargi do organu nadzorczego (w Polsce: Prezesa Urzędu Ochrony Danych Osobowych). W tych sprawach napisz na <a href="mailto:support@seamdesk.app">support@seamdesk.app</a>. Sprawy danych płatniczych możesz kierować także do Stripe.</p>
+      <p>Klucz licencji i nazwę urządzenia przetwarzamy, żeby dostarczyć kupioną licencję (wykonanie umowy), a dane połączenia ze stroną, żeby chronić ją przed nadużyciami (prawnie uzasadniony interes). Dane zamówień pozostają na naszym koncie Stripe, a dane licencji na naszym serwerze licencji (Cloudflare); klucz licencji i jego stan są też na Twoim komputerze. GitHub, Cloudflare, Stripe i Resend mogą przetwarzać dane poza Europejskim Obszarem Gospodarczym na podstawie standardowych klauzul umownych Komisji Europejskiej lub programu EU–US Data Privacy Framework.</p>
 
       <h2>Zmiany</h2>
       <p>Zaktualizujemy tę politykę przed dodaniem telemetrii, kont lub innej usługi zewnętrznej i podamy datę obowiązywania na górze.</p>

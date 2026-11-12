@@ -14,5 +14,6 @@
     <None Include="../../tests/fixtures/clipboard.json" Link="clipboard.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../tests/fixtures/video.json" Link="video.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../tests/fixtures/entitlement.json" Link="entitlement.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../tests/fixtures/license-api.json" Link="license-api.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

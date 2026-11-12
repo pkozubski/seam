@@ -10,6 +10,7 @@ dźwięk z Maca, okna i wirtualne ekrany w obie strony. Dwie natywne aplikacje m
 | `windows/Seam/` | Windows 10/11 x64 | .NET 8, Avalonia 11.3 + FluentAvalonia 2.4 | [windows/CLAUDE.md](windows/CLAUDE.md) |
 | `windows/ClipboardChecks/` | obie | testy C# (protokół, schowek, okna, wideo) | |
 | `tests/fixtures/` | obie | wspólne wektory protokołu (JSON) | |
+| `license-server/` | Cloudflare Workers | serwer licencji Seam Pro (JS bez zależności, D1) | [license-server/README.md](license-server/README.md) |
 | `assets/seam/` | obie | ikony, grafiki, prompty źródłowe | |
 
 **Pracuj na tej platformie, na której działa dany kod.** Zmiany w aplikacji Windows rób i testuj na Windowsie,
@@ -42,6 +43,9 @@ cd macos && ./build.sh            # → macos/build/Seam.app
 bash macos/tests/clipboard-check.sh; bash macos/tests/window-check.sh
 bash macos/tests/update-check.sh;    bash macos/tests/security-check.sh
 bash macos/tests/license-check.sh
+
+# serwer licencji (Node 22+, bez npm install)
+cd license-server && npm test
 ```
 
 CI (`.github/workflows/ci.yml`) robi to samo na `windows-latest` i `macos-26`.
@@ -101,7 +105,10 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
 - Najpierw makieta/zrzut do akceptacji przy większych zmianach UI; użytkownik ocenia wygląd ze zrzutów.
 - **Seam Pro** (płatne funkcje): dźwięk, okna w obie strony, obrazy w schowku; za darmo klawiatura, mysz i tekst.
   Logika uprawnień `Licensing/Entitlement.swift` ↔ `Licensing/Entitlement.cs` (wspólne wektory
-  `tests/fixtures/entitlement.json`), licencja w Lemon Squeezy (`LicenseConfig`: dopóki `storeID`/`productID` = 0,
-  blokady są wyłączone). Pro działa, gdy uprawniona jest którakolwiek strona pary (STATUS bajt 1 bit 1 i `PEER_STATUS`).
+  `tests/fixtures/entitlement.json`), sprzedaż przez Stripe Payment Link (Managed Payments, Stripe jest sprzedawcą),
+  klucze wydaje i sprawdza własny serwer `license-server/` (Cloudflare Worker + D1, `api.seamdesk.app`, odpowiedzi
+  we wspólnych wektorach `tests/fixtures/license-api.json`). `LicenseConfig` (`LicenseConfig.swift` ↔ `LicenseClient.cs`):
+  dopóki `liveSales`/`testSales` = false, blokady są wyłączone; aplikacje otwierają `seamdesk.app/buy/`, a link Stripe
+  jest tylko w `site/checkout.js`. Pro działa, gdy uprawniona jest którakolwiek strona pary (STATUS bajt 1 bit 1 i `PEER_STATUS`).
   Nową funkcję płatną blokuj po obu stronach (nadawca i odbiorca) i pokaż na jej stronie `ProGateCard`.
   Podgląd stanów: Mac `--ui-license free|trial|expired|pro`, Windows `--screenshot-license …`.

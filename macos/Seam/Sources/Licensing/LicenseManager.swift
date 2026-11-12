@@ -14,9 +14,11 @@ final class LicenseManager {
     /// Wołane przy każdej zmianie `entitlement.isEntitled` (AppState przekazuje to silnikowi).
     @ObservationIgnored var onEntitlementChanged: ((Bool) -> Void)?
 
-    @ObservationIgnored private let client = LemonSqueezyClient()
+    @ObservationIgnored private let client = LicenseClient(base: LicenseConfig.apiBase,
+                                                           acceptsTestLicenses: LicenseConfig.acceptsTestLicenses,
+                                                           isEnabled: LicenseConfig.isConfigured)
     @ObservationIgnored private var timer: Timer?
-    /// Dopóki sklep nie istnieje (`LicenseConfig`), nikt nie traci funkcji, także testerzy na kanale dev.
+    /// Dopóki sklep nie sprzedaje (`LicenseConfig`), nikt nie traci funkcji, także testerzy na kanale dev.
     /// Podgląd UI pokazuje blokady zawsze.
     @ObservationIgnored private let enforced: Bool
 
@@ -38,7 +40,7 @@ final class LicenseManager {
         default: nil
         }
         let stored: StoredLicense? = preview == "pro"
-            ? StoredLicense(key: "38B1460A-5104-4067-A91D-77B872934D51", instanceID: "preview", status: .active,
+            ? StoredLicense(key: "SEAM-7K3QH-M2XVD-9TBRN-4WZC1", instanceID: "preview", status: .active,
                             validatedAt: now, customerEmail: "you@example.com")
             : nil
         trialStartedAt = trial
@@ -134,7 +136,7 @@ final class LicenseManager {
             LicenseStore.save(updated)
             license = updated
             errorMessage = nil
-        } catch LemonSqueezyClient.Failure.network {
+        } catch LicenseClient.Failure.network {
             // Bez sieci zostaje ostatni wynik; okres łaski liczy `Entitlement`.
         } catch {
             errorMessage = error.localizedDescription

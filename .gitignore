@@ -16,3 +16,7 @@ windows/publish/
 
 # Lokalne zrzuty ekranu i wyniki podglądu UI
 output/
+
+# Cloudflare (serwer licencji i strona)
+.wrangler/
+node_modules/

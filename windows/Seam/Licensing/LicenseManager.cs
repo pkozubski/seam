@@ -16,7 +16,7 @@ public sealed partial class LicenseManager : ObservableObject
     [ObservableProperty] private string? _errorMessage;
 
     private DateTimeOffset? _trialStartedAt;
-    /// <summary>Dopóki sklep nie istnieje (<see cref="LicenseConfig"/>), nikt nie traci funkcji, także testerzy z kanału dev.
+    /// <summary>Dopóki sklep nie sprzedaje (<see cref="LicenseConfig"/>), nikt nie traci funkcji, także testerzy z kanału dev.
     /// Podgląd UI pokazuje blokady zawsze.</summary>
     private readonly bool _enforced;
     private readonly Settings? _settings;
@@ -45,7 +45,7 @@ public sealed partial class LicenseManager : ObservableObject
             _ => null,
         };
         _license = preview == "pro"
-            ? new StoredLicense("38B1460A-5104-4067-A91D-77B872934D51", "preview", LicenseStatus.Active, now, "you@example.com")
+            ? new StoredLicense("SEAM-7K3QH-M2XVD-9TBRN-4WZC1", "preview", LicenseStatus.Active, now, "you@example.com")
             : null;
         _entitlement = Entitlement.Evaluate(now, _trialStartedAt, _license?.Snapshot);
         _enforced = true;
@@ -95,7 +95,7 @@ public sealed partial class LicenseManager : ObservableObject
         ErrorMessage = null;
         try
         {
-            var result = await LemonSqueezyClient.ActivateAsync(key, Environment.MachineName);
+            var result = await LicenseClient.ActivateAsync(key, Environment.MachineName);
             var stored = new StoredLicense(key, result.InstanceId ?? "", LicenseStatus.Active, DateTimeOffset.UtcNow, result.CustomerEmail);
             LicenseStore.Save(stored);
             License = stored;
@@ -119,7 +119,7 @@ public sealed partial class LicenseManager : ObservableObject
         ErrorMessage = null;
         try
         {
-            await LemonSqueezyClient.DeactivateAsync(current.Key, current.InstanceId);
+            await LicenseClient.DeactivateAsync(current.Key, current.InstanceId);
         }
         catch (LicenseException ex)
         {
@@ -140,7 +140,7 @@ public sealed partial class LicenseManager : ObservableObject
         IsBusy = true;
         try
         {
-            var result = await LemonSqueezyClient.ValidateAsync(current.Key, current.InstanceId);
+            var result = await LicenseClient.ValidateAsync(current.Key, current.InstanceId);
             var updated = current with
             {
                 Status = result.Status,

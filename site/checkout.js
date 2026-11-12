@@ -1,51 +1,47 @@
-// Seam Pro: checkout Lemon Squeezy w nakładce (lemon.js). Skrypt sklepu ładuje się dopiero po kliknięciu
-// „Buy Pro”, więc samo wejście na stronę nie łączy się z nikim poza tą domeną (spójnie z polityką prywatności).
+// Seam Pro: zakup przez Stripe Payment Link (Managed Payments, Stripe jest sprzedawcą). Bez skryptu Stripe na
+// tej stronie: przycisk to zwykły link do checkout.stripe.com / buy.stripe.com. Po zapłacie Stripe przekierowuje na
+// /license/?session_id=… (pl: /pl/license/), gdzie license.js pokazuje klucz z api.seamdesk.app.
+// Aplikacje otwierają /buy/ (wydania) i /buy/?test (kanał dev), więc link zmienia się tylko tutaj.
 
-// TODO(launch): PLACEHOLDER. Wstaw link checkoutu produktu Seam Pro (Lemon Squeezy → Products → Share →
-// Checkout URL). Ten sam link musi mieć aplikacja: LicenseConfig.checkoutURL (Mac) i odpowiednik na Windows.
-const CHECKOUT_URL = "https://seam.lemonsqueezy.com/buy/PLACEHOLDER-SEAM-PRO-CHECKOUT";
+// TODO(launch): Stripe → Payment Links → link produktu Seam Pro (tryb live) i ten sam w trybie testowym.
+// W obu ustaw „After payment → Redirect” na https://seamdesk.app/license/?session_id={CHECKOUT_SESSION_ID}.
+const PAYMENT_LINK = "https://buy.stripe.com/PLACEHOLDER-LIVE";
+const TEST_PAYMENT_LINK = "https://buy.stripe.com/test_6oU00ialu1I1cP73vVfbq00";
 
 (() => {
-  const buttons = document.querySelectorAll("[data-checkout]");
-  if (!buttons.length) return;
   const pl = document.documentElement.lang === "pl";
-  const TEXT = pl
-    ? { soon: "Sklep ruszy razem z Seam 3.0.", thanks: "Dziękujemy! Klucz licencji jest już w drodze na Twój e-mail. Wpisz go w Seam → Ustawienia → Licencja." }
-    : { soon: "The store opens with Seam 3.0.", thanks: "Thank you! Your license key is on its way to your email. Enter it in Seam → Settings → License." };
-  const placeholder = CHECKOUT_URL.includes("PLACEHOLDER");
-  const url = new URL(CHECKOUT_URL);
-  url.searchParams.set("embed", "1"); // nakładka zamiast pełnej strony sklepu
+  const ready = link => !link.includes("PLACEHOLDER");
 
-  const say = text => document.querySelectorAll("[data-checkout-status]").forEach(el => { el.textContent = text; el.hidden = false; });
+  /// Link Stripe w języku strony (Stripe Checkout przyjmuje ?locale=).
+  const checkoutUrl = link => {
+    const url = new URL(link);
+    url.searchParams.set("locale", pl ? "pl" : "en");
+    return url.href;
+  };
 
-  let loading = null;
-  const loadLemon = () => loading ??= new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://app.lemonsqueezy.com/js/lemon.js";
-    script.defer = true;
-    script.onload = () => {
-      window.createLemonSqueezy?.();
-      window.LemonSqueezy.Setup({ eventHandler: e => { if (e.event === "Checkout.Success") say(TEXT.thanks); } });
-      resolve(window.LemonSqueezy);
-    };
-    script.onerror = reject;
-    document.head.append(script);
-  });
+  // Strona /buy/ (otwierana z aplikacji): od razu do Stripe.
+  const redirect = document.querySelector("[data-buy-redirect]");
+  if (redirect) {
+    const link = new URLSearchParams(location.search).has("test") ? TEST_PAYMENT_LINK : PAYMENT_LINK;
+    if (ready(link)) {
+      location.replace(link); // bez locale: Stripe weźmie język przeglądarki
+    } else {
+      redirect.querySelector("[data-buy-soon]").hidden = false;
+      redirect.querySelector("[data-buy-going]").hidden = true;
+    }
+    return;
+  }
 
-  buttons.forEach(button => {
-    // bez JS link prowadzi do cennika; z JS do sklepu (nowa karta po Cmd/Ctrl-kliknięciu)
-    if (!placeholder) button.href = CHECKOUT_URL;
+  const soon = pl ? "Sklep ruszy razem z Seam 3.0." : "The store opens with Seam 3.0.";
+  document.querySelectorAll("[data-checkout]").forEach(button => {
+    if (ready(PAYMENT_LINK)) {
+      // bez JS przycisk prowadzi do cennika, z JS prosto do Stripe
+      button.href = checkoutUrl(PAYMENT_LINK);
+      return;
+    }
     button.addEventListener("click", e => {
-      if (e.metaKey || e.ctrlKey || e.shiftKey) return;
       e.preventDefault();
-      if (placeholder) {
-        console.warn("Seam: CHECKOUT_URL w checkout.js to jeszcze placeholder.");
-        say(TEXT.soon);
-        return;
-      }
-      loadLemon()
-        .then(lemon => lemon.Url.Open(url.href))
-        .catch(() => { location.href = CHECKOUT_URL; }); // zablokowany skrypt: zwykła strona checkoutu
+      document.querySelectorAll("[data-checkout-status]").forEach(el => { el.textContent = soon; el.hidden = false; });
     });
   });
 })();

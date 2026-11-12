@@ -21,7 +21,8 @@ python3 -m http.server 4173 --directory site
 | `styles.css`, `nav.css`, `gallery.css`, `legal.css` | style; `legal.css` tylko na stronach prawnych i 404 |
 | `main.js`, `nav.js`, `gallery.js` | zachowanie strony głównej; teksty dla czytników ekranu wg `<html lang>` |
 | `lang.js` | przełącznik EN/PL i podpowiedź „Polska wersja?” |
-| `checkout.js` | przycisk „Buy Pro” → nakładka Lemon Squeezy |
+| `checkout.js` | przycisk „Buy Pro” → Stripe Payment Link; strona `buy/` (otwierana z aplikacji) przekierowuje do Stripe |
+| `license.js`, `license/`, `pl/license/` | klucz po zakupie (z `api.seamdesk.app`) i „Wyślij klucz ponownie” |
 | `fonts/` | Inter (zmienna grubość, łacina + łacina rozszerzona) z `@fontsource-variable/inter` 5.3.0, licencja `OFL.txt` |
 | `404.html` | strona błędu Cloudflare; ścieżki od korzenia, bo podawana pod dowolnym adresem |
 | `_headers` | nagłówki bezpieczeństwa i cache czcionek (Cloudflare czyta, nie publikuje) |
@@ -47,11 +48,15 @@ domeną. Wyjątek: `canonical`, `hreflang` i `og:url` muszą mieć pełny adres.
   `ProGate.swift`): Free = klawiatura i mysz (+ układ ekranów) i tekst w schowku; Pro = obrazy w schowku, dźwięk
   Maca, okna Maca na PC, aplikacje Windows na Macu. $10 jednorazowo, 7 dni próby, do 3 komputerów, jedna licencja
   na parę, offline do 30 dni. Na telefonie przyciski są pod tabelą (`.compare__mobile-cta`).
-- `checkout.js` ma stałą `CHECKOUT_URL` (**placeholder**). Dopóki zawiera `PLACEHOLDER`, kliknięcie „Buy Pro”
-  pokazuje tylko „The store opens with Seam 3.0.”. Po wstawieniu prawdziwego linku przycisk ładuje `lemon.js`
-  z `app.lemonsqueezy.com` (dopiero po kliknięciu, nie przy wejściu na stronę) i otwiera nakładkę
-  `LemonSqueezy.Url.Open(url?embed=1)`; po `Checkout.Success` pod przyciskiem pojawia się podziękowanie. Gdy skrypt
-  się nie załaduje, przeglądarka przechodzi do zwykłej strony checkoutu.
+- `checkout.js` ma stałe `PAYMENT_LINK` i `TEST_PAYMENT_LINK` (**placeholdery**). Dopóki zawierają `PLACEHOLDER`,
+  „Buy Pro” pokazuje tylko „The store opens with Seam 3.0.”, a `buy/` to samo. Po wstawieniu linków przyciski są
+  zwykłymi linkami do Stripe (z `?locale=en|pl`), bez skryptu Stripe na stronie. Aplikacje otwierają `/buy/`
+  (wydania) albo `/buy/?test` (kanał dev, tryb testowy Stripe), więc link zmienia się tylko w `checkout.js`.
+- Stripe Payment Link (Managed Payments): „After payment → Redirect” na
+  `https://seamdesk.app/license/?session_id={CHECKOUT_SESSION_ID}`. `license.js` przenosi osoby z polskim
+  językiem na `/pl/license/`, odpytuje `api.seamdesk.app/v1/checkout/<sesja>` aż webhook Stripe wyda klucz
+  i pokazuje go z przyciskiem Kopiuj. Formularz niżej wysyła klucze ponownie (`/v1/licenses/resend`).
+  Serwer i konfiguracja Stripe: [license-server/README.md](../license-server/README.md).
 
 ## Pobieranie
 
@@ -82,7 +87,7 @@ review” (`.legal__draft`, komentarz `TODO(launch)`). Po akceptacji usuń ramk�
 ## Do uzupełnienia przed startem (`grep -rn "TODO(launch)\|seamdesk.app\|PLACEHOLDER" site`)
 
 1. `seamdesk.app` → docelowa domena (canonical, hreflang, og:url, `support@seamdesk.app`), trasa w `wrangler.jsonc`.
-2. `CHECKOUT_URL` w `checkout.js` (ten sam link co `LicenseConfig.checkoutURL` w aplikacjach).
+2. `PAYMENT_LINK` i `TEST_PAYMENT_LINK` w `checkout.js` oraz kroki z `license-server/README.md`.
 3. Pola `[…]` na stronach prawnych (sprzedawca, kontakt, okres zwrotu, prawo właściwe, rękojmia).
 4. FAQ „Will macOS or Windows warn me…” mówi o podpisie Developer ID i Authenticode: prawdziwe dopiero po Fazie 5.
 5. Angielskie zrzuty aplikacji (`assets/app-*.webp`, `stage-scene.webp`, `step-pairing-photo.webp`).
