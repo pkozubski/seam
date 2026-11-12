@@ -118,9 +118,9 @@ async function resend(request, env) {
   const now = Date.now();
   const recent = results.some(l => l.resent_at && now - Date.parse(l.resent_at) < RESEND_COOLDOWN_MS);
   if (results.length && !recent) {
-    const stamp = new Date(now).toISOString();
-    await env.DB.prepare("UPDATE licenses SET resent_at = ? WHERE email = ?").bind(stamp, email).run();
+    // Najpierw wysyłka: nieudana próba nie blokuje kolejnej na 10 minut.
     await sendEmail(env, email, licenseEmail(env, results, lang));
+    await env.DB.prepare("UPDATE licenses SET resent_at = ? WHERE email = ?").bind(new Date(now).toISOString(), email).run();
   }
   return json({ sent: true });
 }

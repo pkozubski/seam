@@ -42,7 +42,10 @@ ${keys.map(k => `<p style="margin:0 0 12px;padding:14px 16px;border-radius:10px;
 
 /// Wysyła mail; rzuca przy błędzie Resend, żeby Stripe ponowił webhook. Zwraca false, gdy maile są wyłączone.
 export async function sendEmail(env, to, message, idempotencyKey) {
-  if (!env.RESEND_API_KEY) return false;
+  if (!env.RESEND_API_KEY?.startsWith("re_")) {
+    console.warn("RESEND_API_KEY is missing or malformed; license email skipped");
+    return false;
+  }
   const headers = { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" };
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
   const response = await fetch("https://api.resend.com/emails", {
