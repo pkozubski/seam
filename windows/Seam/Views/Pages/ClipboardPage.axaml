@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Seam.ViewModels"
+             xmlns:views="using:Seam.Views"
+             x:Class="Seam.Views.Pages.ClipboardPage"
+             x:DataType="vm:MainViewModel">
+    <!-- Schowek jak na macOS (ClipboardPage.swift): szklany schowek po lewej, karty ustawień po prawej,
+         na bursztynowym tle (SeamBackdrop, PageTheme.Amber). -->
+    <UserControl.Styles>
+        <!-- mała bursztynowa płytka z symbolem typu danych (ClipboardTypeIcon na macOS) -->
+        <Style Selector="Border.typeIcon">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#73C8862A" Offset="0" />
+                    <GradientStop Color="#996E4212" Offset="1" />
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+        <Style Selector="Border.typeIcon > TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource PageLight}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.typeIcon > TextBlock.glyph">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+    </UserControl.Styles>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <Grid x:Name="Layout" MaxWidth="1180" Margin="28,30,28,110" ColumnDefinitions="*,420" ColumnSpacing="20">
+            <StackPanel VerticalAlignment="Center" Spacing="14">
+                <Panel MaxWidth="500">
+                    <Border Margin="40,60">
+                        <Border.Background>
+                            <RadialGradientBrush>
+                                <GradientStop Color="#80C8862A" Offset="0" />
+                                <GradientStop Color="#00C8862A" Offset="1" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <views:ClipboardHero />
+                </Panel>
+                <TextBlock HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" FontSize="18" Opacity="0.8"
+                           Foreground="{DynamicResource MutedText}" Text="Copy on Windows, paste on the Mac." />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="16">
+                <StackPanel Spacing="8" Margin="0,0,0,10">
+                    <TextBlock Classes="featureTitle" FontSize="40" Text="Clipboard" />
+                    <TextBlock Classes="featureSubtitle" Text="Copy on one computer, paste on the other." />
+                </StackPanel>
+
+                <Border Classes="card glass">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <Image Classes="featureTile" Source="avares://Seam/Assets/tile-clipboard-amber.png" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                            <TextBlock Classes="glassTitle" Text="Sync clipboard" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="8" Height="8" Fill="{Binding StatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="glassBody" Text="{Binding ClipboardStatusText}" VerticalAlignment="Center" MaxWidth="240" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding ClipboardSyncEnabled}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Sync clipboard" />
+                    </Grid>
+                </Border>
+
+                <Border Classes="card glass">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="glassTitle" Text="What is sent" Margin="0,0,0,4" />
+                        <!-- tekst jest darmowy, obrazy to Seam Pro -->
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="48">
+                            <Border Classes="typeIcon"><TextBlock FontSize="15" FontWeight="SemiBold">Aa</TextBlock></Border>
+                            <TextBlock Grid.Column="1" Text="Text" FontSize="14" VerticalAlignment="Center" />
+                        </Grid>
+                        <Rectangle Classes="divider" Margin="50,0,0,0" />
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="48">
+                            <Border Classes="typeIcon"><TextBlock Classes="glyph" Text="&#xE91B;" /></Border>
+                            <TextBlock Grid.Column="1" Text="Photos and screenshots" FontSize="14" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                        </Grid>
+                        <Rectangle Classes="divider" Margin="50,0,0,0" />
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" MinHeight="48">
+                            <Border Classes="typeIcon"><TextBlock Classes="glyph" Text="&#xEB9F;" /></Border>
+                            <TextBlock Grid.Column="1" Text="Images up to 32 MiB" FontSize="14" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <views:ProGateCard />
+
+                <Border Classes="card glass">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <TextBlock Text="&#xE72E;" FontFamily="{StaticResource IconFont}" FontSize="18"
+                                   Foreground="{DynamicResource PageLight}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Classes="glassBody" Text="Both ways, local network only, encrypted like the whole connection." />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,65 @@
+name: License server
+
+# Serwer licencji Seam Pro (license-server/) na Cloudflare Workers + D1: testy przy każdej zmianie,
+# migracje bazy i deploy przy pushu, gdy wrangler.jsonc ma już prawdziwy database_id.
+on:
+  push:
+    branches: [main, "feature/virtual-display"]
+    paths:
+      - "license-server/**"
+      - "tests/fixtures/license-api.json"
+      - ".github/workflows/license-server.yml"
+  pull_request:
+    paths:
+      - "license-server/**"
+      - "tests/fixtures/license-api.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: license-server-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Tests (node:test + node:sqlite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        working-directory: license-server
+
+  deploy:
+    name: Migrate D1 and deploy
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check configuration
+        id: config
+        run: |
+          if grep -q "PLACEHOLDER-D1-DATABASE-ID" license-server/wrangler.jsonc; then
+            echo "::notice::license-server/wrangler.jsonc has no D1 database_id yet; skipping deploy (see license-server/README.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Apply migrations and deploy
+        if: steps.config.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          # token musi mieć też uprawnienie D1 Edit (szablon „Edit Cloudflare Workers” go nie zawiera)
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: license-server
+          command: |
+            d1 migrations apply seam-licenses --remote
+            deploy

@@ -1,0 +1,61 @@
+/* Strony prawne (/legal/*, /pl/legal/*): jedna kolumna tekstu na tle strony, nawigacja i stopka jak na głównej. */
+.legal { width: min(760px, var(--wrap)); margin: 0 auto; padding: 120px 0 40px; }
+.legal .legal__tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 44px; padding: 0; list-style: none; }
+.legal .legal__tabs a {
+  display: block; padding: 7px 15px; border-radius: 999px; font-size: 14px; font-weight: 500; text-decoration: none;
+  color: var(--muted); background: rgba(255, 255, 255, .72); transition: background-color .2s ease, color .2s ease;
+}
+.legal .legal__tabs a:hover { background: #fff; color: var(--ink); }
+.legal .legal__tabs a[aria-current="page"] { background: var(--ink); color: #fff; }
+.legal h1 { font-size: clamp(38px, 5.4vw, 60px); line-height: 1.06; font-weight: 600; letter-spacing: -0.02em; }
+.legal__meta { margin-top: 14px; font-size: 15px; color: var(--muted); }
+/* ramka „szkic”: znika razem z placeholderami po akceptacji prawnika */
+.legal__draft { margin-top: 28px; padding: 16px 20px; border-radius: 18px; background: #fff3d6; color: #6e4212; font-size: 15px; line-height: 1.5; }
+.legal__summary { margin-top: 32px; padding: 26px 30px; border-radius: 26px; background: #fff; box-shadow: 0 20px 40px -32px rgba(4, 16, 120, .35); }
+.legal .legal__summary h2 { margin-top: 0; font-size: 19px; }
+.legal__summary ul { margin-top: 4px; }
+.legal h2 { margin-top: 52px; font-size: 26px; line-height: 1.2; letter-spacing: -0.015em; }
+.legal h3 { margin-top: 30px; font-size: 19px; line-height: 1.3; }
+.legal p, .legal li { margin-top: 14px; font-size: 17px; line-height: 1.65; color: #3a405e; }
+.legal li { margin-top: 8px; }
+.legal .legal__tabs li { margin: 0; }
+.legal ul, .legal ol { margin: 10px 0 0; padding-left: 22px; }
+.legal strong { font-weight: 600; color: var(--ink); }
+.legal a { color: var(--blue); text-underline-offset: 2px; }
+.legal dl { margin: 18px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 28px; font-size: 17px; }
+.legal dt { font-weight: 600; color: var(--ink); }
+.legal dd { margin: 0; color: #3a405e; }
+/* miejsca do uzupełnienia przez prawnika lub sprzedawcę */
+.legal mark.todo { padding: 1px 5px; border-radius: 5px; background: #ffe39b; color: #5a3a00; font-weight: 500; }
+.legal-page .finale { margin-top: 60px; }
+.legal-page .footer { padding-top: 120px; }
+
+@media (max-width: 600px) {
+  .legal { padding-top: 96px; }
+  .legal .legal__tabs { margin-bottom: 32px; }
+  .legal h2 { margin-top: 42px; font-size: 23px; }
+  .legal p, .legal li, .legal dl { font-size: 16px; }
+  .legal dl { grid-template-columns: 1fr; gap: 2px; }
+  .legal dd + dt { margin-top: 12px; }
+  .legal__summary { padding: 22px; }
+}
+
+/* Strona /license/ i /buy/: klucz po zakupie, formularz ponownego wysłania (license.js, checkout.js) */
+.license__key {
+  display: flex; align-items: center; gap: 14px; margin-top: 22px; padding: 16px 16px 16px 26px;
+  border-radius: 24px; background: #fff; box-shadow: 0 20px 40px -32px rgba(4, 16, 120, .35);
+}
+.license__key code {
+  flex: 1; min-width: 0; overflow-wrap: anywhere; user-select: all; color: var(--ink);
+  font: 600 clamp(17px, 2.4vw, 23px)/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em;
+}
+.license .btn { width: auto; min-height: 46px; padding: 0 22px; font-size: 15px; }
+.license .btn:disabled { opacity: .6; cursor: progress; }
+.license__status:empty { display: none; }
+.license__resend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.license__resend input {
+  flex: 1 1 260px; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1.5px solid rgba(10, 31, 168, .16);
+  background: #fff; color: var(--ink); font: 400 17px/1 var(--text);
+}
+.license__resend input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.license__resend .license__status { flex-basis: 100%; margin-top: 6px; }

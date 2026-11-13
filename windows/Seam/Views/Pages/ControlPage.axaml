@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Seam.ViewModels"
+             x:Class="Seam.Views.Pages.ControlPage"
+             x:DataType="vm:MainViewModel">
+    <!-- Klawiatura i mysz jak na macOS (InputPage.swift): mysz z klawiszem po lewej, szklane karty ustawień
+         po prawej, na magentowym tle (SeamBackdrop, PageTheme.Magenta). -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <Grid x:Name="Layout" MaxWidth="1180" Margin="28,30,28,110" ColumnDefinitions="*,420" ColumnSpacing="20">
+            <StackPanel VerticalAlignment="Center" Spacing="14">
+                <Panel MaxWidth="500">
+                    <!-- szeroka poświata pod grafiką -->
+                    <Border Margin="10,20">
+                        <Border.Background>
+                            <RadialGradientBrush>
+                                <GradientStop Color="#80E11677" Offset="0" />
+                                <GradientStop Color="#00E11677" Offset="1" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <!-- mysz i klawisz to osobne grafiki; klawisz stoi przed myszą, w lewym dolnym rogu -->
+                    <Viewbox Stretch="Uniform">
+                        <Panel Width="500" Height="456">
+                            <Image Source="avares://Seam/Assets/hero-control-mouse.png" Margin="70,0,0,20" Stretch="Uniform" />
+                            <Image Source="avares://Seam/Assets/hero-control-key.png" Width="170"
+                                   HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                        </Panel>
+                    </Viewbox>
+                </Panel>
+                <TextBlock HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" FontSize="14" Opacity="0.8"
+                           Foreground="{DynamicResource MutedText}" Text="The pointer crosses the screen edge." />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="16">
+                <StackPanel Spacing="8" Margin="0,0,0,10">
+                    <TextBlock Classes="featureTitle" FontSize="40" Text="Keyboard &amp; mouse" />
+                    <TextBlock Classes="featureSubtitle" Text="One keyboard and mouse for both computers." />
+                </StackPanel>
+
+                <Border Classes="card glass">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <Image Classes="featureTile" Source="avares://Seam/Assets/tile-input.png" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                            <TextBlock Classes="glassTitle" Text="Share keyboard and mouse" />
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Ellipse Width="8" Height="8" Fill="{Binding CursorStatusBrush}" VerticalAlignment="Center" />
+                                <TextBlock Classes="glassBody" Text="{Binding CursorStatusText}" VerticalAlignment="Center" MaxWidth="240" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding InputSharingEnabled}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Share keyboard and mouse" />
+                    </Grid>
+                </Border>
+
+                <Border Classes="card glass">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="glassTitle" Text="Emergency shortcut" />
+                        <ComboBox ItemsSource="{Binding EmergencyHotkeys}" SelectedItem="{Binding SelectedEmergencyHotkey}"
+                                  HorizontalAlignment="Stretch" AutomationProperties.Name="Emergency shortcut" />
+                        <TextBlock Classes="glassBody" Text="{Binding EmergencyHotkeyDescription}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card glass">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="glassTitle" Text="Pointer speed on Mac" />
+                        <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                Value="{Binding RemoteMouseSpeed}" AutomationProperties.Name="Pointer speed on Mac" />
+                        <TextBlock Classes="glassBody" Text="{Binding RemoteMouseSpeedLabel}" />
+                        <Rectangle Classes="divider" Margin="0,4" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                            <StackPanel Spacing="4" VerticalAlignment="Center">
+                                <TextBlock Classes="glassTitle" FontSize="14" Text="Hide the Windows pointer while controlling Mac" />
+                                <TextBlock Classes="glassBody" Text="The Windows pointer stays at the exit edge and is hidden." />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding HideCursorWhileRemote}" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Hide the Windows pointer while controlling Mac" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card glass">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <StackPanel Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Classes="glassTitle" Text="Mac position" />
+                            <TextBlock Classes="glassBody" Text="Set the edge the pointer uses to reach the Mac under Displays." />
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Open Displays" Click="OpenDisplays" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <TextBlock Classes="glassBody" Opacity="0.85" Margin="4,0,0,0" Text="Ctrl and Cmd swap and scrolling are set in the Mac app." />
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

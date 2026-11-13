@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:Seam.ViewModels"
+             xmlns:views="using:Seam.Views"
+             x:Class="Seam.Views.Pages.AudioPage"
+             x:DataType="vm:MainViewModel">
+    <!-- Dźwięk jak na macOS (AudioPage.swift): słuchawki na fali u góry, miernik poziomu i szklane karty
+         na fioletowym tle (SeamBackdrop, PageTheme.Violet). -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="900" Margin="28,8,28,110" Spacing="18">
+            <Panel Height="220" IsHitTestVisible="False">
+                <!-- poświata pod słuchawkami -->
+                <Border Width="420" Height="230">
+                    <Border.Background>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#735A3ECF" Offset="0" />
+                            <GradientStop Color="#005A3ECF" Offset="1" />
+                        </RadialGradientBrush>
+                    </Border.Background>
+                </Border>
+                <views:AudioWave Height="136" />
+                <Image Source="avares://Seam/Assets/hero-audio-headphones.png" Height="220" Stretch="Uniform" />
+            </Panel>
+
+            <StackPanel Spacing="8" Margin="0,0,0,4">
+                <TextBlock Classes="featureTitle" HorizontalAlignment="Center" TextAlignment="Center" Text="Mac audio on Windows" />
+                <TextBlock Classes="featureSubtitle" HorizontalAlignment="Center" TextAlignment="Center"
+                           Text="The Mac's system audio played on the Windows speakers." />
+            </StackPanel>
+
+            <Border Classes="card glass" MaxWidth="600">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                    <Image Classes="featureTile" Source="avares://Seam/Assets/tile-audio-violet.png" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="glassTitle" Text="Play audio from Mac" />
+                            <Border Classes="proBadge" IsVisible="{Binding !SessionPro}"><TextBlock Text="PRO" /></Border>
+                            <Border Classes="pill" IsVisible="{Binding HasTrialBadge}"><TextBlock Text="{Binding TrialBadgeText}" FontSize="11" /></Border>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <Ellipse Width="8" Height="8" Fill="{Binding AudioStatusBrush}" VerticalAlignment="Center" />
+                            <TextBlock Classes="glassBody" Text="{Binding AudioStatusText}" VerticalAlignment="Center" MaxWidth="420" />
+                        </StackPanel>
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="2" Classes="compact" IsChecked="{Binding AudioSwitch}" IsEnabled="{Binding SessionPro}"
+                                  VerticalAlignment="Center" AutomationProperties.Name="Play audio from Mac" />
+                </Grid>
+            </Border>
+            <views:ProGateCard />
+
+            <Border Classes="card glass">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Audio level" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource MutedText}" />
+                    <views:AudioBarMeter Level="{Binding AudioLevel}" IsActive="{Binding AudioActive}" />
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                <Border Classes="card glass">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="glassTitle" Text="Output device" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <ComboBox ItemsSource="{Binding AudioDevices}" SelectedItem="{Binding SelectedAudioDevice}" HorizontalAlignment="Stretch" />
+                            <Button Grid.Column="1" Command="{Binding RefreshAudioDevicesCommand}" ToolTip.Tip="Refresh devices">
+                                <ui:FontIcon Glyph="&#xE72C;" FontFamily="{StaticResource IconFont}" FontSize="14" />
+                            </Button>
+                        </Grid>
+                        <TextBlock Classes="glassBody" Text="Headphones or speakers connected to Windows." />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Classes="card glass">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="glassTitle" Text="Network buffer" />
+                        <Slider Minimum="5" Maximum="150" TickFrequency="5" IsSnapToTickEnabled="True"
+                                Value="{Binding JitterBufferMs}" AutomationProperties.Name="Network buffer" />
+                        <TextBlock Classes="glassBody" Text="{Binding JitterBufferLabel}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Classes="card glass">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Classes="glassTitle" Text="WASAPI exclusive mode" />
+                        <TextBlock Classes="glassBody" Text="Lowest latency, but reserves the device. Falls back to shared mode when unavailable." />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1" Classes="compact" IsChecked="{Binding ExclusiveMode}" VerticalAlignment="Center"
+                                  AutomationProperties.Name="WASAPI exclusive mode" />
+                </Grid>
+            </Border>
+            <TextBlock Classes="subtitle mono" Margin="4,0,0,0" Text="{Binding AudioStatsText}"
+                       IsVisible="{Binding AudioStatsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

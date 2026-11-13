@@ -3,7 +3,7 @@
 > Legal review required. Replace every bracketed field before accepting payment.
 
 This agreement is between **[SELLER LEGAL NAME AND ADDRESS]** and the person who
-downloads or uses BorderlessMouse.
+downloads or uses Seam.
 
 1. **License.** A Personal license grants one named user a revocable,
    non-exclusive and non-transferable right to install the application on up to

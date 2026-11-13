@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:Seam.ViewModels"
+             xmlns:views="using:Seam.Views"
+             x:Class="Seam.Views.Pages.SettingsPage"
+             x:DataType="vm:MainViewModel">
+    <!-- Panele osobnego okna Ustawień (SettingsWindow): widać tylko kartę wybranej strony (Show). -->
+    <ScrollViewer>
+        <StackPanel Spacing="14" Margin="24,8,24,24" MaxWidth="760">
+            <!-- Licencja: stan Seam Pro, okres próbny, klucz, zakup i dezaktywacja (Ustawienia → Licencja na Macu) -->
+            <Border Classes="card" x:Name="LicenseCard">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader">
+                        <TextBlock Text="LICENSE" />
+                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding LicenseHeadline}" FontSize="17" FontWeight="SemiBold" />
+                                <Border Classes="proBadge" IsVisible="{Binding IsPro}"><TextBlock Text="PRO" /></Border>
+                            </StackPanel>
+                            <TextBlock Classes="subtitle" FontSize="13" Text="{Binding LicenseDetail}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button Theme="{StaticResource ProGlassButton}" Content="{Binding StartTrialLabel}" Command="{Binding StartTrialCommand}" IsVisible="{Binding CanStartTrial}" />
+                            <Button Theme="{StaticResource ProPrimaryButton}" Content="{Binding BuyProLabel}" Command="{Binding BuyProCommand}" IsVisible="{Binding !IsPro}" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Classes="subtitle" Text="{Binding TesterOfferText}" IsVisible="{Binding ShowsTesterOffer}" />
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="License key" Subtitle="From the purchase email. One license covers up to 3 computers."
+                                      IsVisible="{Binding !HasLicense}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox Text="{Binding LicenseKeyInput}" Watermark="SEAM-XXXXX-XXXXX-XXXXX-XXXXX" Width="280" />
+                            <Button Content="Activate" Command="{Binding ActivateLicenseCommand}" IsEnabled="{Binding !IsLicenseBusy}" />
+                        </StackPanel>
+                    </views:SettingRow>
+                    <views:SettingRow Title="License key" Subtitle="{Binding LicenseKeyDetail}" IsVisible="{Binding HasLicense}">
+                        <Button Content="Deactivate" Command="{Binding DeactivateLicenseCommand}" IsEnabled="{Binding !IsLicenseBusy}" />
+                    </views:SettingRow>
+                    <TextBlock Classes="subtitle" Text="{Binding LicenseCheckedText}" IsVisible="{Binding HasLicense}" />
+                    <TextBlock Classes="subtitle" Foreground="#FF9F0A" Text="{Binding LicenseError}"
+                               IsVisible="{Binding LicenseError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="subtitle" Text="Free: keyboard and mouse, text in the clipboard. Pro: Mac audio, windows in both directions, images in the clipboard. Pro works on both computers when either of them has a license or a trial." />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" x:Name="GeneralCard">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="THIS PC" /></StackPanel>
+                    <views:SettingRow Title="This PC name" Subtitle="Shown in the Mac app.">
+                        <TextBox Text="{Binding DeviceName}" Width="200" />
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" x:Name="StartupCard">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="STARTUP" /></StackPanel>
+                    <views:SettingRow Title="Launch at sign-in" Subtitle="{Binding AutostartStatus}">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding LaunchAtLogin}" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Start minimized to tray"
+                                      Subtitle="Keep the window hidden at startup; use the tray icon to open it.">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding StartMinimized}" IsEnabled="{Binding LaunchAtLogin}" />
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" x:Name="LanguageCard">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="LANGUAGE" /></StackPanel>
+                    <views:SettingRow Title="App language" Subtitle="{Binding LanguageSubtitle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Restart" Command="{Binding RestartAppCommand}" IsVisible="{Binding LanguageRestartNeeded}" />
+                            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" MinWidth="140" />
+                        </StackPanel>
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" x:Name="UpdatesCard">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="SOFTWARE UPDATE" /></StackPanel>
+                    <views:SettingRow Title="{Binding VersionLabel}" Subtitle="{Binding UpdateStatusText}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ProgressBar IsIndeterminate="True" Width="120" Height="4" IsVisible="{Binding IsCheckingUpdates}" />
+                            <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" Width="120" Height="4" IsVisible="{Binding IsInstallingUpdate}" />
+                            <Button Content="Check now" Command="{Binding CheckUpdatesCommand}" IsVisible="{Binding !UpdateAvailable}" />
+                            <Button Classes="accent" Content="Install" Command="{Binding InstallUpdateCommand}" IsVisible="{Binding UpdateAvailable}" />
+                        </StackPanel>
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Check automatically" Subtitle="At startup and every six hours through GitHub Releases.">
+                        <ToggleSwitch Classes="compact" IsChecked="{Binding AutoCheckUpdates}" />
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" x:Name="AdvancedCard">
+                <StackPanel Spacing="12">
+                    <StackPanel Classes="sectionHeader"><TextBlock Text="NETWORK" /></StackPanel>
+                    <views:SettingRow Title="Mac TCP port" Subtitle="Default 47800 — must match the Mac setting.">
+                        <TextBox Text="{Binding ControlPortText}" Width="90" />
+                    </views:SettingRow>
+                    <Rectangle Classes="divider" />
+                    <views:SettingRow Title="Audio UDP port on this PC" Subtitle="Default 47802. Windows Firewall must allow it.">
+                        <TextBox Text="{Binding AudioPortText}" Width="90" />
+                    </views:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <StackPanel x:Name="AboutCard" Spacing="14">
+                <Border Classes="card">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" Margin="0,10">
+                        <Image Source="avares://Seam/Assets/logo.png" Width="72" Height="72" HorizontalAlignment="Center" />
+                        <TextBlock Text="seam" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Classes="subtitle" Text="{Binding VersionLabel}" HorizontalAlignment="Center" />
+                        <TextBlock Classes="subtitle" Text="One keyboard, mouse, clipboard and sound for your Mac and PC." HorizontalAlignment="Center" TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <StackPanel Classes="sectionHeader"><TextBlock Text="HELP" /></StackPanel>
+                        <views:SettingRow Title="Changelog" Subtitle="What changed in each version.">
+                            <Button Content="Open" Click="OpenChangelog" />
+                        </views:SettingRow>
+                        <Rectangle Classes="divider" />
+                        <views:SettingRow Title="Report a problem" Subtitle="Describe what happened; attach the Diagnostics log if you can.">
+                            <Button Content="Open" Click="OpenIssues" />
+                        </views:SettingRow>
+                        <Rectangle Classes="divider" />
+                        <views:SettingRow Title="Privacy policy" Subtitle="No accounts, ads or tracking. Everything stays on your local network.">
+                            <Button Content="Open" Click="OpenPrivacy" />
+                        </views:SettingRow>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

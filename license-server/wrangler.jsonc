@@ -1,0 +1,29 @@
+// Serwer licencji Seam Pro na Cloudflare Workers (api.seamdesk.app). Konfiguracja i pierwsze uruchomienie: README.md.
+// Deploy: .github/workflows/license-server.yml. Sekrety (wrangler secret put): STRIPE_WEBHOOK_SECRET,
+// STRIPE_WEBHOOK_SECRET_TEST, RESEND_API_KEY.
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  "name": "seam-license",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "api.seamdesk.app", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "seam-licenses",
+      // wynik `npx wrangler d1 create seam-licenses --location weur` (2026-11-13)
+      "database_id": "91896c40-347d-41f9-9956-7b20c67345b4",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "SITE_URL": "https://seamdesk.app",
+    "SITE_ORIGINS": "https://seamdesk.app,https://www.seamdesk.app",
+    "EMAIL_FROM": "Seam <license@seamdesk.app>",
+    "SUPPORT_EMAIL": "support@seamdesk.app",
+    "MAX_DEVICES": "3",
+    // Identyfikatory Payment Links (plink_…) po przecinku: live, potem test (konto Stripe SeamDesk)
+    "PAYMENT_LINKS": "plink_1Ub7b1BANigsTD5abZ0s0sWm,plink_1Ub6zCBANigsTD5a1ggqykzE"
+  },
+  "observability": { "enabled": true }
+}

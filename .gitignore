@@ -1,6 +1,6 @@
 # macOS
 macos/build/
-macos/BorderlessMouse.xcodeproj/
+macos/Seam.xcodeproj/
 macos/*.xcworkspace/
 .DS_Store
 xcuserdata/
@@ -13,3 +13,10 @@ windows/publish/
 *.user
 *.suo
 .vs/
+
+# Lokalne zrzuty ekranu i wyniki podglądu UI
+output/
+
+# Cloudflare (serwer licencji i strona)
+.wrangler/
+node_modules/

@@ -1,6 +1,6 @@
 # Security policy
 
-BorderlessMouse handles keyboard input, clipboard contents and system audio.
+Seam handles keyboard input, clipboard contents and system audio.
 Please do not publish vulnerability details in a public issue.
 
 ## Reporting
@@ -24,4 +24,4 @@ unsupported because it did not authenticate or encrypt LAN traffic.
 - Update installation requires a checksum and a detached ECDSA signature from the
   project-owned update key. macOS additionally verifies the complete app bundle signature.
 
-See `PROTOCOL.md` for the wire format and trust boundaries.
+See `docs/PROTOCOL.md` for the wire format and trust boundaries.

@@ -1,0 +1,7 @@
+Generated with the built-in image_gen tool.
+
+seam-windows.png
+Use case: stylized-concept. Create a premium desktop app illustration asset for 'seam': two overlapping empty translucent smoked glass application windows in perspective, front left window with three small silver macOS titlebar circles, rear right window with tiny silver Windows minimize square close symbols. Thick rounded glass bevels, softly luminous silver edges, graphite translucent faces, elegant realistic 3D studio render. Front panel lower and left, rear panel taller and right. Entire pair centered and fully within frame with generous 12% padding. No lettering, no logos, no UI content. Transparent background with subtle contact shadows beneath windows, no opaque backdrop. Muted monochrome silver and charcoal, lighting from upper left. Square 1024 composition. This is only the decorative paired-window asset, not a screenshot or whole app.
+
+seam-icon.png
+Use case: logo-brand. Create a premium macOS/Windows desktop application brand icon for seam. A single graphite rounded-square tile, front facing, holding two overlapping tiny smoked-glass rounded application windows, back window upper left, front window lower right. Silver luminous beveled rims, subtle three silver dots in upper left of each window. Realistic refined 3D glass and dark brushed metal, restrained monochrome, soft upper-left studio lighting. No letters or text. Tile occupies 85% of square image, outside tile fully transparent. Readable silhouette at 32 pixels. 1024 square.
