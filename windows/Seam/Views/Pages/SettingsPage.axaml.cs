@@ -7,7 +7,7 @@ namespace Seam.Views.Pages;
 public partial class SettingsPage : UserControl
 {
     // Adresy w jednym miejscu (jak AppLinks na macOS): po starcie strony zmienią się tylko tutaj.
-    private const string ChangelogUrl = "https://github.com/pkozubski/seam/blob/main/CHANGELOG.md";
+    private const string ChangelogUrl = "https://github.com/pkozubski/seam-releases/releases";
     private const string IssuesUrl = "mailto:support@seamdesk.app";
     private const string PrivacyUrl = "https://seamdesk.app/legal/privacy/";
 

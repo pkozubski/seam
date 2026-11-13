@@ -8,7 +8,8 @@ import Foundation
 @MainActor
 final class Updater: ObservableObject {
     static let owner = "pkozubski"
-    static let repo = "seam"
+    /// Publiczne repo tylko z wydaniami; kod źródłowy (`pkozubski/seam`) jest prywatny.
+    static let repo = "seam-releases"
     static let assetName = "Seam-macOS.zip"
     static let checksumsName = "SHA256SUMS.txt"
     static let signatureName = "Seam-macOS.zip.sig"

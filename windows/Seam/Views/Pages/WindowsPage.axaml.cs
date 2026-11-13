@@ -9,7 +9,7 @@ namespace Seam.Views.Pages;
 
 public partial class WindowsPage : UserControl
 {
-    private const string HelpUrl = "https://github.com/pkozubski/seam#uruchomienie-krok-po-kroku";
+    private const string HelpUrl = "https://seamdesk.app/#start";
     private static readonly string[] Watched =
     {
         nameof(MainViewModel.SelectedMacSide), nameof(MainViewModel.IsConnected), nameof(MainViewModel.SessionPro),

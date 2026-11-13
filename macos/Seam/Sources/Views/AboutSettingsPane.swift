@@ -4,7 +4,7 @@ import SwiftUI
 /// Adresy w jednym miejscu. Lista zmian zostaje na GitHubie, dopóki strona nie ma własnej.
 enum AppLinks {
     static let website = URL(string: "https://seamdesk.app/")!
-    static let changelog = URL(string: "https://github.com/pkozubski/seam/blob/main/CHANGELOG.md")!
+    static let changelog = URL(string: "https://github.com/pkozubski/seam-releases/releases")!
     static let privacy = URL(string: "https://seamdesk.app/legal/privacy/")!
     static let reportProblem = URL(string: "mailto:support@seamdesk.app")!
 }

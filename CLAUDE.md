@@ -65,9 +65,10 @@ zgody systemowe, zapisane ustawienia, sparowane urządzenia i aktualizacje już 
 
 ## Wydania i aktualizacje
 
-- Repozytorium: https://github.com/pkozubski/seam (dawny adres przekierowuje).
+- Repozytorium kodu: https://github.com/pkozubski/seam (prywatne). Pliki do pobrania i aktualizacje są w publicznym
+  https://github.com/pkozubski/seam-releases (`Updater.repo`); workflowy publikują tam sekretem `RELEASES_REPO_TOKEN`.
 - **Kanał testowy:** każdy push na `feature/virtual-display` uruchamia `dev-build.yml`, który publikuje wydanie
-  `dev-build` (tytuł `Seam dev 2.1.<run>`). Aplikacje z kanału dev sprawdzają je co 2 minuty i instalują się same,
+  `dev-build` (tytuł `Seam dev 3.0.<run>`). Aplikacje z kanału dev sprawdzają je co 2 minuty i instalują się same,
   więc po pushu wystarczy poczekać, bez ręcznego pobierania.
 - **Stabilne:** `git tag v2.x.y && git push origin v2.x.y` → `release.yml`. Szczegóły w [docs/RELEASE.md](docs/RELEASE.md).
 - Artefakty są podpisane kluczem ECDSA (`security/update-signing-public.pem`); klucz prywatny i certyfikat

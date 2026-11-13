@@ -34,7 +34,7 @@ jobs:
         run: bash macos/ci/import-signing.sh
       - name: Build
         working-directory: macos
-        run: REQUIRE_SDK_MAJOR=26 UNIVERSAL=1 UPDATE_CHANNEL=dev VERSION="2.1.${{ github.run_number }}" BUILD_NUMBER="${{ github.run_number }}" ./build.sh
+        run: REQUIRE_SDK_MAJOR=26 UNIVERSAL=1 UPDATE_CHANNEL=dev VERSION="3.0.${{ github.run_number }}" BUILD_NUMBER="${{ github.run_number }}" ./build.sh
       - name: Verify windows, update channel and signed updates
         run: |
           bash macos/tests/window-check.sh
@@ -71,7 +71,7 @@ jobs:
       - name: Publish
         shell: pwsh
         run: |
-          $version = "2.1.${{ github.run_number }}"
+          $version = "3.0.${{ github.run_number }}"
           dotnet publish windows/Seam/Seam.csproj -c Release -r win-x64 `
             --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:Version=$version -p:InformationalVersion="$version-dev" -p:UpdateChannel=dev --no-restore -o publish
@@ -121,12 +121,16 @@ jobs:
           cp Seam-macOS.zip.sig BorderlessMouse-macOS.zip.sig
           cp Seam-Windows-x64.exe.sig BorderlessMouse-Windows-x64.exe.sig
       - name: Publish dev-build pre-release
+        # Wydania leżą w publicznym pkozubski/seam-releases (kod źródłowy jest prywatny); token: fine-grained PAT
+        # z prawem Contents: write tylko do seam-releases, sekret środowiska production-release.
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          RELEASES_REPO: pkozubski/seam-releases
         run: |
-          gh release delete dev-build --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
-          gh release create dev-build --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
-            --title "Seam dev 2.1.${{ github.run_number }}" \
+          : "${GH_TOKEN:?Brak RELEASES_REPO_TOKEN}"
+          gh release delete dev-build --repo "$RELEASES_REPO" --cleanup-tag --yes || true
+          gh release create dev-build --repo "$RELEASES_REPO" --prerelease \
+            --title "Seam dev 3.0.${{ github.run_number }}" \
             --notes-file .github/dev-release-notes.md \
             dist/Seam-macOS.zip dist/Seam-macOS.zip.sig \
             dist/Seam-Windows-x64.exe dist/Seam-Windows-x64.exe.sig \

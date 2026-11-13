@@ -115,13 +115,17 @@ jobs:
           cp dist/Seam-macOS.zip.sig dist/BorderlessMouse-macOS.zip.sig
           cp dist/Seam-Windows-x64.exe.sig dist/BorderlessMouse-Windows-x64.exe.sig
       - name: Create release
+        # Wydania leżą w publicznym pkozubski/seam-releases (kod źródłowy jest prywatny); token: fine-grained PAT
+        # z prawem Contents: write tylko do seam-releases, sekret środowiska production-release.
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          RELEASES_REPO: pkozubski/seam-releases
         run: |
+          : "${GH_TOKEN:?Brak RELEASES_REPO_TOKEN}"
           gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Seam $GITHUB_REF_NAME" \
-            --notes "Bezpłatna beta. Windows może przy pierwszym uruchomieniu pokazać Unknown publisher, a macOS wymagać opcji Open Anyway w Privacy & Security. Nie wyłączaj globalnie SmartScreen ani Gatekeepera. Kolejne aktualizacje są chronione SHA-256 i przypiętym podpisem ECDSA." \
+            --repo "$RELEASES_REPO" \
+            --title "Seam ${GITHUB_REF_NAME#v}" \
+            --notes-file .github/release-notes.md \
             dist/Seam-macOS.zip dist/Seam-Windows-x64.exe \
             dist/Seam-macOS.zip.sig dist/Seam-Windows-x64.exe.sig \
             dist/BorderlessMouse-macOS.zip dist/BorderlessMouse-macOS.zip.sig \

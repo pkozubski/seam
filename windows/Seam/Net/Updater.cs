@@ -20,7 +20,8 @@ public sealed record ReleaseInfo(string Version, string Tag, string Notes, strin
 public sealed class Updater
 {
     public const string Owner = "pkozubski";
-    public const string Repo = "seam";
+    /// <summary>Publiczne repo tylko z wydaniami; kod źródłowy (<c>pkozubski/seam</c>) jest prywatny.</summary>
+    public const string Repo = "seam-releases";
     public const string AssetName = "Seam-Windows-x64.exe";
     public const string ChecksumsName = "SHA256SUMS.txt";
     public const string SignatureName = AssetName + ".sig";

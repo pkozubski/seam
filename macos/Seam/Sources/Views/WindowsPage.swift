@@ -6,7 +6,7 @@ struct WindowsPage: View {
     var openConnection: () -> Void = {}
     var fullPreview = false
 
-    private static let helpURL = URL(string: "https://github.com/pkozubski/seam#uruchomienie-krok-po-kroku")!
+    private static let helpURL = URL(string: "https://seamdesk.app/#start")!
 
     private var status: String {
         if !state.proUnlocked { return L10n.text("Paused — needs Seam Pro", pl: "Wstrzymane – wymaga Seam Pro") }
